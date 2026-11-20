@@ -1,9 +1,18 @@
 name: CI
 
 on:
+  # Every branch (the repository's working branches are not named main) and every PR
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -30,3 +39,9 @@ jobs:
 
       - name: Bundle Worker (no deploy)
         run: npx wrangler deploy --dry-run --outdir dist/worker
+
+      - name: Worker bundle contains no seed business data
+        run: |
+          if grep -l "excel_contracts\|SGII_LEG_CON\|Blackstone" dist/worker/*.js; then
+            echo "Business data found in the Worker bundle" && exit 1
+          fi

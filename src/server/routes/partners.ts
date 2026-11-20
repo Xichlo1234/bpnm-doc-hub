@@ -75,6 +75,16 @@ partnersRouter.patch('/:id', requireAdmin, async (c) => {
   if (!updated) {
     return c.json({ error: 'Partner not found', code: 'PARTNER_NOT_FOUND' }, 404);
   }
+  const currentUser = getAuthUser(c)!;
+  store.recordAuditLog({
+    user_id: currentUser.id,
+    username: currentUser.username,
+    action: 'update',
+    entity_type: 'partner',
+    entity_id: id,
+    entity_title: updated.name_vn,
+    details: `Cập nhật đối tác: ${updated.code} - ${updated.name_vn}`,
+  });
   await store.persistAsync();
   return c.json(updated);
 });

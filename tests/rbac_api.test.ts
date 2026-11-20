@@ -13,7 +13,7 @@ describe('RBAC API & User Management', () => {
     const adminLoginRes = await app.request('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'Admin@6868' }),
+      body: JSON.stringify({ username: 'admin', password: 'AdminTest@2026' }),
     });
     const adminData = (await adminLoginRes.json()) as any;
     adminToken = adminData.token;
@@ -22,7 +22,7 @@ describe('RBAC API & User Management', () => {
     const userLoginRes = await app.request('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'user', password: 'User@123456' }),
+      body: JSON.stringify({ username: 'user', password: 'UserTest@2026' }),
     });
     const userData = (await userLoginRes.json()) as any;
     userToken = userData.token;

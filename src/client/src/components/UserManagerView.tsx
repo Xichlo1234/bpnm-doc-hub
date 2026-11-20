@@ -121,6 +121,21 @@ export const UserManagerView: React.FC = () => {
     }
   };
 
+  const handleToggleConfidentialAccess = async (user: UserAccount) => {
+    if (user.role === 'admin') {
+      showToast(t.usersAdminAccountsHaveFullAccess);
+      return;
+    }
+    const nextVal = !Boolean(user.can_access_confidential_documents);
+    try {
+      await api.updateUser(user.id, { can_access_confidential_documents: nextVal } as any);
+      showToast(tf(nextVal ? 'usersConfidentialGranted' : 'usersConfidentialRevoked', { username: user.username }));
+      fetchUsers();
+    } catch (err: any) {
+      showToast(err?.message || t.usersFailedToUpdateConfidential, false);
+    }
+  };
+
   const handleResetPassword = async () => {
     if (!resetTargetUser) return;
     try {
@@ -254,6 +269,7 @@ export const UserManagerView: React.FC = () => {
               <th style={{ padding: '10px 14px', color: '#F59E0B', fontWeight: 700 }}>
                 🔒 {t.usersLaborContractsAccess}
               </th>
+              <th style={{ padding: '10px 14px', color: '#DC2626', fontWeight: 700 }}>🔒 {t.usersConfidentialAccess}</th>
               <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700 }}>{t.usersStatus}</th>
               <th style={{ padding: '10px 14px', color: 'var(--text-muted)', fontWeight: 700, textAlign: 'center' }}>{t.usersActions}</th>
             </tr>
@@ -261,19 +277,20 @@ export const UserManagerView: React.FC = () => {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={9} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={10} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
                   {t.usersLoadingUserAccounts}
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan={10} style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
                   {t.usersNoUserAccountsFound}
                 </td>
               </tr>
             ) : (
               users.map((u, i) => {
                 const hasLabor = u.role === 'admin' || Boolean(u.can_access_labor_contracts);
+                const hasConfidential = u.role === 'admin' || Boolean(u.can_access_confidential_documents);
                 return (
                   <tr key={u.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <td style={{ padding: '12px 14px', color: 'var(--text-muted)' }}>{i + 1}</td>
@@ -362,6 +379,33 @@ export const UserManagerView: React.FC = () => {
                               ? t.usersAuthorizedClickToRevoke
                               : t.usersNoAccessClickToGrant}
                           </span>
+                        </button>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      {u.role === 'admin' ? (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#F59E0B' }}>{t.usersDefaultAdmin}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleConfidentialAccess(u)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: hasConfidential ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-strong)',
+                            background: hasConfidential ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-surface-subtle)',
+                            color: hasConfidential ? '#10B981' : 'var(--text-muted)',
+                          }}
+                          title={t.usersClickToGrantRevokeAccess}
+                        >
+                          {hasConfidential ? <Unlock size={12} /> : <Lock size={12} />}
+                          <span>{hasConfidential ? t.usersAuthorizedClickToRevoke : t.usersNoAccessClickToGrant}</span>
                         </button>
                       )}
                     </td>
@@ -513,6 +557,7 @@ export const UserManagerView: React.FC = () => {
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                   />
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t.usersMustChangePasswordHint}</p>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
@@ -655,6 +700,7 @@ export const UserManagerView: React.FC = () => {
                   value={resetPasswordVal}
                   onChange={e => setResetPasswordVal(e.target.value)}
                 />
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t.usersMustChangePasswordHint}</p>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
                 <button

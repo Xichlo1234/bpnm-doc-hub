@@ -13,6 +13,12 @@ export default defineConfig({
           if (req.url && req.url.startsWith('/api')) {
             try {
               const serverEntry = path.resolve(__dirname, 'src/server/index.ts');
+              // SEED_DEMO=1 npm run dev: a fresh local database starts with the synthetic fixtures
+              if (process.env.SEED_DEMO === '1') {
+                const { setSeedDataset } = await server.ssrLoadModule(path.resolve(__dirname, 'src/server/db/seed.ts'));
+                const { fixtureDataset } = await server.ssrLoadModule(path.resolve(__dirname, 'tests/fixtures/index.ts'));
+                setSeedDataset(fixtureDataset);
+              }
               const { app } = await server.ssrLoadModule(serverEntry);
               const protocol = req.headers['x-forwarded-proto'] || 'http';
               const host = req.headers.host || 'localhost:5180';

@@ -24,7 +24,7 @@ describe('File Upload & Google Drive Sync API', () => {
     expect(uploadData.file_name).toBe(fileName);
     expect(uploadData.file_size).toBe(fileContent.length);
     expect(uploadData.file_type).toBe('application/pdf');
-    expect(uploadData.file_key).toMatch(/^uploads\/\d+_test_sample_contract\.pdf$/);
+    expect(uploadData.file_key).toMatch(/^uploads\/\d+_[0-9a-f]{8}_test_sample_contract\.pdf$/);
 
     // Verify file exists on disk
     const savedPath = path.join(DATA_DIR, uploadData.file_key);

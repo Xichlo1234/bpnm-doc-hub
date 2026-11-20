@@ -52,6 +52,14 @@ async function customFetch(url: string, init: RequestInit = {}): Promise<Respons
   });
   if (res.status === 401) {
     handleUnauthorizedResponse(url);
+  } else if (res.status === 403 && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    res
+      .clone()
+      .json()
+      .then((body: any) => {
+        if (body?.code === 'PASSWORD_CHANGE_REQUIRED') window.dispatchEvent(new CustomEvent('auth:password-change-required'));
+      })
+      .catch(() => {});
   }
   return res;
 }
@@ -138,6 +146,21 @@ export const api = {
       throw new Error(tr('errNotLoggedIn'));
     }
     return res.json();
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ token: string; user: any }> {
+    const res = await customFetch(`${API_BASE}/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as any;
+      throw new Error(trServerError(err, tr('cpwFailed')));
+    }
+    const data = (await res.json()) as { token: string; user: any };
+    authStorage.setToken(data.token);
+    return data;
   },
 
   async logout(): Promise<void> {

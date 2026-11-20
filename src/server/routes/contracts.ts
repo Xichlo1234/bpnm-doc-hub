@@ -1,7 +1,10 @@
 import { Hono, type Context, type Next } from 'hono';
 import { store } from '../db/store.ts';
-import { saveUploadedFile } from '../utils/fileStorage.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
+import { getDatabase } from '../db/database.ts';
+import { canReadContract } from '../utils/access.ts';
+import { canAttachFile } from '../utils/fileAccess.ts';
+import { readRecordRequest, storeAttachment, applyCloudLink } from '../utils/recordRequest.ts';
 import { contractInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
 import { isLaborContract, canAccessLaborContracts } from '../types.ts';
 
@@ -23,10 +26,7 @@ async function requireAdminOrLaborAccess(c: Context, next: Next) {
 contractsRouter.get('/', (c) => {
   const urgency = c.req.query('urgency');
   const currentUser = getAuthUser(c);
-  let contracts = store.getContracts(urgency);
-  if (!canAccessLaborContracts(currentUser)) {
-    contracts = contracts.filter(ct => !isLaborContract(ct));
-  }
+  const contracts = store.getContracts(urgency).filter((ct) => canReadContract(currentUser, ct));
   return c.json(contracts);
 });
 
@@ -38,7 +38,7 @@ contractsRouter.get('/:id', (c) => {
     return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
   }
   const currentUser = getAuthUser(c);
-  if (isLaborContract(contract) && !canAccessLaborContracts(currentUser)) {
+  if (!canReadContract(currentUser, contract)) {
     return c.json({ error: 'Hợp đồng lao động bảo mật: Bạn không có quyền xem hồ sơ này.', code: 'LABOR_CONTRACT_FORBIDDEN' }, 403);
   }
   return c.json(contract);
@@ -81,67 +81,39 @@ contractsRouter.post('/bulk-import', requireAdmin, async (c) => {
 
 // POST /api/contracts (Admin or Labor-Contract Authorized User)
 contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
-  const contentType = c.req.header('content-type') || '';
-  let body: any;
-
-  if (contentType.includes('application/json')) {
-    body = await c.req.json();
-  } else if (contentType.includes('multipart/form-data')) {
-    const formData = await c.req.formData();
-    body = {};
-    for (const [key, value] of formData.entries()) {
-      if (key !== 'file' && typeof value === 'string') {
-        body[key] = value;
-      }
-    }
-    body.value = Number(body.value) || 0;
-    body.contract_type = body.contract_type || 'service';
-    body.status = body.status || 'active';
-    body.currency = body.currency || 'USD';
-    const file = formData.get('file');
-    if (file && typeof file === 'object' && 'name' in file && (file as File).size > 0) {
-      const uploaded = await saveUploadedFile(file as File, c.env);
-      body.file_name = uploaded.file_name;
-      body.file_size = uploaded.file_size;
-      body.file_type = uploaded.file_type;
-      body.file_key = uploaded.file_key;
-    }
-  } else {
-    body = await c.req.json().catch(() => ({}));
+  const request = await readRecordRequest(c);
+  if (c.req.header('content-type')?.includes('multipart/form-data')) {
+    const raw = request.body;
+    raw.value = Number(raw.value) || 0;
+    raw.contract_type = raw.contract_type || 'service';
+    raw.status = raw.status || 'active';
+    raw.currency = raw.currency || 'USD';
   }
 
-  const parsed = parseInput(c, contractInput.create, body);
+  const parsed = parseInput(c, contractInput.create, request.body);
   if (!parsed.ok) return parsed.response;
-  body = parsed.data;
-
-  // Handle cloud drive link if provided
-  if (body.google_drive_url && !body.file_key) {
-    const driveUrl = String(body.google_drive_url).trim();
-    if (driveUrl) {
-      body.google_drive_url = driveUrl;
-      body.google_drive_synced_at = new Date().toISOString();
-      body.file_key = driveUrl;
-      if (!body.file_name) {
-        body.file_name = driveUrl.includes('onedrive') || driveUrl.includes('sharepoint')
-          ? 'OneDrive / SharePoint Link'
-          : 'Google Drive Link';
-      }
-    }
-  }
+  const body: any = parsed.data;
+  applyCloudLink(body);
 
   if (!body.contract_number || !body.title || !body.party_a || !body.party_b || !body.signed_date || !body.start_date) {
     return c.json({ error: 'Missing required contract fields', code: 'CONTRACT_FIELDS_REQUIRED' }, 400);
   }
 
-  const currentUser = getAuthUser(c);
-  if (currentUser?.role !== 'admin' && !isLaborContract(body)) {
+  const currentUser = getAuthUser(c)!;
+  if (currentUser.role !== 'admin' && !isLaborContract(body)) {
     return c.json({ error: 'Bạn chỉ được phân quyền quản lý mục Hợp đồng Lao động.', code: 'LABOR_ONLY_MANAGE' }, 403);
   }
+  if (!(await canAttachFile(await getDatabase(c.env), currentUser, body.file_key))) {
+    return c.json({ error: 'Bạn không có quyền gắn tệp này vào hồ sơ.', code: 'FILE_ATTACH_FORBIDDEN' }, 403);
+  }
+
+  const attachment = request.file ? await storeAttachment(c, request.file, currentUser.id) : null;
+  if (attachment) Object.assign(body, attachment.fields);
   const newContract = store.createContract(body);
 
   store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
+    user_id: currentUser.id,
+    username: currentUser.username,
     action: 'create',
     entity_type: 'contract',
     entity_id: newContract.id,
@@ -149,7 +121,12 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
     details: `Tạo hợp đồng ${newContract.contract_number} - ${newContract.title}`,
   });
 
-  await store.persistAsync();
+  try {
+    await store.persistAsync();
+  } catch (err) {
+    await attachment?.rollback();
+    throw err;
+  }
   return c.json(newContract, 201);
 });
 
@@ -200,6 +177,9 @@ contractsRouter.patch('/:id', requireAdminOrLaborAccess, async (c) => {
   // Non-admins may only edit labor contracts, and may not turn them into (or out of) another type
   if (currentUser?.role !== 'admin' && !(isLaborContract(existing) && isLaborContract({ ...existing, ...body }))) {
     return c.json({ error: 'Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.', code: 'LABOR_ONLY_EDIT' }, 403);
+  }
+  if (body.file_key !== undefined && !(await canAttachFile(await getDatabase(c.env), currentUser, body.file_key, existing.file_key))) {
+    return c.json({ error: 'Bạn không có quyền gắn tệp này vào hồ sơ.', code: 'FILE_ATTACH_FORBIDDEN' }, 403);
   }
   const updated = store.updateContract(id, body);
   if (!updated) {

@@ -117,6 +117,7 @@ export const userInput = {
     role: role.optional(),
     department: z.string().max(200).nullable().optional(),
     can_access_labor_contracts: z.boolean().optional(),
+    can_access_confidential_documents: z.boolean().optional(),
   }),
   update: z.object({
     name: z.string().trim().min(1).max(200).optional(),
@@ -126,6 +127,7 @@ export const userInput = {
     department: z.string().max(200).nullable().optional(),
     preferred_language: z.enum(['vi', 'en', 'km']).optional(),
     can_access_labor_contracts: z.boolean().optional(),
+    can_access_confidential_documents: z.boolean().optional(),
     password: z.string().max(200).optional(),
   }),
 };

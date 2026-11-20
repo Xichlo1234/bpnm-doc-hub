@@ -10,6 +10,8 @@ export interface UserProfile {
   department?: string | null;
   status?: 'active' | 'locked';
   can_access_labor_contracts?: boolean;
+  can_access_confidential_documents?: boolean;
+  must_change_password?: boolean;
 }
 
 interface AuthContextType {
@@ -19,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,8 +64,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(null);
     };
 
+    // The server refused a call because this account must change its password first
+    const handlePasswordChangeRequired = () => {
+      setUser((current) => (current ? { ...current, must_change_password: true } : current));
+    };
+
     window.addEventListener('auth:expired', handleExpired);
-    return () => window.removeEventListener('auth:expired', handleExpired);
+    window.addEventListener('auth:password-change-required', handlePasswordChangeRequired);
+    return () => {
+      window.removeEventListener('auth:expired', handleExpired);
+      window.removeEventListener('auth:password-change-required', handlePasswordChangeRequired);
+    };
   }, []);
 
   // Re-read the session when another tab logs in or out (all tabs share the stored token)
@@ -100,6 +112,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(res.token);
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const res = await api.changePassword(currentPassword, newPassword);
+    setUser(res.user);
+    setToken(res.token);
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -121,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
+        changePassword,
       }}
     >
       {children}

@@ -698,45 +698,64 @@ export class MemoryStore {
     return this.settings;
   }
 
-  // Notification methods
+  // Notification methods. Each notification belongs to one account (recipient_user_id); ones whose
+  // recipient could not be matched to an account are visible to admins only.
   public getNotifications(): NotificationRecord[] {
     return [...this.notifications].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+
+  public getNotificationsForUser(user: { id: string; role?: string | null }): NotificationRecord[] {
+    return this.getNotifications().filter(
+      (n) => n.recipient_user_id === user.id || (user.role === 'admin' && !n.recipient_user_id)
+    );
+  }
+
+  /** Finds the account a free-text handler/recipient name refers to (username, full name or email). */
+  public resolveUserByName(name?: string | null): UserAccount | null {
+    const target = normalizeVietnamese(String(name || '').trim());
+    if (!target) return null;
+    for (const u of this.users.values()) {
+      if (u.status !== 'active') continue;
+      const candidates = [u.username, u.name, u.email].map((v) => normalizeVietnamese(String(v || '').trim()));
+      if (candidates.includes(target)) return { ...u };
+    }
+    return null;
   }
 
   public addNotification(notif: Omit<NotificationRecord, 'id' | 'read' | 'created_at'>): NotificationRecord {
     const id = 'notif-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     const now = new Date().toISOString();
+    const recipientUser = notif.recipient_user_id ? this.users.get(notif.recipient_user_id) : this.resolveUserByName(notif.recipient);
     const newNotif: NotificationRecord = {
       ...notif,
+      recipient_user_id: recipientUser?.id ?? null,
+      recipient_email: notif.recipient_email ?? recipientUser?.email ?? null,
       id,
       read: false,
       created_at: now,
     };
 
-    // Log email dispatch to console/worker log for future SMTP integration
-    const recipientEmail = notif.recipient_email || `${normalizeVietnamese(notif.recipient || 'staff').replace(/\s+/g, '.')}@sambogold.com`;
-    console.log(`[EMAIL DISPATCH LOG] To: ${recipientEmail} | Subject: [SGII - ${notif.title}] | Message: ${notif.message}`);
-
     this.notifications.unshift(newNotif);
-    // Keep max 100 recent notifications
-    if (this.notifications.length > 100) {
-      this.notifications = this.notifications.slice(0, 100);
+    // Keep max 500 recent notifications
+    if (this.notifications.length > 500) {
+      this.notifications = this.notifications.slice(0, 500);
     }
     return newNotif;
   }
 
-  public markNotificationAsRead(id: string): boolean {
-    const notif = this.notifications.find(n => n.id === id);
-    if (notif) {
-      notif.read = true;
-      return true;
-    }
-    return false;
+  public markNotificationAsRead(id: string, user?: { id: string; role?: string | null }): boolean {
+    const visible = user ? this.getNotificationsForUser(user) : this.notifications;
+    const notif = visible.find((n) => n.id === id);
+    if (!notif) return false;
+    const stored = this.notifications.find((n) => n.id === id)!;
+    stored.read = true;
+    return true;
   }
 
-  public markAllNotificationsAsRead(): boolean {
+  public markAllNotificationsAsRead(user?: { id: string; role?: string | null }): boolean {
+    const ids = new Set((user ? this.getNotificationsForUser(user) : this.notifications).map((n) => n.id));
     for (const notif of this.notifications) {
-      notif.read = true;
+      if (ids.has(notif.id)) notif.read = true;
     }
     return true;
   }
@@ -932,6 +951,7 @@ export class MemoryStore {
       department: user.department || '',
       preferred_language: user.preferred_language || 'vi',
       can_access_labor_contracts: user.role === 'admin' ? true : Boolean(user.can_access_labor_contracts),
+      can_access_confidential_documents: user.role === 'admin' ? true : Boolean(user.can_access_confidential_documents),
       created_at: now,
       updated_at: now,
     };

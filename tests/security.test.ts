@@ -62,10 +62,10 @@ describe('Security: authentication', () => {
   });
 
   it('hashes passwords on login and never returns them', async () => {
-    expect((await login('admin', 'Admin@6868')).status).toBe(200);
+    expect((await login('admin', 'AdminTest@2026')).status).toBe(200);
     expect(store.getUser('admin_root')!.password).toMatch(/^pbkdf2\$/);
     // Hashed password still verifies
-    expect((await login('admin', 'Admin@6868')).status).toBe(200);
+    expect((await login('admin', 'AdminTest@2026')).status).toBe(200);
 
     const users = (await (await app.request('/api/users')).json()) as any[];
     expect(users.every((u) => u.password === undefined)).toBe(true);
@@ -80,16 +80,69 @@ describe('Security: authentication', () => {
     expect(res.status).toBe(400);
   });
 
-  it('never blocks a logged-in user behind a password change, even with an old flag set', async () => {
-    store.updateUser('user_viewer', { must_change_password: true, password: 'User@123456' });
-    const res = await login('user', 'User@123456');
+  it('forces a password change at the backend while must_change_password is set', async () => {
+    store.updateUser('user_viewer', { must_change_password: true });
+    const res = await login('user', 'UserTest@2026');
     const { token, user } = (await res.json()) as any;
-    expect(user.must_change_password).toBeUndefined();
-    expect((await withToken('/api/documents', token)).status).toBe(200);
+    expect(user.must_change_password).toBe(true);
+    for (const path of ['/api/documents', '/api/contracts', '/api/notifications', '/api/files/samples/x.pdf']) {
+      const blocked = await withToken(path, token);
+      expect(blocked.status, path).toBe(403);
+      expect(((await blocked.json()) as any).code).toBe('PASSWORD_CHANGE_REQUIRED');
+    }
+    expect((await withToken('/api/auth/me', token)).status).toBe(200);
+    const changed = await withToken('/api/auth/change-password', token, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: 'UserTest@2026', new_password: 'UserNew@2026' }),
+    });
+    expect(changed.status).toBe(200);
+    const fresh = (await changed.json()) as any;
+    expect(fresh.user.must_change_password).toBe(false);
+    expect((await withToken('/api/documents', fresh.token)).status).toBe(200);
+    // The pre-change session is revoked
+    expect((await withToken('/api/auth/me', token)).status).toBe(401);
+  });
+
+  it('flags accounts that still use a published default password', async () => {
+    store.updateUser('admin_root', { password: 'Admin@6868', must_change_password: false });
+    const res = await login('admin', 'Admin@6868');
+    expect(res.status).toBe(200);
+    const { token, user } = (await res.json()) as any;
+    expect(user.must_change_password).toBe(true);
+    expect(store.getUser('admin_root')!.must_change_password).toBe(true);
+    expect((await withToken('/api/users', token)).status).toBe(403);
+    const reuse = await withToken('/api/auth/change-password', token, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: 'Admin@6868', new_password: 'User@123456' }),
+    });
+    expect(reuse.status).toBe(400);
+  });
+
+  it('makes admin-assigned passwords temporary', async () => {
+    const created = await app.request('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'temp_pw', password: 'Temp@2026x', name: 'T', email: 't@x.vn' }),
+    });
+    expect(created.status).toBe(201);
+    expect(store.getUserByUsername('temp_pw')!.must_change_password).toBe(true);
+    await app.request('/api/users/user_viewer', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'Reset@2026x' }),
+    });
+    expect(store.getUser('user_viewer')!.must_change_password).toBe(true);
+  });
+
+  it('new installs ship bootstrap accounts that must change their password', async () => {
+    const { defaultUsers } = await import('../src/server/db/persistence.ts');
+    expect(defaultUsers.every((u) => u.must_change_password === true)).toBe(true);
   });
 
   it('revokes existing sessions when an admin resets the password', async () => {
-    const { token } = (await (await login('user', 'User@123456')).json()) as any;
+    const { token } = (await (await login('user', 'UserTest@2026')).json()) as any;
     expect((await withToken('/api/documents', token)).status).toBe(200);
     const reset = await app.request('/api/users/user_viewer', {
       method: 'PATCH',
@@ -101,14 +154,14 @@ describe('Security: authentication', () => {
   });
 
   it('blocks locked accounts immediately, even with a valid token', async () => {
-    const { token } = (await (await login('user', 'User@123456')).json()) as any;
+    const { token } = (await (await login('user', 'UserTest@2026')).json()) as any;
     store.updateUser('user_viewer', { status: 'locked' });
     expect((await withToken('/api/documents', token)).status).toBe(401);
   });
 
   it('stores logout revocations and login failures in the database (shared by all isolates)', async () => {
     const db = await getDatabase();
-    const { token } = (await (await login('user', 'User@123456')).json()) as any;
+    const { token } = (await (await login('user', 'UserTest@2026')).json()) as any;
     await withToken('/api/auth/logout', token, { method: 'POST' });
     const sid = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()).sid;
     expect(await db.prepare('SELECT sid FROM auth_revoked_sessions WHERE sid = ?').bind(sid).first()).toBeTruthy();
@@ -122,7 +175,7 @@ describe('Security: authentication', () => {
     for (let i = 0; i < 5; i++) {
       expect((await login('admin', 'wrong-password')).status).toBe(401);
     }
-    expect((await login('admin', 'Admin@6868')).status).toBe(429);
+    expect((await login('admin', 'AdminTest@2026')).status).toBe(429);
   });
 });
 
@@ -151,7 +204,7 @@ describe('Security: files', () => {
   });
 
   it('accepts the session cookie for file downloads only', async () => {
-    const loginRes = await login('admin', 'Admin@6868');
+    const loginRes = await login('admin', 'AdminTest@2026');
     const cookie = loginRes.headers.get('set-cookie')!.split(';')[0];
     expect(cookie).toMatch(/^sgii_session=/);
     const { file_key } = (await (await uploadFile('a.pdf', 'pdf')).json()) as any;
@@ -165,13 +218,13 @@ describe('Security: files', () => {
     const contract = store.getContracts()[0];
     store.updateContract(contract.id, { contract_type: 'labor', file_key });
 
-    const { token } = (await (await login('user', 'User@123456')).json()) as any;
+    const { token } = (await (await login('user', 'UserTest@2026')).json()) as any;
     expect((await withToken(`/api/files/${file_key}`, token)).status).toBe(403);
     expect((await app.request(`/api/files/${file_key}`)).status).toBe(200);
   });
 
   it('only lets admins re-link records to Google Drive', async () => {
-    const { token } = (await (await login('user', 'User@123456')).json()) as any;
+    const { token } = (await (await login('user', 'UserTest@2026')).json()) as any;
     const doc = store.getDocuments()[0];
     const res = await withToken('/api/files/sync-drive', token, {
       method: 'POST',
@@ -232,7 +285,7 @@ describe('Security: input validation', () => {
 
   it('stops labor-only users from converting other contracts into labor contracts', async () => {
     store.updateUser('user_viewer', { can_access_labor_contracts: true });
-    const { token } = (await (await login('user', 'User@123456')).json()) as any;
+    const { token } = (await (await login('user', 'UserTest@2026')).json()) as any;
     const economic = store.getContracts().find((ct) => ct.contract_type !== 'labor')!;
     const res = await withToken(`/api/contracts/${economic.id}`, token, json('PATCH', { contract_type: 'labor', title: 'x' }));
     expect(res.status).toBe(403);

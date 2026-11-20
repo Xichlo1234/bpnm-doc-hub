@@ -52,14 +52,13 @@ describe('Backend Hono API Routes', () => {
     expect(stats.totalDocuments).toBe(17); // 10 incoming + 4 outgoing + 3 PPTX sample docs
   });
 
-  it('GET /api/partners returns all 27 partners from Excel', async () => {
+  it('GET /api/partners returns all 27 fixture partners', async () => {
     const res = await app.request('/api/partners');
     expect(res.status).toBe(200);
     const partners = (await res.json()) as any[];
     expect(partners.length).toBe(27);
     expect(partners.some((p: any) => p.code === 'MSV')).toBe(true);
-    expect(partners.some((p: any) => p.code === 'BPNM')).toBe(true);
-    expect(partners.some((p: any) => p.code === 'DMA')).toBe(true);
+    expect(partners.some((p: any) => p.code === 'DT02')).toBe(true);
   });
 
   it('GET /api/categories returns reference categories from both Excel files', async () => {

@@ -6,7 +6,7 @@ describe('Authentication API', () => {
     const res = await app.request('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'Admin@6868' }),
+      body: JSON.stringify({ username: 'admin', password: 'AdminTest@2026' }),
     });
 
     expect(res.status).toBe(200);
@@ -47,7 +47,7 @@ describe('Authentication API', () => {
     const loginRes = await app.request('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'Admin@6868' }),
+      body: JSON.stringify({ username: 'admin', password: 'AdminTest@2026' }),
     });
     const loginData = (await loginRes.json()) as any;
     const token = loginData.token;
@@ -76,7 +76,7 @@ describe('Authentication API', () => {
     const loginRes = await app.request('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'Admin@6868' }),
+      body: JSON.stringify({ username: 'admin', password: 'AdminTest@2026' }),
     });
     const { token } = (await loginRes.json()) as any;
 

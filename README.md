@@ -109,7 +109,9 @@ openssl rand -base64 48 | npx wrangler secret put AUTH_SECRET
 ```
 Đổi `AUTH_SECRET` sẽ đăng xuất toàn bộ người dùng. Khi chạy local (`npm run dev`) không cần biến này: máy chủ tự sinh khóa tạm cho mỗi tiến trình.
 
-Tài khoản khởi tạo (`admin`, `user`) dùng mật khẩu mặc định và sẽ bị **bắt buộc đổi mật khẩu** ở lần đăng nhập đầu tiên.
+Tài khoản khởi tạo (`admin`, `user`) dùng mật khẩu mặc định và bị **backend bắt buộc đổi mật khẩu** ở lần đăng nhập đầu tiên (mọi API khác trả `403 PASSWORD_CHANGE_REQUIRED` cho tới khi đổi). Chi tiết phân quyền: [docs/ops/SECURITY.md](docs/ops/SECURITY.md).
+
+Bản cài mới **không có dữ liệu nghiệp vụ**. Muốn chạy thử local với dữ liệu giả lập: `SEED_DEMO=1 npm run dev` (chỉ áp dụng khi `data/app.db` chưa tồn tại).
 
 ### Bước 6: Triển khai 1-Click lên toàn cầu
 ```bash

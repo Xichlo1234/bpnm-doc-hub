@@ -19,6 +19,7 @@ import { X } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { LanguageProvider, useLanguage } from './context/LanguageContext.tsx';
 import { LoginView } from './components/LoginView.tsx';
+import { ChangePasswordView } from './components/ChangePasswordView.tsx';
 import { filterItems, filterContracts, findItemByRef } from './utils/itemFilters.ts';
 import { useTheme, useSpotlightShortcut, useDocumentTitle } from './hooks/useAppChrome.ts';
 
@@ -356,6 +357,11 @@ const AppContent: React.FC = () => {
 
   if (!isAuthenticated) {
     return <LoginView />;
+  }
+
+  // The backend refuses every other call until the initial/temporary password is replaced
+  if (user?.must_change_password) {
+    return <ChangePasswordView required />;
   }
 
   return (
