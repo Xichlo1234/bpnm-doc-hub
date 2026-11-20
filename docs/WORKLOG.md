@@ -143,6 +143,28 @@ Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhá
 
 ---
 
+## Quyết định của chủ dự án (sau PR05)
+
+| # | Vấn đề | Quyết định | Trạng thái |
+|---|---|---|---|
+| 1 | Dữ liệu thật trong lịch sử git | **A** — viết lại lịch sử để xoá hẳn | Chờ: thực hiện **sau khi** PR01–PR05 được duyệt và merge (viết lại lịch sử làm đổi mã commit của mọi nhánh/PR đang review) |
+| 2 | Quyền xem văn bản Mật | **A** — chỉ admin và người được cấp quyền | Đã đúng như mã hiện tại (PR01) |
+| 3 | Ý nghĩa tỷ giá | **A** — "1 đơn vị = X đơn vị tiền mặc định" | Đã đúng như mã hiện tại (PR03) |
+| 4 | Thư viện Excel | **A** — SheetJS 0.20 từ CDN chính thức | Chờ: môi trường làm việc không được phép tải gói từ `cdn.sheetjs.com`. Cách làm: `npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`, rồi `npm run check` (API `read`/`write`/`utils` tương thích bản 0.18 đang dùng) |
+| 5 | Migration & deploy Production | Cần **ChatGPT phê duyệt** | Chưa thực hiện. Sau khi được duyệt, làm theo `docs/ops/DEPLOY_RUNBOOK.md` |
+
+## Danh sách kiểm tra cho người review (ChatGPT)
+
+1. Đọc theo thứ tự PR01 → PR05 (mỗi PR là diff riêng trên PR trước).
+2. Chạy: `npm ci && npm run check` (kỳ vọng: 280 test đạt, build + dry-run đạt).
+3. Chạy thử: `npm run dev:demo` → đăng nhập `admin` / `AdminTest@2026` (dữ liệu giả lập).
+4. Trọng tâm cần soát:
+   - Phân quyền: `src/server/utils/access.ts`, `utils/fileAccess.ts`, route sweep trong `tests/ops_readiness.test.ts`.
+   - Ghi D1 + chống ghi đè: `src/server/db/store.ts` (`flushUnlocked`), `db/repository.ts` (`revisionGuardStatements`).
+   - Migration 0004–0007: chỉ thêm, không sửa dữ liệu cũ.
+   - Cấp số: `utils/numbering.ts`; quy trình: `utils/workflow.ts`.
+5. Phê duyệt / yêu cầu sửa ngay trên từng PR.
+
 ## Danh sách chờ chủ dự án quyết định
 
 1. **Lịch sử git** vẫn chứa dữ liệu thật ở commit đầu (repo đã private). Xoá hẳn cần viết lại lịch sử
