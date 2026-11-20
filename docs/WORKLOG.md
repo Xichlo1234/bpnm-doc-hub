@@ -56,7 +56,7 @@ Kiểm thử: typecheck ✔, 255 test ✔, build ✔, wrangler dry-run ✔.
 ---
 
 ## PR03 — Logic nghiệp vụ
-Nhánh `pr03-business-logic` → `pr02-storage` · (link PR bên dưới)
+Nhánh `pr03-business-logic` → `pr02-storage` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/3
 
 | Hạng mục | Đã làm | Tệp chính |
 |---|---|---|
