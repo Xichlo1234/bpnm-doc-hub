@@ -170,6 +170,13 @@ export const CreateModal: React.FC<CreateModalProps> = ({
   defaultTab = 'contract',
 }) => {
   const { language, t, tf } = useLanguage();
+
+  // The server reserves numbers atomically; tell the user when theirs was taken in the meantime
+  const notifyReassigned = (created: any) => {
+    if (created?.number_reassigned) {
+      window.alert(tf('numberReassigned', { requested: created.requested_number, number: created.document_number }));
+    }
+  };
   const { user } = useAuth();
   const canViewLabor = canAccessLaborContracts(user);
   const [tab, setTab] = useState<'contract' | 'labor' | 'incoming' | 'outgoing'>(defaultTab);
@@ -251,7 +258,8 @@ export const CreateModal: React.FC<CreateModalProps> = ({
   const [isCustomLinkedDoc, setIsCustomLinkedDoc] = useState(false);
   const [outgoingLinkedDoc, setOutgoingLinkedDoc] = useState('');
   const [outgoingSendMethod, setOutgoingSendMethod] = useState('Cổng dịch vụ công / Trục liên thông'); // i18n-data
-  const [outgoingStatus, setOutgoingStatus] = useState('Đã gửi'); // i18n-data
+  // A new outgoing document starts as a draft; it is issued through the workflow
+  const [outgoingStatus, setOutgoingStatus] = useState('Dự thảo'); // i18n-data
   const [outgoingUrgency, setOutgoingUrgency] = useState('Thường'); // i18n-data
   const [outgoingSecurity, setOutgoingSecurity] = useState('Thường'); // i18n-data
   const [outgoingStorageType, setOutgoingStorageType] = useState('Gốc'); // i18n-data
@@ -634,7 +642,7 @@ export const CreateModal: React.FC<CreateModalProps> = ({
         security_level: incomingSecurity,
         directive: incomingDirective || null,
         storage_location: fullStorage,
-        status: finalHandler ? 'Đang xử lý' : 'Chưa phân công', // i18n-data
+        status: finalHandler ? 'Đã phân công' : 'Chưa phân công', // i18n-data
         summary: incomingTitle,
         tags: `${incomingCategory}, ${finalIssuer}, ${incomingDepartment}`,
       };
@@ -647,14 +655,16 @@ export const CreateModal: React.FC<CreateModalProps> = ({
         formData.append('file', selectedFile);
         setIsUploadingFile(true);
         setUploadProgress(10);
-        await api.createDocument(formData, (percent) => {
-          setUploadProgress(percent);
-        });
+        notifyReassigned(
+          await api.createDocument(formData, (percent) => {
+            setUploadProgress(percent);
+          })
+        );
       } else {
         if (incomingAttachMode === 'link' && incomingCloudLink.trim()) {
           docPayload.google_drive_url = incomingCloudLink.trim();
         }
-        await api.createDocument(docPayload);
+        notifyReassigned(await api.createDocument(docPayload));
       }
 
       setUploadSuccess(true);
@@ -718,14 +728,16 @@ export const CreateModal: React.FC<CreateModalProps> = ({
         formData.append('file', selectedFile);
         setIsUploadingFile(true);
         setUploadProgress(10);
-        await api.createDocument(formData, (percent) => {
-          setUploadProgress(percent);
-        });
+        notifyReassigned(
+          await api.createDocument(formData, (percent) => {
+            setUploadProgress(percent);
+          })
+        );
       } else {
         if (outgoingAttachMode === 'link' && outgoingCloudLink.trim()) {
           docPayload.google_drive_url = outgoingCloudLink.trim();
         }
-        await api.createDocument(docPayload);
+        notifyReassigned(await api.createDocument(docPayload));
       }
 
       setUploadSuccess(true);

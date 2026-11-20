@@ -160,6 +160,29 @@ export function upsertStatements(db: SqlDatabase, spec: TableSpec, records: Reco
   return chunkJson(records.map((r) => toRow(spec, r))).map((json) => db.prepare(sql).bind(json));
 }
 
+/**
+ * Optimistic-concurrency guard (migration 0007): aborts the batch when any of these rows changed in
+ * the database since they were read. Each entry is [id, revision read, or null for a new row].
+ */
+export function revisionGuardStatements(db: SqlDatabase, spec: TableSpec, entries: Array<[string, number | null]>): SqlStatement[] {
+  const sql = `INSERT INTO write_guard (conflict)
+    SELECT 1 FROM json_each(?) j JOIN ${spec.name} t ON t.id = json_extract(j.value, '$[0]')
+    WHERE json_extract(j.value, '$[1]') IS NULL OR COALESCE(t.revision, 0) <> json_extract(j.value, '$[1]')
+    LIMIT 1`;
+  return chunkJson(entries).map((json) => db.prepare(sql).bind(json));
+}
+
+export class RevisionConflictError extends Error {
+  constructor() {
+    super('A record was changed by someone else since it was read');
+  }
+}
+
+export function isGuardViolation(err: unknown): boolean {
+  const msg = String((err as Error)?.message || err);
+  return /CHECK constraint failed/i.test(msg) && /write_guard|conflict/i.test(msg);
+}
+
 export function deleteStatements(db: SqlDatabase, spec: TableSpec, ids: string[]): SqlStatement[] {
   const sql = bulkDeleteSql(spec);
   return chunkJson(ids).map((json) => db.prepare(sql).bind(json));

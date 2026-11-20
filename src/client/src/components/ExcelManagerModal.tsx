@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { X, UploadCloud, AlertCircle, CheckCircle2, FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
 import { readExcelFile, downloadExcelTemplate } from '../utils/excelHelper.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
+import { api, type ImportPreview, type ImportCommitOptions } from '../services/api.ts';
 
 export interface ExcelManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'contract' | 'document';
-  onImportConfirm: (parsedData: any[]) => Promise<{ added: number; updated: number; total: number }>;
+  onImportConfirm: (parsedData: any[], options?: ImportCommitOptions) => Promise<{ added: number; updated: number; total: number }>;
   onSuccess: () => void;
 }
 
@@ -30,6 +31,10 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   });
   const [validationErrors, setValidationErrors] = useState<Array<{ row: number; error: string }>>([]);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
+  // Server-side dry run: the authoritative list of new / updated / unchanged / duplicate / invalid rows
+  const [serverPreview, setServerPreview] = useState<ImportPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [acceptUpdates, setAcceptUpdates] = useState(false);
 
   if (!isOpen) return null;
 
@@ -199,6 +204,16 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
 
       setPreviewRows(parsed);
       setValidationErrors(errors);
+      setServerPreview(null);
+      setPreviewError(null);
+      setAcceptUpdates(false);
+      if (parsed.length > 0) {
+        try {
+          setServerPreview(await api.previewImport(type, parsed));
+        } catch (err: any) {
+          setPreviewError(err?.message || String(err));
+        }
+      }
       setStats({
         total: parsed.length,
         newCount,
@@ -216,7 +231,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
     if (previewRows.length === 0) return;
     setIsLoading(true);
     try {
-      const res = await onImportConfirm(previewRows);
+      const res = await onImportConfirm(previewRows, { confirmUpdates: acceptUpdates, fileName: selectedFile?.name });
       setResultMsg(tf('excelImportSuccess', { added: res.added, updated: res.updated }));
       setTimeout(() => {
         onSuccess();
@@ -417,6 +432,54 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             </div>
           )}
 
+          {previewError && <div className="inline-alert inline-alert-error">{previewError}</div>}
+          {serverPreview && (
+            <div className="import-preview">
+              <div className="import-preview-chips">
+                <span className="chip chip-new">{tf('importCreateCount', { count: serverPreview.summary.create })}</span>
+                <span className="chip chip-update">{tf('importUpdateCount', { count: serverPreview.summary.update })}</span>
+                <span className="chip">{tf('importUnchangedCount', { count: serverPreview.summary.unchanged })}</span>
+                <span className="chip chip-warn">{tf('importDuplicateCount', { count: serverPreview.summary.duplicate_in_file })}</span>
+                <span className="chip chip-error">{tf('importErrorCount', { count: serverPreview.summary.error })}</span>
+              </div>
+              {serverPreview.rows.filter((r) => r.action === 'error').length > 0 && (
+                <ul className="import-preview-list">
+                  {serverPreview.rows
+                    .filter((r) => r.action === 'error')
+                    .slice(0, 20)
+                    .map((r) => (
+                      <li key={r.index} className="import-row-error">
+                        {tf('excelRowError', { row: r.index + 2, error: (r.errors || []).join('; ') })}
+                      </li>
+                    ))}
+                </ul>
+              )}
+              {serverPreview.summary.update > 0 && (
+                <>
+                  <p className="import-preview-hint">{t.importUpdatesHint}</p>
+                  <ul className="import-preview-list">
+                    {serverPreview.rows
+                      .filter((r) => r.action === 'update')
+                      .slice(0, 50)
+                      .map((r) => (
+                        <li key={r.index}>
+                          <strong>{r.key}</strong>:{' '}
+                          {Object.entries(r.changes || {})
+                            .slice(0, 6)
+                            .map(([field, [before, after]]) => `${field}: "${before ?? ''}" → "${after ?? ''}"`)
+                            .join('; ')}
+                        </li>
+                      ))}
+                  </ul>
+                  <label className="import-accept">
+                    <input type="checkbox" checked={acceptUpdates} onChange={(e) => setAcceptUpdates(e.target.checked)} />
+                    <span>{tf('importAcceptUpdates', { count: serverPreview.summary.update })}</span>
+                  </label>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Preview Stats & Summary */}
           {previewRows.length > 0 && (
             <div>
@@ -525,14 +588,20 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
           </button>
           <button
             onClick={handleConfirmImport}
-            disabled={isLoading || previewRows.length === 0}
+            disabled={
+              isLoading ||
+              previewRows.length === 0 ||
+              !serverPreview ||
+              serverPreview.summary.error > 0 ||
+              (serverPreview.summary.update > 0 && !acceptUpdates)
+            }
             style={{
               padding: '8px 20px',
               borderRadius: 6,
               border: 'none',
               background: '#107C41',
               color: '#ffffff',
-              cursor: isLoading || previewRows.length === 0 ? 'not-allowed' : 'pointer',
+              cursor: isLoading || previewRows.length === 0 || !serverPreview ? 'not-allowed' : 'pointer',
               fontWeight: 600,
               fontSize: 13,
               display: 'flex',

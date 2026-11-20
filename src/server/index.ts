@@ -14,9 +14,10 @@ import { attachmentsRouter } from './routes/attachments.ts';
 import { trashRouter } from './routes/trash.ts';
 import { historyRouter } from './routes/history.ts';
 import { adminRouter } from './routes/admin.ts';
+import { importsRouter } from './routes/imports.ts';
 import { store } from './db/store.ts';
 import { getDatabase } from './db/database.ts';
-import { DatabaseNotMigratedError } from './db/repository.ts';
+import { DatabaseNotMigratedError, RevisionConflictError } from './db/repository.ts';
 import { UploadValidationError } from './utils/fileStorage.ts';
 
 export const app = new Hono();
@@ -101,10 +102,20 @@ app.route('/api/attachments', attachmentsRouter);
 app.route('/api/trash', trashRouter);
 app.route('/api/history', historyRouter);
 app.route('/api/admin', adminRouter);
+app.route('/api/imports', importsRouter);
 
 app.onError((err, c) => {
   if (err instanceof UploadValidationError) {
     return c.json({ error: err.message, code: err.code, params: err.params }, 400);
+  }
+  if (err instanceof RevisionConflictError) {
+    return c.json(
+      {
+        error: 'Hồ sơ đã được người khác cập nhật trong lúc bạn chỉnh sửa. Vui lòng mở lại để xem bản mới nhất rồi sửa lại.',
+        code: 'REVISION_CONFLICT',
+      },
+      409
+    );
   }
   if (err instanceof DatabaseNotMigratedError) {
     console.error(err.message);

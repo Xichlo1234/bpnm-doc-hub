@@ -20,7 +20,7 @@ import { useLanguage } from '../context/LanguageContext.tsx';
 import { documentDeadlineLabel, statusLabel, urgencyLabel, URGENCY_KEYS } from '../i18n/index.ts';
 import { exportToExcel } from '../utils/excelHelper.ts';
 import { ExcelManagerModal } from './ExcelManagerModal.tsx';
-import { api } from '../services/api.ts';
+import { api, type ImportCommitOptions } from '../services/api.ts';
 import { extractYear } from './ContractTableView.tsx';
 import type { NavFilter } from './Sidebar.tsx';
 
@@ -341,8 +341,8 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
     );
   };
 
-  const handleBulkImportConfirm = async (parsedData: any[]) => {
-    const res = await api.bulkImportDocuments(parsedData);
+  const handleBulkImportConfirm = async (parsedData: any[], options?: ImportCommitOptions) => {
+    const res = await api.bulkImportDocuments(parsedData, options);
     return res;
   };
 
