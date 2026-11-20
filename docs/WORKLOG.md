@@ -75,7 +75,7 @@ Tài liệu: `docs/ops/BUSINESS_RULES.md`. Kiểm thử: typecheck ✔, 273 test
 ---
 
 ## PR04 — Tối ưu giao diện
-Nhánh `pr04-ui` → `pr03-business-logic` · (link PR bên dưới)
+Nhánh `pr04-ui` → `pr03-business-logic` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/4
 
 | Hạng mục | Đã làm | Tệp chính |
 |---|---|---|
