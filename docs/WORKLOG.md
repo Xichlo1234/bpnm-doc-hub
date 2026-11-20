@@ -99,7 +99,7 @@ Kiểm thử: typecheck ✔, 270 test ✔ (6 ca oracle cũ của CV đi được
 ---
 
 ## PR05 — Kiểm thử & chuẩn bị vận hành
-Nhánh `pr05-qa-ops` → `pr04-ui` · (link PR bên dưới)
+Nhánh `pr05-qa-ops` → `pr04-ui` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/5
 
 | Hạng mục | Kết quả |
 |---|---|
@@ -137,7 +137,7 @@ Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod
 | PR02 | Lưu trữ D1/R2 | https://github.com/Xichlo1234/bpnm-doc-hub/pull/2 |
 | PR03 | Logic nghiệp vụ | https://github.com/Xichlo1234/bpnm-doc-hub/pull/3 |
 | PR04 | Giao diện | https://github.com/Xichlo1234/bpnm-doc-hub/pull/4 |
-| PR05 | Kiểm thử & vận hành | (link PR bên dưới) |
+| PR05 | Kiểm thử & vận hành | https://github.com/Xichlo1234/bpnm-doc-hub/pull/5 |
 
 Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
 
