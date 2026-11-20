@@ -64,6 +64,8 @@ export const documentsTable: TableSpec = {
     created_at: text,
     updated_at: text,
     revision: optNum, // migration 0003
+    deleted_at: optText, // migration 0006
+    deleted_by: optText,
   },
 };
 
@@ -109,6 +111,8 @@ export const contractsTable: TableSpec = {
     created_at: text,
     updated_at: text,
     revision: optNum, // migration 0003
+    deleted_at: optText, // migration 0006
+    deleted_by: optText,
   },
 };
 
@@ -131,6 +135,8 @@ export const partnersTable: TableSpec = {
     total_contracts: optNum,
     active_contracts: optNum,
     is_locked: optBool,
+    deleted_at: optText, // migration 0006
+    deleted_by: optText,
   },
 };
 
@@ -187,6 +193,28 @@ export const auditLogsTable: TableSpec = {
     details: optText,
     ip_address: optText,
     timestamp: text,
+  },
+};
+
+export const attachmentsTable: TableSpec = {
+  name: 'attachments',
+  columns: {
+    id: text,
+    series_id: text,
+    record_type: text,
+    record_id: text,
+    file_key: text,
+    original_name: text,
+    size: num,
+    mime_type: text,
+    sha256: text,
+    version: num,
+    is_current: bool,
+    note: optText,
+    uploaded_by: text,
+    uploaded_at: text,
+    deleted_at: optText,
+    deleted_by: optText,
   },
 };
 

@@ -23,6 +23,7 @@ import {
 import { api } from '../services/api.ts';
 import { UserManagerView } from './UserManagerView.tsx';
 import { AuditLogView } from './AuditLogView.tsx';
+import { TrashView } from './TrashView.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { seedLabel } from '../i18n/index.ts';
@@ -43,7 +44,8 @@ export type SettingsSubTab =
   | 'alert_settings'
   | 'currencies'
   | 'users'
-  | 'audit';
+  | 'audit'
+  | 'trash';
 
 export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
   onRefreshGlobal,
@@ -53,7 +55,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
   const { language, t, tf } = useLanguage();
   const displaySeed = (val?: string) => seedLabel(language, val);
 
-  const validTabs = ['doc_types', 'agencies', 'departments', 'personnel', 'contract_config', 'alert_settings', 'currencies', 'users', 'audit'];
+  const validTabs = ['doc_types', 'agencies', 'departments', 'personnel', 'contract_config', 'alert_settings', 'currencies', 'users', 'audit', 'trash'];
   const [activeTab, setActiveTab] = useState<SettingsSubTab>(
     (initialSubTab && validTabs.includes(initialSubTab))
       ? (initialSubTab as SettingsSubTab)
@@ -521,6 +523,27 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
             >
               <History size={16} />
               <span>{t.settingsAuditLogs}</span>
+            </button>
+
+            <button
+              onClick={() => changeTab('trash')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: activeTab === 'trash' ? '#6366F1' : 'transparent',
+                color: activeTab === 'trash' ? '#ffffff' : 'var(--text-secondary)',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Trash2 size={16} />
+              <span>{t.trashTitle}</span>
             </button>
           </>
         )}
@@ -2079,6 +2102,8 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
         )}
 
         {/* TAB: Audit Logs */}
+        {activeTab === 'trash' && isAdmin && <TrashView onChanged={onRefreshGlobal} />}
+
         {activeTab === 'audit' && isAdmin && (
           <div style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
             <AuditLogView />

@@ -1,3 +1,4 @@
+import { PaperLocationFields } from './PaperLocationFields.tsx';
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Edit3, FileText, CheckCircle2, UploadCloud, ExternalLink, Paperclip, AlertCircle } from 'lucide-react';
 import { api } from '../services/api.ts';
@@ -525,6 +526,10 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
                 </datalist>
               </div>
             </div>
+            <PaperLocationFields
+              value={contractData as any}
+              onChange={(field, value) => setContractData({ ...contractData, [field]: value } as any)}
+            />
 
             <div className="form-group">
               <label className="form-label">{t.additionalNotesLabel}</label>
@@ -856,6 +861,10 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
                 />
               </div>
             </div>
+            <PaperLocationFields
+              value={docData as any}
+              onChange={(field, value) => setDocData({ ...docData, [field]: value } as any)}
+            />
 
             {/* Attachment & Google Drive */}
             <div style={{ background: 'var(--bg-page)', padding: '14px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', marginBottom: 16 }}>

@@ -1,4 +1,4 @@
-import type { DocumentRecord, ContractRecord, PartnerRecord } from '../../../server/types.ts';
+import type { DocumentRecord, ContractRecord, PartnerRecord, AttachmentRecord } from '../../../server/types.ts';
 import { tr, trServerError } from '../i18n/index.ts';
 
 const API_BASE = '/api';
@@ -655,6 +655,66 @@ export const api = {
   },
 
   // Audit Logs API
+  // Attachments (several files per record, with versions)
+  async getAttachments(type: 'document' | 'contract', id: string, includeVersions = false): Promise<AttachmentRecord[]> {
+    const res = await customFetch(`${API_BASE}/attachments/${type}/${encodeURIComponent(id)}${includeVersions ? '?versions=1' : ''}`);
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('attFailed')));
+    return ((await res.json()) as any).attachments;
+  },
+
+  /** Resolves only after the server confirmed the file and the record were saved. */
+  addAttachment(
+    type: 'document' | 'contract',
+    id: string,
+    file: File,
+    options: { replaces?: string; onProgress?: (percent: number) => void } = {}
+  ): Promise<{ attachment: AttachmentRecord; record: any }> {
+    const form = new FormData();
+    form.append('file', file);
+    if (options.replaces) form.append('replaces', options.replaces);
+    return customXhrRequest(`${API_BASE}/attachments/${type}/${encodeURIComponent(id)}`, form, {
+      defaultErrorMsg: tr('attFailed'),
+      networkErrorMsg: tr('attFailed'),
+      timeoutErrorMsg: tr('attFailed'),
+      onProgress: options.onProgress ? (p) => options.onProgress!(p) : undefined,
+    });
+  },
+
+  async removeAttachment(attachmentId: string): Promise<{ record: any }> {
+    const res = await customFetch(`${API_BASE}/attachments/${encodeURIComponent(attachmentId)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('attFailed')));
+    return res.json();
+  },
+
+  async getHistory(type: 'document' | 'contract', id: string): Promise<any[]> {
+    const res = await customFetch(`${API_BASE}/history/${type}/${encodeURIComponent(id)}`);
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('histLoadFailed')));
+    return ((await res.json()) as any).history;
+  },
+
+  // Trash
+  async getTrash(): Promise<{ documents: any[]; contracts: any[]; partners: any[] }> {
+    const res = await customFetch(`${API_BASE}/trash`);
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('srvInternalError')));
+    return res.json();
+  },
+
+  async restoreFromTrash(type: 'document' | 'contract' | 'partner', id: string): Promise<void> {
+    const res = await customFetch(`${API_BASE}/trash/${type}/${encodeURIComponent(id)}/restore`, { method: 'POST' });
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('srvInternalError')));
+  },
+
+  async purgeFromTrash(type: 'document' | 'contract' | 'partner', id: string): Promise<void> {
+    const res = await customFetch(`${API_BASE}/trash/${type}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('srvInternalError')));
+  },
+
+  async storageCheck(): Promise<{ ok: boolean; missing: string[]; orphans: Array<{ key: string; size: number }>; stored_objects: number; referenced_files: number }> {
+    const res = await customFetch(`${API_BASE}/admin/storage-check`);
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('reconFailed')));
+    return res.json();
+  },
+
   async getAuditLogs(limit = 100): Promise<any[]> {
     const res = await customFetch(`${API_BASE}/audit-logs?limit=${limit}`);
     if (!res.ok) return [];

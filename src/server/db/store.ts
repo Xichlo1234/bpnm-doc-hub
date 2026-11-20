@@ -1,4 +1,15 @@
-import { type DocumentRecord, type ContractRecord, type PartnerRecord, type NotificationRecord, type UserAccount, type AuditLogRecord, type CurrencyItem, isLaborContract } from '../types.ts';
+import {
+  type DocumentRecord,
+  type ContractRecord,
+  type PartnerRecord,
+  type NotificationRecord,
+  type UserAccount,
+  type AuditLogRecord,
+  type CurrencyItem,
+  type AttachmentRecord,
+  type AttachmentRecordType,
+  isLaborContract,
+} from '../types.ts';
 import { calculateUrgency, calculateDocumentDeadline } from '../utils/urgency.ts';
 import {
   type SystemSettings,
@@ -19,6 +30,8 @@ import {
   upsertStatements,
   deleteStatements,
   configStatement,
+  historyStatement,
+  type HistoryEntry,
   CONFIG_KEYS,
   AUDIT_CACHE_SIZE,
   type ConfigKey,
@@ -31,6 +44,7 @@ import {
   usersTable,
   notificationsTable,
   auditLogsTable,
+  attachmentsTable,
   rowFingerprint,
   type TableSpec,
 } from './tables.ts';
@@ -48,6 +62,41 @@ export function normalizeVietnamese(str: string): string {
 }
 
 export type LegacySource = 'd1' | 'json';
+export type TrashRecordType = 'document' | 'contract' | 'partner';
+
+// Fields that change on every save and say nothing about what the user edited
+const HISTORY_IGNORED_FIELDS = new Set(['updated_at', 'revision', 'deadline_status', 'urgency', 'created_at']);
+
+// Standard paper-archive location: Kho / Tủ / Ngăn / Hộp. When any part is given, the free-text
+// storage_location is rebuilt from the parts so every record uses the same format.
+export const STORAGE_PARTS = [
+  ['storage_warehouse', 'Kho'],
+  ['storage_cabinet', 'Tủ'],
+  ['storage_shelf', 'Ngăn'],
+  ['storage_box', 'Hộp'],
+] as const;
+
+export function withStorageLocation<T extends Record<string, any>>(rec: T): T {
+  const parts = STORAGE_PARTS.map(([key, label]) => {
+    const v = String(rec[key] ?? '').trim();
+    return v ? `${label} ${v}` : '';
+  }).filter(Boolean);
+  if (parts.length === 0) return rec;
+  return { ...rec, storage_location: parts.join(' / ') };
+}
+
+/** { field: [before, after] } for every field whose value changed. */
+export function diffRecords(before: Record<string, any> | null, after: Record<string, any> | null): Record<string, [unknown, unknown]> {
+  const changes: Record<string, [unknown, unknown]> = {};
+  const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
+  for (const key of keys) {
+    if (HISTORY_IGNORED_FIELDS.has(key)) continue;
+    const a = before?.[key] ?? null;
+    const b = after?.[key] ?? null;
+    if (JSON.stringify(a) !== JSON.stringify(b)) changes[key] = [a, b];
+  }
+  return changes;
+}
 
 /**
  * In-memory cache of the database, kept so route handlers can stay synchronous.
@@ -69,6 +118,9 @@ export class MemoryStore {
   private users: Map<string, UserAccount> = new Map();
   private auditLogs: AuditLogRecord[] = [];
   private currencies: CurrencyItem[] = [];
+  private attachments: Map<string, AttachmentRecord> = new Map();
+  // Edit-history rows written with the next flush (same transaction as the change itself)
+  private pendingHistory: HistoryEntry[] = [];
 
   private db: SqlDatabase | null = null;
   private loaded = false;
@@ -85,6 +137,8 @@ export class MemoryStore {
   public reset() {
     this.applyDataset(withSeedDefaults(null));
     this.auditLogs = [];
+    this.attachments.clear();
+    this.pendingHistory = [];
   }
 
   private applyDataset(data: Omit<PersistedDataset, 'audit_logs'>) {
@@ -164,6 +218,8 @@ export class MemoryStore {
       currencies: data.config.currencies,
     });
     this.auditLogs = data.auditLogs;
+    this.attachments = new Map(data.attachments.map((a: AttachmentRecord) => [a.id, a]));
+    this.pendingHistory = [];
 
     this.snapshots.clear();
     for (const [spec, records] of this.cachedTables()) {
@@ -190,6 +246,7 @@ export class MemoryStore {
       [partnersTable, Array.from(this.partners.values())],
       [usersTable, Array.from(this.users.values())],
       [notificationsTable, this.notifications],
+      [attachmentsTable, Array.from(this.attachments.values())],
     ];
   }
 
@@ -238,6 +295,12 @@ export class MemoryStore {
       pendingSnapshots.push(() => newAuditLogs.forEach((l) => this.persistedAuditIds.add(l.id)));
     }
 
+    const history = this.pendingHistory;
+    if (history.length > 0) {
+      statements.push(...history.map((h) => historyStatement(db, h)));
+      pendingSnapshots.push(() => (this.pendingHistory = this.pendingHistory.filter((h) => !history.includes(h))));
+    }
+
     if (statements.length === 0) return;
 
     try {
@@ -260,7 +323,7 @@ export class MemoryStore {
 
   // Document operations
   public getDocuments(type?: string): DocumentRecord[] {
-    const docs = Array.from(this.documents.values()).map(d => ({
+    const docs = Array.from(this.documents.values()).filter((d) => !d.deleted_at).map(d => ({
       ...d,
       deadline_status: calculateDocumentDeadline(d),
     }));
@@ -292,9 +355,9 @@ export class MemoryStore {
     return docs.sort((a, b) => b.issue_date.localeCompare(a.issue_date));
   }
 
-  public getDocument(id: string): DocumentRecord | null {
+  public getDocument(id: string, options: { includeDeleted?: boolean } = {}): DocumentRecord | null {
     const doc = this.documents.get(id);
-    if (!doc) return null;
+    if (!doc || (doc.deleted_at && !options.includeDeleted)) return null;
     return {
       ...doc,
       deadline_status: calculateDocumentDeadline(doc),
@@ -305,7 +368,7 @@ export class MemoryStore {
     const id = 'doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const newDoc: DocumentRecord = {
-      ...doc,
+      ...withStorageLocation(doc),
       id,
       created_at: now,
       updated_at: now,
@@ -336,7 +399,7 @@ export class MemoryStore {
     const doc = this.documents.get(id);
     if (!doc) return null;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const updated: DocumentRecord = { ...doc, ...partial, updated_at: now, revision: (doc.revision ?? 0) + 1 };
+    const updated: DocumentRecord = withStorageLocation({ ...doc, ...partial, updated_at: now, revision: (doc.revision ?? 0) + 1 });
     updated.deadline_status = calculateDocumentDeadline(updated);
     this.documents.set(id, updated);
 
@@ -367,9 +430,10 @@ export class MemoryStore {
     return deleted;
   }
 
-  public bulkUpsertDocuments(docsList: Array<Partial<DocumentRecord>>): { added: number; updated: number; total: number } {
+  public bulkUpsertDocuments(docsList: Array<Partial<DocumentRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: DocumentRecord | null; after: DocumentRecord }> } {
     let added = 0;
     let updated = 0;
+    const changes: Array<{ id: string; before: DocumentRecord | null; after: DocumentRecord }> = [];
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     for (const item of docsList) {
@@ -380,20 +444,21 @@ export class MemoryStore {
         existing = this.documents.get(item.id);
       } else if (item.document_number) {
         existing = Array.from(this.documents.values()).find(
-          d => d.document_number.trim().toLowerCase() === item.document_number!.trim().toLowerCase()
+          d => !d.deleted_at && d.document_number.trim().toLowerCase() === item.document_number!.trim().toLowerCase()
         );
       }
 
       if (existing) {
-        const merged: DocumentRecord = {
+        const merged: DocumentRecord = withStorageLocation({
           ...existing,
           ...item,
           id: existing.id,
           updated_at: now,
           revision: (existing.revision ?? 0) + 1,
-        };
+        });
         merged.deadline_status = calculateDocumentDeadline(merged);
         this.documents.set(existing.id, merged);
+        changes.push({ id: existing.id, before: existing, after: merged });
         updated++;
       } else {
         const id = item.id || ('doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6));
@@ -429,10 +494,11 @@ export class MemoryStore {
         };
         newRecord.deadline_status = calculateDocumentDeadline(newRecord);
         this.documents.set(id, newRecord);
+        changes.push({ id, before: null, after: newRecord });
         added++;
       }
     }
-    return { added, updated, total: this.documents.size };
+    return { added, updated, total: this.getDocuments().length, changes };
   }
 
   public getNextDocumentNumber(type: 'incoming' | 'outgoing', categoryCode = 'CV', deptCode = 'HCNS'): string {
@@ -461,7 +527,7 @@ export class MemoryStore {
 
   // Contract operations
   public getContracts(urgencyFilter?: string): ContractRecord[] {
-    const contracts = Array.from(this.contracts.values()).map(c => ({
+    const contracts = Array.from(this.contracts.values()).filter((c) => !c.deleted_at).map(c => ({
       ...c,
       urgency: calculateUrgency(c.end_date, c.status),
     }));
@@ -500,9 +566,9 @@ export class MemoryStore {
     });
   }
 
-  public getContract(id: string): ContractRecord | null {
+  public getContract(id: string, options: { includeDeleted?: boolean } = {}): ContractRecord | null {
     const c = this.contracts.get(id);
-    if (!c) return null;
+    if (!c || (c.deleted_at && !options.includeDeleted)) return null;
     return {
       ...c,
       urgency: calculateUrgency(c.end_date, c.status),
@@ -513,7 +579,7 @@ export class MemoryStore {
     const id = 'con-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const newContract: ContractRecord = {
-      ...contract,
+      ...withStorageLocation(contract),
       id,
       created_at: now,
       updated_at: now,
@@ -528,7 +594,7 @@ export class MemoryStore {
     const contract = this.contracts.get(id);
     if (!contract) return null;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const updated: ContractRecord = { ...contract, ...partial, updated_at: now, revision: (contract.revision ?? 0) + 1 };
+    const updated: ContractRecord = withStorageLocation({ ...contract, ...partial, updated_at: now, revision: (contract.revision ?? 0) + 1 });
     updated.urgency = calculateUrgency(updated.end_date, updated.status);
     this.contracts.set(id, updated);
     return updated;
@@ -543,9 +609,10 @@ export class MemoryStore {
     return deleted;
   }
 
-  public bulkUpsertContracts(contractsList: Array<Partial<ContractRecord>>): { added: number; updated: number; total: number } {
+  public bulkUpsertContracts(contractsList: Array<Partial<ContractRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: ContractRecord | null; after: ContractRecord }> } {
     let added = 0;
     let updated = 0;
+    const changes: Array<{ id: string; before: ContractRecord | null; after: ContractRecord }> = [];
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     for (const item of contractsList) {
@@ -557,21 +624,22 @@ export class MemoryStore {
         existing = this.contracts.get(item.id);
       } else if (item.contract_number) {
         existing = Array.from(this.contracts.values()).find(
-          c => c.contract_number.trim().toLowerCase() === item.contract_number!.trim().toLowerCase()
+          c => !c.deleted_at && c.contract_number.trim().toLowerCase() === item.contract_number!.trim().toLowerCase()
         );
       }
 
       if (existing) {
         // Update existing contract
-        const merged: ContractRecord = {
+        const merged: ContractRecord = withStorageLocation({
           ...existing,
           ...item,
           id: existing.id,
           updated_at: now,
           revision: (existing.revision ?? 0) + 1,
-        };
+        });
         merged.urgency = calculateUrgency(merged.end_date, merged.status);
         this.contracts.set(existing.id, merged);
+        changes.push({ id: existing.id, before: existing, after: merged });
         updated++;
       } else {
         // Create new contract
@@ -608,23 +676,170 @@ export class MemoryStore {
         };
         newRecord.urgency = calculateUrgency(newRecord.end_date, newRecord.status);
         this.contracts.set(id, newRecord);
+        changes.push({ id, before: null, after: newRecord });
         added++;
       }
     }
-    return { added, updated, total: this.contracts.size };
+    return { added, updated, total: this.getContracts().length, changes };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Trash (soft delete). Records keep their row with deleted_at set; every getter hides them.
+  // ---------------------------------------------------------------------------
+
+  private trashMap(type: TrashRecordType): Map<string, any> {
+    return type === 'document' ? this.documents : type === 'contract' ? this.contracts : this.partners;
+  }
+
+  public trashRecord(type: TrashRecordType, id: string, userId: string): any | null {
+    const map = this.trashMap(type);
+    const rec = map.get(id);
+    if (!rec || rec.deleted_at) return null;
+    const now = new Date().toISOString();
+    const updated = { ...rec, deleted_at: now, deleted_by: userId, ...(type !== 'partner' ? { revision: (rec.revision ?? 0) + 1 } : {}) };
+    map.set(id, updated);
+    return updated;
+  }
+
+  public restoreRecord(type: TrashRecordType, id: string): any | null {
+    const map = this.trashMap(type);
+    const rec = map.get(id);
+    if (!rec || !rec.deleted_at) return null;
+    const updated = { ...rec, deleted_at: null, deleted_by: null, ...(type !== 'partner' ? { revision: (rec.revision ?? 0) + 1 } : {}) };
+    map.set(id, updated);
+    return updated;
+  }
+
+  /** Permanently removes a trashed record and its attachment rows; returns the file keys it held. */
+  public purgeRecord(type: TrashRecordType, id: string): string[] | null {
+    const map = this.trashMap(type);
+    const rec = map.get(id);
+    if (!rec || !rec.deleted_at) return null;
+    map.delete(id);
+    const keys = new Set<string>();
+    if (rec.file_key) keys.add(rec.file_key);
+    if (type !== 'partner') {
+      for (const a of [...this.attachments.values()]) {
+        if (a.record_type === type && a.record_id === id) {
+          keys.add(a.file_key);
+          this.attachments.delete(a.id);
+        }
+      }
+    }
+    return [...keys];
+  }
+
+  public getTrash(): { documents: DocumentRecord[]; contracts: ContractRecord[]; partners: PartnerRecord[] } {
+    const byDeleted = (a: any, b: any) => String(b.deleted_at).localeCompare(String(a.deleted_at));
+    return {
+      documents: Array.from(this.documents.values()).filter((d) => d.deleted_at).sort(byDeleted),
+      contracts: Array.from(this.contracts.values()).filter((c) => c.deleted_at).sort(byDeleted),
+      partners: Array.from(this.partners.values()).filter((p) => p.deleted_at).sort(byDeleted),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Edit history (record_history), written in the same transaction as the change
+  // ---------------------------------------------------------------------------
+
+  public recordHistory(entry: {
+    record_type: string;
+    record_id: string;
+    action: string;
+    user: { id: string; name?: string | null; username?: string | null };
+    before?: Record<string, any> | null;
+    after?: Record<string, any> | null;
+    revision?: number | null;
+  }): HistoryEntry {
+    const changes = diffRecords(entry.before ?? null, entry.after ?? null);
+    const row: HistoryEntry = {
+      id: `hist_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      record_type: entry.record_type,
+      record_id: entry.record_id,
+      revision: entry.revision ?? entry.after?.revision ?? null,
+      action: entry.action,
+      changed_by: entry.user.id,
+      changed_by_name: entry.user.name || entry.user.username || null,
+      changed_at: new Date().toISOString(),
+      changes: Object.keys(changes).length > 0 ? changes : null,
+    };
+    this.pendingHistory.push(row);
+    return row;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Attachments (multiple files per record, with versions)
+  // ---------------------------------------------------------------------------
+
+  public getAttachments(
+    type: AttachmentRecordType,
+    recordId: string,
+    options: { includeVersions?: boolean; includeDeleted?: boolean } = {}
+  ): AttachmentRecord[] {
+    return Array.from(this.attachments.values())
+      .filter(
+        (a) =>
+          a.record_type === type &&
+          a.record_id === recordId &&
+          (options.includeDeleted || !a.deleted_at) &&
+          (options.includeVersions || a.is_current)
+      )
+      .sort((a, b) => a.uploaded_at.localeCompare(b.uploaded_at) || a.version - b.version);
+  }
+
+  public getAttachment(id: string): AttachmentRecord | null {
+    const a = this.attachments.get(id);
+    return a ? { ...a } : null;
+  }
+
+  public getAllAttachments(): AttachmentRecord[] {
+    return Array.from(this.attachments.values()).map((a) => ({ ...a }));
+  }
+
+  /** Adds a file to a record; with `replaces` it becomes the next version of that attachment. */
+  public addAttachment(input: Omit<AttachmentRecord, 'id' | 'series_id' | 'version' | 'is_current' | 'uploaded_at'> & { replaces?: string | null }): AttachmentRecord {
+    const { replaces, ...fields } = input;
+    const previous = replaces ? this.attachments.get(replaces) : undefined;
+    const id = `att_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    let version = 1;
+    let seriesId = id;
+    if (previous) {
+      seriesId = previous.series_id;
+      const series = Array.from(this.attachments.values()).filter((a) => a.series_id === seriesId);
+      version = Math.max(...series.map((a) => a.version)) + 1;
+      for (const a of series) if (a.is_current) this.attachments.set(a.id, { ...a, is_current: false });
+    }
+    const record: AttachmentRecord = { ...fields, id, series_id: seriesId, version, is_current: true, uploaded_at: new Date().toISOString() };
+    this.attachments.set(id, record);
+    return { ...record };
+  }
+
+  public softDeleteAttachment(id: string, userId: string): AttachmentRecord | null {
+    const a = this.attachments.get(id);
+    if (!a || a.deleted_at) return null;
+    const now = new Date().toISOString();
+    // Removing an attachment removes the whole series (all its versions)
+    for (const v of this.attachments.values()) {
+      if (v.series_id === a.series_id && !v.deleted_at) this.attachments.set(v.id, { ...v, deleted_at: now, deleted_by: userId });
+    }
+    return { ...this.attachments.get(id)! };
   }
 
   // Partner operations (Full CRUD)
   public getPartners(): PartnerRecord[] {
-    return Array.from(this.partners.values());
+    return Array.from(this.partners.values()).filter((p) => !p.deleted_at);
   }
 
-  public getPartner(id: string): PartnerRecord | null {
-    return this.partners.get(id) || null;
+  public getPartner(id: string, options: { includeDeleted?: boolean } = {}): PartnerRecord | null {
+    const p = this.partners.get(id);
+    if (!p || (p.deleted_at && !options.includeDeleted)) return null;
+    return p;
   }
 
   public createPartner(partner: Omit<PartnerRecord, 'id'>): PartnerRecord {
-    const id = 'partner-' + (partner.code ? partner.code.toLowerCase().replace(/[^a-z0-9]/g, '') : Date.now().toString(36));
+    let id = 'partner-' + (partner.code ? partner.code.toLowerCase().replace(/[^a-z0-9]/g, '') : Date.now().toString(36));
+    // A partner in the trash may still hold this id
+    if (this.partners.has(id)) id = `${id}-${Date.now().toString(36)}`;
     const newPartner: PartnerRecord = {
       ...partner,
       id,
@@ -877,7 +1092,7 @@ export class MemoryStore {
     const onTimeRate = incomingCompleted > 0 ? Math.round((completedOnTime / incomingCompleted) * 100) : 100;
 
     return {
-      totalDocuments: this.documents.size,
+      totalDocuments: docs.length,
       totalIncoming: incomingDocs.length,
       totalOutgoing: outgoingDocs.length,
       totalInternal: internalDocs.length,
@@ -888,7 +1103,7 @@ export class MemoryStore {
       incomingUnassigned,
       onTimeRate,
       totalContracts: contracts.length,
-      totalPartners: this.partners.size,
+      totalPartners: this.getPartners().length,
       urgentCount,
       warningCount,
       noticeCount,

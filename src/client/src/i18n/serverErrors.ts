@@ -52,6 +52,9 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   FILE_ATTACH_FORBIDDEN: 'srvFileAttachForbidden',
   DOCUMENT_FORBIDDEN: 'srvDocumentForbidden',
   NOTIFICATION_NOT_FOUND: 'srvNotificationNotFound',
+  RECORD_NOT_FOUND: 'srvRecordNotFound',
+  ATTACHMENT_NOT_FOUND: 'srvAttachmentNotFound',
+  TRASH_ITEM_NOT_FOUND: 'srvTrashItemNotFound',
 };
 
 export interface ServerErrorBody {
