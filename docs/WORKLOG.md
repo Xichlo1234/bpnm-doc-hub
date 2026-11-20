@@ -6,6 +6,7 @@ sao, còn gì tồn đọng. Mỗi PR một mục; các PR xếp chồng theo th
 ## Bối cảnh & quy ước
 
 - Nhánh gốc: `main` (= mã nguồn import ban đầu). Mỗi nhóm việc một nhánh `prNN-...` và một PR.
+- Nhánh tích hợp `claude/vigilant-babbage-xm8dcm` luôn trỏ tới PR mới nhất (gồm mọi PR trước) để review/kiểm thử tổng thể.
 - Không deploy Production, không chạy migration Production, không ghi dữ liệu thật. Mọi kiểm thử chạy
   trên SQLite local với bộ dữ liệu giả lập `tests/fixtures` (đã ẩn danh).
 - Lệnh kiểm tra: `npx tsc --noEmit -p .`, `npm test`, `npx vite build`,
@@ -36,7 +37,7 @@ Kiểm thử: typecheck ✔, 239 test ✔, build ✔, wrangler dry-run ✔.
 ---
 
 ## PR02 — Lưu trữ D1/R2
-Nhánh `pr02-storage` → `pr01-security-rbac`
+Nhánh `pr02-storage` → `pr01-security-rbac` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/2
 
 | Hạng mục | Đã làm | Tệp chính |
 |---|---|---|
