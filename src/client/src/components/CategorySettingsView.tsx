@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { notify } from '../context/ToastContext.tsx';
 import {
   SlidersHorizontal,
   FileCode2,
@@ -636,7 +637,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                     style={{ height: 34, padding: '0 12px' }}
                     onClick={() => {
                       if (!newItemValue.code || !newItemValue.name) {
-                        alert(t.settingsPleaseEnterBothCodeAnd);
+                        notify.error(t.settingsPleaseEnterBothCodeAnd);
                         return;
                       }
                       handleAddItem('doc_types', newItemValue);
@@ -855,7 +856,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                     style={{ height: 34, padding: '0 12px' }}
                     onClick={() => {
                       if (!newItemValue.agency?.trim()) {
-                        alert(t.settingsPleaseEnterAgencyName);
+                        notify.error(t.settingsPleaseEnterAgencyName);
                         return;
                       }
                       handleAddItem('agencies', newItemValue.agency.trim());
@@ -1054,7 +1055,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                     style={{ height: 34, padding: '0 12px' }}
                     onClick={() => {
                       if (!newItemValue.code || !newItemValue.name) {
-                        alert(t.settingsPleaseEnterDepartmentCodeAnd);
+                        notify.error(t.settingsPleaseEnterDepartmentCodeAnd);
                         return;
                       }
                       handleAddItem('departments', newItemValue);
@@ -1309,7 +1310,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                     style={{ height: 34, padding: '0 12px' }}
                     onClick={() => {
                       if (!newItemValue.name?.trim()) {
-                        alert(t.settingsPleaseEnterPersonnelFullName);
+                        notify.error(t.settingsPleaseEnterPersonnelFullName);
                         return;
                       }
                       handleAddItem('personnel', newItemValue);

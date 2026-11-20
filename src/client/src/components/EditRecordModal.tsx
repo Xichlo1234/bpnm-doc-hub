@@ -1,4 +1,5 @@
 import { PaperLocationFields } from './PaperLocationFields.tsx';
+import { notify } from '../context/ToastContext.tsx';
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Edit3, FileText, CheckCircle2, UploadCloud, ExternalLink, Paperclip, AlertCircle } from 'lucide-react';
 import { api } from '../services/api.ts';
@@ -221,6 +222,7 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
         exchange_rate: Number(contractData.exchange_rate) || 25400,
         expected_revision: baseRevision,
       });
+      notify.success(t.recordSavedSuccess);
       onSaved();
       onClose();
     } catch (err: any) {
@@ -248,6 +250,7 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
         if (!reason) throw err;
         await api.updateDocument(item.data.id, { ...docData, expected_revision: baseRevision, adjustment_reason: reason } as any);
       }
+      notify.success(t.recordSavedSuccess);
       onSaved();
       onClose();
     } catch (err: any) {

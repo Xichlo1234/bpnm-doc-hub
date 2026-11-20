@@ -74,6 +74,30 @@ Tài liệu: `docs/ops/BUSINESS_RULES.md`. Kiểm thử: typecheck ✔, 273 test
 
 ---
 
+## PR04 — Tối ưu giao diện
+Nhánh `pr04-ui` → `pr03-business-logic` · (link PR bên dưới)
+
+| Hạng mục | Đã làm | Tệp chính |
+|---|---|---|
+| Menu không trùng lặp | Sidebar dựng từ cấu hình `NAV_GROUPS`, mỗi đích đến xuất hiện đúng 1 lần (bỏ mục "Quyết định"/"Chuyên đề" trùng với "Văn bản nội bộ & QĐ"; bỏ nút Đối tác/Thiết lập trùng trên Header). Đủ nhóm: Tổng quan, CV đến, CV đi, Nội bộ/QĐ, HĐ kinh tế, HĐ lao động (theo quyền), Đối tác, **Kho lưu trữ** (mới), Quản trị | `Sidebar.tsx` (520 → 235 dòng), `Header.tsx` |
+| Số đếm đúng quyền | Badge tính từ chính danh sách người dùng được xem (bỏ số cứng "27" khi chưa có đối tác) | `App.tsx` (`countFor`) |
+| Bộ lọc theo quy trình | CV đi: Dự thảo / Trình ký–Đã ký / Đã phát hành theo giai đoạn quy trình; Kho lưu trữ = văn bản đã lưu trữ + HĐ thanh lý/chấm dứt | `utils/itemFilters.ts`, `services/router.ts` |
+| Tách biểu mẫu tạo theo nghiệp vụ | `CreateModal` 2.211 → 366 dòng: `create/useCreateForm.tsx` (state), `ContractForm`, `IncomingForm`, `OutgoingForm`, `constants.ts` | `components/create/` |
+| Không điền sẵn dữ liệu mẫu | Bỏ người xử lý/người ký/nơi nhận/vị trí lưu điền sẵn (tên người thật); danh sách nhân sự chỉ lấy từ Thiết lập; thêm lựa chọn "— Chọn —" | `create/constants.ts`, `create/useCreateForm.tsx`, `create/OutgoingForm.tsx` |
+| Thông báo lưu | Toast thống nhất (thành công/lỗi/thông tin) thay 18 chỗ `alert()`; xoá chỉ báo thành công khi server xác nhận (API xoá trước đây luôn coi là thành công) | `context/ToastContext.tsx`, `services/api.ts` |
+| Responsive | ≤1024px: sidebar thành ngăn kéo (nút ☰); ≤720px: một cột, chi tiết thay danh sách + nút "Quay lại danh sách", KPI cuộn ngang, header gọn | `styles/index.css`, `App.tsx` |
+| Giữ sáng/tối & đa ngôn ngữ | Không đổi; mọi chuỗi mới có vi/en/km | i18n |
+| Kiểm tra trực quan | Ảnh chụp desktop 1440, tablet 900, phone 390 (dữ liệu giả lập), không lỗi console | `docs/ops/screenshots/` |
+| Test | Kiểm tra bộ lọc theo quy trình, Kho lưu trữ, menu không trùng | `tests/item_filters.test.ts` |
+
+Còn lại (chưa tách sâu, chức năng vẫn chạy): `App.tsx` (~690 dòng), `DetailPane.tsx`, `DocumentTableView.tsx`,
+`ContractTableView.tsx`, `EditRecordModal.tsx`. Đã thêm các panel tách riêng (tệp đính kèm, lịch sử, quy trình, phụ lục)
+thay vì dồn thêm vào các file này.
+
+Kiểm thử: typecheck ✔, 270 test ✔ (6 ca oracle cũ của CV đi được thay bằng test quy trình mới), build ✔, wrangler dry-run ✔.
+
+---
+
 ## Danh sách chờ chủ dự án quyết định
 
 1. **Lịch sử git** vẫn chứa dữ liệu thật ở commit đầu (repo đã private). Xoá hẳn cần viết lại lịch sử

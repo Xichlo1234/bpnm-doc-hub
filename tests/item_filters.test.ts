@@ -251,7 +251,9 @@ describe('sidebar filters (extracted from App.tsx)', () => {
   for (const lang of ['vi', 'en', 'km'] as const) {
     const t = translations[lang];
     const ref = oracle(documents, contracts, 'all', t);
-    for (const filter of FILTERS) {
+    // Outgoing sent/signing intentionally moved from "status !== Dự thảo" to the workflow stages (PR04);
+    // they are covered by the workflow test below instead of the pre-refactor oracle.
+    for (const filter of FILTERS.filter((f) => f !== 'docs_outgoing_sent' && f !== 'docs_outgoing_signing')) {
       it(`${lang} / ${filter}`, () => {
         const ids = (items: UnifiedItem[]) => items.map((i) => `${i.kind}:${i.data.id}`);
         const expected = ref.getFilteredItems(filter);
@@ -296,5 +298,44 @@ describe('findItemByRef', () => {
     expect(findItemByRef(c.id, null, documents, contracts)?.kind).toBe('contract');
     expect(findItemByRef(d.id, null, documents, contracts)?.kind).toBe('document');
     expect(findItemByRef('missing', null, documents, contracts)).toBeNull();
+  });
+});
+
+describe('workflow-based outgoing filters and the archive', () => {
+  const doc = (id: string, doc_type: string, status: string) => ({ id, doc_type, status, document_number: id, title: id, issue_date: '2026-01-01' }) as any;
+  const documents = [
+    doc('d1', 'outgoing', 'Dự thảo'),
+    doc('d2', 'outgoing', 'Trình ký'),
+    doc('d3', 'outgoing', 'Đã ký - chờ gửi'),
+    doc('d4', 'outgoing', 'Đã gửi'),
+    doc('d5', 'outgoing', 'Lưu trữ'),
+    doc('d6', 'incoming', 'Lưu trữ'),
+    doc('d7', 'incoming', 'Hoàn thành'),
+  ];
+  const contracts = [
+    { id: 'c1', status: 'liquidated', contract_type: 'service' },
+    { id: 'c2', status: 'terminated', contract_type: 'service' },
+    { id: 'c3', status: 'active', contract_type: 'service' },
+  ] as any[];
+  const t = translations.vi;
+  const ids = (f: NavFilter) => filterItems(f, documents, contracts, t).items.map((i) => i.data.id);
+
+  it('groups outgoing documents by stage', () => {
+    expect(ids('docs_outgoing_draft')).toEqual(['d1']);
+    expect(ids('docs_outgoing_signing')).toEqual(['d2', 'd3']);
+    expect(ids('docs_outgoing_sent')).toEqual(['d4', 'd5']);
+  });
+
+  it('archive lists archived documents and closed contracts', () => {
+    expect(ids('archive').sort()).toEqual(['c1', 'c2', 'd5', 'd6']);
+  });
+
+  it('every menu destination appears exactly once', async () => {
+    const { NAV_GROUPS } = await import('../src/client/src/components/Sidebar.tsx');
+    const filters = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.filter));
+    expect(new Set(filters).size).toBe(filters.length);
+    for (const required of ['all', 'docs_incoming', 'docs_outgoing', 'docs_internal', 'contracts_all', 'labor_all', 'partners_all', 'archive', 'settings_all']) {
+      expect(filters, required).toContain(required);
+    }
   });
 });

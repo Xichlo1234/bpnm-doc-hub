@@ -241,7 +241,9 @@ export const api = {
     const res = await customFetch(`${API_BASE}/documents/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
-    return res.ok;
+    // Never report a delete that the server refused (permission, not found, conflict)
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('srvInternalError')));
+    return true;
   },
 
   async getNextDocNumber(type: 'incoming' | 'outgoing', category = 'CV', department = 'HCNS'): Promise<{ nextNumber: string }> {
@@ -302,7 +304,9 @@ export const api = {
     const res = await customFetch(`${API_BASE}/contracts/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
-    return res.ok;
+    // Never report a delete that the server refused (permission, not found, conflict)
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('srvInternalError')));
+    return true;
   },
 
   /** Server-side dry run of an import: validation, duplicates, new vs. updated rows with field changes. */
@@ -414,7 +418,9 @@ export const api = {
     const res = await customFetch(`${API_BASE}/partners/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
-    return res.ok;
+    // Never report a delete that the server refused (permission, not found, conflict)
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('srvInternalError')));
+    return true;
   },
 
   async togglePartnerLock(id: string): Promise<PartnerRecord> {

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { notify, ToastHost } from './context/ToastContext.tsx';
 import { Header, type ViewMode } from './components/Header.tsx';
-import { Sidebar, type NavFilter } from './components/Sidebar.tsx';
+import { Sidebar, NAV_GROUPS, type NavFilter } from './components/Sidebar.tsx';
 import { ItemList, type UnifiedItem } from './components/ItemList.tsx';
 import { DetailPane } from './components/DetailPane.tsx';
 import { ContractStatsBar } from './components/ContractStatsBar.tsx';
@@ -55,6 +56,8 @@ const AppContent: React.FC = () => {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [contracts, setContracts] = useState<ContractRecord[]>([]);
   const [partners, setPartners] = useState<PartnerRecord[]>([]);
+  // Mobile/tablet: the sidebar is an off-canvas drawer
+  const [isNavOpen, setIsNavOpen] = useState(false);
   const [stats, setStats] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<UnifiedItem | null>(null);
   const [partnerContractSearch, setPartnerContractSearch] = useState<string>('');
@@ -260,7 +263,7 @@ const AppContent: React.FC = () => {
       const newStats = await api.getStats();
       setStats(newStats);
     } catch (err) {
-      alert(tf('appLiquidateFailed', { error: String(err) }));
+      notify.error(tf('appLiquidateFailed', { error: String(err) }));
     }
   };
 
@@ -284,10 +287,11 @@ const AppContent: React.FC = () => {
         }
       }
       setSelectedItem(null);
+      notify.success(t.trashMovedToTrash);
       const newStats = await api.getStats();
       setStats(newStats);
-    } catch (err) {
-      alert(tf('appDeleteFailed', { error: String(err) }));
+    } catch (err: any) {
+      notify.error(tf('appDeleteFailed', { error: err?.message || String(err) }));
     }
   };
 
@@ -339,6 +343,18 @@ const AppContent: React.FC = () => {
 
   const { title: listTitle, items: listItems } = filterItems(currentFilter, documents, contracts, t);
 
+  // Menu badges come from the same lists the user sees (already limited to what they may read)
+  const navCounts = useMemo(() => {
+    const counts = new Map<NavFilter, number>();
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        counts.set(item.filter, item.filter === 'partners_all' ? partners.length : filterItems(item.filter, documents, contracts, t).items.length);
+      }
+    }
+    return counts;
+  }, [documents, contracts, partners, t]);
+  const countFor = (filter: NavFilter) => navCounts.get(filter) ?? 0;
+
   const isContractSection =
     currentFilter.startsWith('contracts') ||
     currentFilter.startsWith('labor') ||
@@ -373,6 +389,7 @@ const AppContent: React.FC = () => {
         viewMode={viewMode}
         onToggleViewMode={handleToggleViewMode}
         onOpenSpotlight={() => setIsSpotlightOpen(true)}
+        onOpenNav={() => setIsNavOpen(true)}
         onOpenCreate={() => {
           if (currentFilter.startsWith('labor') || (user?.role !== 'admin' && user?.can_access_labor_contracts)) {
             openCreateWithTab('labor');
@@ -404,31 +421,10 @@ const AppContent: React.FC = () => {
         <Sidebar
           currentFilter={currentFilter}
           onSelectFilter={handleSelectFilter}
-          urgentCount={stats?.urgentCount ?? stats?.urgentContracts ?? 0}
-          warningCount={(stats?.warningCount ?? stats?.warningContracts ?? 0) + (stats?.noticeCount ?? 0)}
-          activeCount={stats?.activeCount ?? stats?.activeContracts ?? 0}
-          expiredCount={stats?.expiredCount ?? stats?.expiredContracts ?? 0}
-          liquidatedCount={stats?.liquidatedCount ?? stats?.liquidatedContracts ?? 0}
-          indefiniteCount={stats?.indefiniteCount ?? stats?.indefiniteContracts ?? 0}
-          totalContracts={stats?.totalContracts ?? filterContracts('contracts_all', contracts).length}
-          totalLaborContracts={stats?.totalLaborContracts ?? filterContracts('labor_all', contracts).length}
-          laborUrgentCount={stats?.laborUrgentCount ?? filterContracts('labor_urgent', contracts).length}
-          laborWarningCount={stats?.laborWarningCount ?? filterContracts('labor_warning', contracts).length}
-          laborActiveCount={stats?.laborActiveCount ?? filterContracts('labor_active', contracts).length}
-          laborExpiredCount={stats?.laborExpiredCount ?? filterContracts('labor_expired', contracts).length}
-          laborLiquidatedCount={stats?.laborLiquidatedCount ?? filterContracts('labor_liquidated', contracts).length}
-          laborIndefiniteCount={stats?.laborIndefiniteCount ?? filterContracts('labor_indefinite', contracts).length}
-          totalDocs={stats?.totalDocuments || documents.length}
-          totalIncoming={stats?.totalIncoming || 0}
-          totalOutgoing={stats?.totalOutgoing || 0}
-          totalInternal={stats?.totalInternal || documents.filter(d => d.doc_type === 'internal' || d.doc_type === 'decision').length}
-          totalPartners={stats?.totalPartners || partners.length}
-          incomingOverdue={stats?.incomingOverdue || 0}
-          incomingExpiringSoon={stats?.incomingExpiringSoon || 0}
-          incomingProcessing={stats?.incomingProcessing || 0}
-          incomingCompleted={stats?.incomingCompleted || 0}
-          incomingUnassigned={stats?.incomingUnassigned || 0}
+          countFor={countFor}
           onOpenUpload={() => openCreateWithTab('incoming')}
+          isOpen={isNavOpen}
+          onClose={() => setIsNavOpen(false)}
         />
 
         {/* Main Content Area */}
@@ -523,19 +519,9 @@ const AppContent: React.FC = () => {
               onRefreshPartners={() => loadData(true)}
             />
           ) : (
-            /* View Mode: Split-View (List Column + Detail Pane) */
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  width: 420,
-                  minWidth: 360,
-                  maxWidth: 460,
-                  borderRight: '1px solid var(--border-subtle)',
-                  overflow: 'hidden',
-                }}
-              >
+            /* View Mode: Split-View (List Column + Detail Pane). On phones the detail replaces the list. */
+            <div className={`split-view ${selectedItem ? 'split-view-has-detail' : ''}`}>
+              <div className="split-view-list">
                 <ItemList
                   title={listTitle}
                   items={listItems}
@@ -545,7 +531,12 @@ const AppContent: React.FC = () => {
                 />
               </div>
 
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+              <div className="split-view-detail">
+                {selectedItem && (
+                  <button type="button" className="btn btn-sm split-view-back" onClick={() => setSelectedItem(null)}>
+                    ← {t.backToList}
+                  </button>
+                )}
                 <DetailPane
                   item={selectedItem}
                   onLiquidateContract={handleLiquidate}
@@ -673,6 +664,7 @@ export const App: React.FC = () => (
   <AuthProvider>
     <LanguageProvider>
       <AppContent />
+      <ToastHost />
     </LanguageProvider>
   </AuthProvider>
 );

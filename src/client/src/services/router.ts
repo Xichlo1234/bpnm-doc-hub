@@ -68,6 +68,12 @@ export function parseCurrentLocation(customPath?: string, customHash?: string): 
   }
 
   // 3. All items
+  if (first === 'archive') {
+    state.viewMode = 'split';
+    state.currentFilter = 'archive';
+    return state;
+  }
+
   if (first === 'all') {
     state.viewMode = 'split';
     state.currentFilter = 'all';
@@ -239,6 +245,11 @@ export function parseCurrentLocation(customPath?: string, customHash?: string): 
         state.currentFilter = 'docs_outgoing_sent';
         return state;
       }
+      if (third === 'draft') {
+        state.viewMode = 'split';
+        state.currentFilter = 'docs_outgoing_draft';
+        return state;
+      }
       if (third === 'signing') {
         state.viewMode = 'split';
         state.currentFilter = 'docs_outgoing_signing';
@@ -363,6 +374,10 @@ export function buildRouteUrl(params: {
       return '/documents/outgoing/sent';
     case 'docs_outgoing_signing':
       return '/documents/outgoing/signing';
+    case 'docs_outgoing_draft':
+      return '/documents/outgoing/draft';
+    case 'archive':
+      return '/archive';
     case 'docs_decision':
       return '/documents/decision';
     case 'docs_internal':
