@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bpnm-doc-hub",
+  "main": "src/server/index.ts",
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "cc8e2a546317d0e17f696b246a8f69b9",
+  "routes": [
+    {
+      "pattern": "bpnm.tungcv.vn",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bpnm-doc-hub-db",
+      "database_id": "3b47381d-1449-403c-9c84-87f81213010c",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "bpnm-doc-hub-files"
+    }
+  ]
+}

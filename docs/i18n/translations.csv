@@ -1,0 +1,1004 @@
+﻿key,vi,en,km
+brandTitle,DocHub,DocHub,DocHub
+brandSubtitle,Hồ sơ & Sổ Công văn điện tử,E-Document & Registry System,ប្រព័ន្ធគ្រប់គ្រងឯកសារ និងកិច្ចសន្យាអេឡិចត្រូនិច
+companyFullName,Công ty Cổ phần đầu tư quốc tế Sambo Gold - SGII,Sambo Gold International Investment JSC - SGII,ក្រុមហ៊ុនវិនិយោគអន្តរជាតិ សំបូរ ហ្គោល - SGII
+searchPlaceholder,"Tìm kiếm thông minh toàn văn (HĐ, CV đến, CV đi, chỉ đạo...)...","Smart full-text search (Contracts, In/Out Docs, Directives...)...","ស្វែងរកឆ្លាតវៃ (កិច្ចសន្យា, លិខិតចូល, លិខិតចេញ, បទបញ្ជា...)..."
+cardView,Thẻ xem,Card View,ទិដ្ឋភាពកាត
+docTable,Sổ Công Văn,Document Log,សៀវភៅលិខិត
+contractTable,Bảng Hợp Đồng,Contract Table,តារាងកិច្ចសន្យា
+partners,Đối Tác,Partners,ដៃគូសហការ
+settings,Thiết Lập,Settings,ការកំណត់
+addNew,Thêm mới,Add New,បង្កើតថ្មី
+lightTheme,Chuyển sang Giao diện Sáng,Switch to Light Mode,ប្តូរទៅពន្លឺ
+darkTheme,Chuyển sang Giao diện Tối,Switch to Dark Mode,ប្តូរទៅងងឹត
+logout,Đăng xuất,Log Out,ចាកចេញ
+language,Ngôn ngữ,Language,ភាសា
+notificationsTitle,Thông báo & Phân công chỉ đạo,Notifications & Directives,ការជូនដំណឹង & បទបញ្ជាដឹកនាំ
+markAllRead,Đánh dấu đã đọc tất cả,Mark all as read,សម្គាល់ថាបានអានទាំងអស់
+noNotifications,Không có thông báo nào,No notifications,មិនមានការជូនដំណឹងទេ
+directiveLabel,Ý kiến chỉ đạo,Leadership Directive,មតិណែនាំ
+dueDateLabel,Hạn xử lý,Due Date,កាលបរិច្ឆេទកំណត់
+recipientLabel,Người xử lý,Assignee,អ្នកទទួលបន្ទុក
+viewDetails,Xem chi tiết,View Details,មើលលម្អិត
+workspace,KHÔNG GIAN,WORKSPACE,លំហការងារ
+allRecords,Tất cả tài liệu,All Records & Contracts,ឯកសារ និងកិច្ចសន្យាទាំងអស់
+incomingLog,SỔ CÔNG VĂN ĐẾN,INCOMING LOG,សៀវភៅលិខិតចូល
+allIncomingDocs,Tất cả CV đến,All Incoming Docs,លិខិតចូលទាំងអស់
+overdueDocs,Quá hạn xử lý,Overdue Docs,លិខិតហួសកំណត់
+expiringSoon3d,Sắp đến hạn (≤3d),Expiring Soon (≤3d),ជិតដល់កាលកំណត់ (≤3ថ្ងៃ)
+inProgress,Đang xử lý,In Progress,កំពុងដំណើរការ
+completed,Đã hoàn thành,Completed,បានបញ្ចប់
+unassigned,Chưa phân công,Unassigned,មិនទាន់ចាត់តាំង
+outgoingLog,SỔ CÔNG VĂN ĐI,OUTGOING LOG,សៀវភៅលិខិតចេញ
+allOutgoingDocs,Tất cả CV đi,All Outgoing Docs,លិខិតចេញទាំងអស់
+dispatched,Đã gửi,Dispatched,បានផ្ញើរួច
+pendingSignature,Trình ký,Pending Signature,រង់ចាំចុះហត្ថលេខា
+internalAndDecisions,NỘI BỘ & QUYẾT ĐỊNH,INTERNAL & DECISIONS,ផ្ទៃក្នុង & សេចក្តីសម្រេច
+internalDocsDecisions,Văn bản nội bộ & QĐ,Internal Documents & Decisions,ឯកសារផ្ទៃក្នុង និងសេចក្តីសម្រេច
+contractsTitle,HỢP ĐỒNG,CONTRACTS,កិច្ចសន្យា
+allContracts,Tất cả hợp đồng,All Contracts,កិច្ចសន្យាទាំងអស់
+urgentContracts7d,Cần xử lý gấp (≤7d),Urgent Renewal (≤7d),ត្រូវបន្តបន្ទាន់ (≤7ថ្ងៃ)
+expiringSoon30d,Sắp đến hạn (≤30d),Expiring Soon (≤30d),ជិតផុតកំណត់ (≤30ថ្ងៃ)
+activeContractsNav,Còn hiệu lực,Active,មានសុពលភាព
+expiredContractsNav,Hết hiệu lực / Hết hạn,Expired,ផុតសុពលភាព / ផុតកំណត់
+liquidatedClosed,Đã hoàn thành,Liquidated / Closed,បានបញ្ចប់ / រំលាយរួច
+indefiniteNav,Chưa xác định hạn,Indefinite,មិនកំណត់កាលបរិច្ឆេទ
+partnersTitle,ĐỐI TÁC,PARTNERS,ដៃគូសហការ
+partnerDirectory,Danh mục đối tác,Partner Directory,បញ្ជីឈ្មោះដៃគូសហការ
+systemTitle,HỆ THỐNG,SYSTEM,ប្រព័ន្ធ
+settingsCategories,Danh mục & Thiết lập,Settings & Categories,ការកំណត់ & ប្រភេទ
+otherDocsTitle,VĂN BẢN KHÁC & THADS,OTHER DOCUMENTS & THADS,ឯកសារផ្សេងៗ & របាយការណ៍
+allDocs,Tất cả văn bản,All Documents,ឯកសារទាំងអស់
+decisions,Quyết định,Decisions,សេចក្តីសម្រេច
+thematicDocs,Chuyên đề & THADS (PPTX),Thematics & Reports (PPTX),ប្រធានបទ & បទបង្ហាញ (PPTX)
+quickUploadTitle,Thêm tài liệu mới,Add New Document,បន្ថែមឯកសារថ្មី
+quickUploadDesc,Tự động sinh số & phân loại,Auto-numbering & categorization,បង្កើតលេខស្វ័យប្រវត្តិ & ចាត់ថ្នាក់
+save,Lưu thay đổi,Save Changes,រក្សាទុកការផ្លាស់ប្តូរ
+cancel,Hủy bỏ,Cancel,បោះបង់
+edit,Chỉnh sửa,Edit,កែសម្រួល
+delete,Xóa,Delete,លុប
+filter,Bộ lọc,Filter,តម្រង
+exportExcel,Xuất Excel,Export Excel,នាំចេញ Excel
+importExcel,Nhập Excel,Import Excel,នាំចូល Excel
+downloadTemplate,Tải file mẫu,Download Template,ទាញយកគំរូ
+reload,Tải lại dữ liệu,Reload,ផ្ទុកឡើងវិញ
+close,Đóng,Close,បិទ
+search,Tìm kiếm,Search,ស្វែងរក
+status,Trạng thái,Status,ស្ថានភាព
+actions,Thao tác,Actions,សកម្មភាព
+confirm,Xác nhận,Confirm,បញ្ជាក់
+resetFilter,Xóa bộ lọc,Reset Filters,កំណត់តម្រងឡើងវិញ
+recordsFound,bản ghi tìm được,records found,កំណត់ត្រាដែលបានរកឃើញ
+allDepartments,Tất cả phòng ban,All Departments,គ្រប់នាយកដ្ឋាន
+allPartners,Tất cả đối tác,All Partners,គ្រប់ដៃគូសហការ
+allContractTypes,Tất cả loại hợp đồng,All Contract Types,គ្រប់ប្រភេទកិច្ចសន្យា
+allCurrencies,Tất cả loại tiền,All Currencies,គ្រប់រូបិយប័ណ្ណ
+allYears,Tất cả các năm,All Years,គ្រប់ឆ្នាំ
+allStatuses,Tất cả trạng thái,All Statuses,គ្រប់ស្ថានភាព
+allUrgency,Độ khẩn: Tất cả,Urgency: All,ភាពបន្ទាន់៖ ទាំងអស់
+yearFormat,Năm,Year,ឆ្នាំ
+userManagement,Quản lý Tài khoản,User Management,គ្រប់គ្រងគណនី
+auditLogs,Nhật ký Thao tác,Audit Logs,កំណត់ត្រាសកម្មភាព
+roleAdmin,Quản trị viên (Admin),Administrator (Admin),អ្នកគ្រប់គ្រង (Admin)
+roleUser,Người xem (User),Viewer (User),អ្នកមើល (User)
+statusActive,Hoạt động,Active,សកម្ម
+statusLocked,Đã khóa,Locked,បានចាក់សោ
+accessDenied,Truy cập bị từ chối: Bạn không có quyền thực hiện thao tác này.,Access Denied: You do not have permission to perform this action.,ការចូលប្រើត្រូវបានបដិសេធ៖ អ្នកមិនមានការអនុញ្ញាតដើម្បីអនុវត្តសកម្មភាពនេះទេ។
+currencyManagement,Quản lý Tiền tệ,Currency Management,គ្រប់គ្រងរូបិយប័ណ្ណ
+currencyCode,Mã tiền tệ,Currency Code,កូដរូបិយប័ណ្ណ
+currencyName,Tên tiền tệ,Currency Name,ឈ្មោះរូបិយប័ណ្ណ
+currencySymbol,Ký hiệu,Symbol,និមិត្តសញ្ញា
+decimals,Số chữ số thập phân,Decimals,ខ្ទង់ទសភាគ
+isDefault,Mặc định,Default,លំនាំដើម
+processing,Đang xử lý,In Progress,កំពុងដំណើរការ
+urgent,Gấp / Khẩn,Urgent,បន្ទាន់
+active,Hiệu lực,Active,មានសុពលភាព
+expired,Hết hạn,Expired,ផុតកំណត់
+liquidated,Đã thanh lý,Liquidated,បានរំលាយ
+stt,STT,No.,ល.រ
+contractNumber,MÃ HỢP ĐỒNG,CONTRACT NO.,លេខកិច្ចសន្យា
+contractTitleCol,TÊN / NỘI DUNG HỢP ĐỒNG,CONTRACT TITLE / SUBJECT,ចំណងជើង / ខ្លឹមសារកិច្ចសន្យា
+partnerBCol,ĐỐI TÁC (BÊN B),PARTNER (PARTY B),ដៃគូសហការ (ភាគី ខ)
+departmentCol,BỘ PHẬN,DEPARTMENT,នាយកដ្ឋាន
+valueCol,GIÁ TRỊ,VALUE,តម្លៃ
+signedDateCol,NGÀY KÝ,SIGNED DATE,កាលបរិច្ឆេទចុះហត្ថលេខា
+endDateCol,NGÀY HẾT HẠN,EXPIRATION DATE,កាលបរិច្ឆេទផុតកំណត់
+urgencyStatusCol,TÌNH TRẠNG HẠN,STATUS & URGENCY,ស្ថានភាពសុពលភាព
+noDataFound,Không tìm thấy dữ liệu phù hợp với bộ lọc,No contracts match the selected filters,រកមិនឃើញទិន្នន័យដែលត្រូវនឹងតម្រងទេ
+viewDetailAction,Xem chi tiết,View details,មើលលម្អិត
+liquidateAction,Thanh lý hợp đồng,Liquidate contract,រំលាយកិច្ចសន្យា
+downloadAttachment,Tải tệp đính kèm,Download attachment,ទាញយកឯកសារភ្ជាប់
+indefiniteTerm,Vô thời hạn,Indefinite,គ្មានកំណត់កាលបរិច្ឆេទ
+daysLeftFormat,Còn {days} ngày,{days} days left,នៅសល់ {days} ថ្ងៃ
+overdueDaysFormat,Quá hạn {days} ngày,{days} days overdue,ហួសកំណត់ {days} ថ្ងៃ
+listRecordsUnit,hồ sơ,records,កំណត់ត្រា
+listSearchPlaceholder,"Tìm theo tên, số hiệu, đối tác...","Search by name, code, partner...","ស្វែងរកតាមឈ្មោះ, លេខកូដ, ដៃគូ..."
+listLoading,Đang tải dữ liệu...,Loading data...,កំពុងផ្ទុកទិន្នន័យ...
+listNotFound,Không tìm thấy hồ sơ phù hợp,No matching records found,រកមិនឃើញកំណត់ត្រាដែលត្រូវគ្នាទេ
+totalContractsStat,Tổng HĐ,Total Contracts,កិច្ចសន្យាសរុប
+activeCountStat,Còn hiệu lực,Active,មានសុពលភាព
+expiringSoonStat,Sắp hết hạn,Expiring Soon,ជិតផុតកំណត់
+expiredCountStat,Hết hiệu lực / Hết hạn,Expired,ផុតសុពលភាព / ផុតកំណត់
+completedCountStat,Đã hoàn thành,Completed,បានបញ្ចប់
+indefiniteCountStat,Chưa xác định,Indefinite,មិនទាន់កំណត់
+totalIncomingStat,Tổng CV Đến,Total Incoming,លិខិតចូលសរុប
+totalOutgoingStat,Tổng CV Đi,Total Outgoing,លិខិតចេញសរុប
+processingStat,Đang xử lý,In Progress,កំពុងចាត់ចែង
+overdueStat,Quá hạn xử lý,Overdue,ហួសកាលកំណត់
+expiringSoon3dStat,Sắp đến hạn (≤3d),Expiring Soon (≤3d),ជិតដល់កាលកំណត់ (≤3d)
+onTimeRateStat,Đúng hạn,On Time,ទាន់ពេលវេលា
+completedStatSuffix,hoàn thành,completed,បានបញ្ចប់
+filterByLabel,Lọc theo:,Filter by:,ត្រងតាម:
+tabIncomingDocs,📥 Sổ Công Văn Đến,📥 Incoming Log,📥 សៀវភៅលិខិតចូល
+tabOutgoingDocs,📤 Sổ Công Văn Đi,📤 Outgoing Log,📤 សៀវភៅលិខិតចេញ
+tabInternalDocs,📋 VB Nội Bộ & QĐ,📋 Internal & Decisions,📋 ផ្ទៃក្នុង & សេចក្តីសម្រេច
+tabSearchAll,🔍 Tra Cứu Toàn Bộ,🔍 All Records Search,🔍 ស្វែងរកឯកសារទាំងអស់
+createIncomingBtn,Tiếp nhận CV Đến,Receive Incoming Doc,ទទួលលិខិតចូល
+createOutgoingBtn,Phát hành CV Đi,Issue Outgoing Doc,ចេញលិខិតចេញ
+searchDocPlaceholder,"Tìm số đến/đi, số gốc, trích yếu, cơ quan, người xử lý, chỉ đạo...","Search doc number, original code, title, issuer, handler...","ស្វែងរកលេខលិខិត, លេខដើម, ក្បាលរឿង, ស្ថាប័នផ្ញើ, អ្នកចាត់ចែង..."
+searchContractPlaceholder,"Tìm theo mã HĐ, tên đối tác, nội dung, ghi chú...","Search contract no, partner, title, notes...","ស្វែងរកលេខកិច្ចសន្យា, ឈ្មោះដៃគូ, ខ្លឹមសារ, កំណត់ចំណាំ..."
+clearSearchBtn,Xóa tìm kiếm,Clear Search,សម្អាតការស្វែងរក
+allStatusesOption,Tất cả tình trạng,All Statuses,គ្រប់ស្ថានភាពទាំងអស់
+overdueStatusOption,● Quá hạn xử lý,● Overdue,● ហួសកាលកំណត់
+expiringStatusOption,● Sắp đến hạn (≤3d),● Expiring Soon (≤3d),● ជិតដល់កាលកំណត់ (≤3d)
+completedStatusOption,● Đã hoàn thành,● Completed,● បានបញ្ចប់
+allUrgencyOption,Độ khẩn: Tất cả,Urgency: All,កម្រិតបន្ទាន់: ទាំងអស់
+allYearsOption,Tất cả các năm,All Years,គ្រប់ឆ្នាំទាំងអស់
+docIncomingNumberCol,Số đến,Incoming No.,លេខចូល
+docIncomingDateCol,Ngày đến,Received Date,កាលបរិច្ឆេទចូល
+docOriginalNumberCol,Số / Ký hiệu gốc,Original Code,លេខ / កូដដើម
+docOriginalDateCol,Ngày VB gốc,Original Date,កាលបរិច្ឆេទដើម
+docIssuerCol,Cơ quan gửi,Issuing Authority,ស្ថាប័នផ្ញើ
+docTypeCol,Loại VB,Doc Type,ប្រភេទលិខិត
+docTitleCol,Trích yếu nội dung,Subject / Summary,ខ្លឹមសារសង្ខេប
+docUrgencyCol,Độ khẩn,Urgency,កម្រិតបន្ទាន់
+docHandlerDeptCol,Bộ phận xử lý,Handling Dept,ផ្នែកចាត់ចែង
+docHandlerCol,Người xử lý,Assignee,អ្នកចាត់ចែង
+docDueDateCol,Hạn xử lý,Due Date,កាលកំណត់
+docStatusCol,Tình trạng,Status,ស្ថានភាព
+docReplyNumberCol,Phúc đáp số,Reply No.,ឆ្លើយតបលេខ
+docDirectiveCol,Ý kiến chỉ đạo,Directive,មតិណែនាំ / បទបញ្ជា
+docStorageLocationCol,Lưu bản gốc,Archived At,កន្លែងរក្សាទុក
+docOutgoingNumberCol,Số đi,Outgoing No.,លេខចេញ
+docOutgoingDateCol,Ngày ban hành,Issue Date,កាលបរិច្ឆេទចេញ
+docDraftingDeptCol,Bộ phận soạn,Drafting Dept,ផ្នែកព្រាង
+docDrafterCol,Người soạn,Drafter,អ្នកព្រាង
+docSignerCol,Người ký,Signer,អ្នកចុះហត្ថលេខា
+docRecipientCol,Nơi nhận,Recipient,អ្នកទទួល
+docReplyToIncomingCol,Phúc đáp CV đến,In Response To,ឆ្លើយតបលិខិតចូល
+docSendMethodCol,Hình thức gửi,Dispatch Method,វិធីសាស្ត្រផ្ញើ
+docClassificationCol,Phân loại,Classification,ចំណាត់ថ្នាក់
+docNumberCol,Số hiệu VB,Doc Number,លេខកូដលិខិត
+docLinkedNumberCol,Số gốc / Liên kết,Original / Linked No.,លេខដើម / ភ្ជាប់
+docDateCol,Ngày VB,Doc Date,កាលបរិច្ឆេទលិខិត
+docIssuerRecipientCol,Cơ quan gửi / Nhận,Issuer / Recipient,ស្ថាប័នផ្ញើ / ទទួល
+docInChargeCol,Người phụ trách,In Charge,អ្នកទទួលខុសត្រូវ
+noIncomingDocsFound,Không tìm thấy văn bản đến nào phù hợp với bộ lọc,No incoming documents matching filters,រកមិនឃើញលិខិតចូលដែលត្រូវនឹងតម្រងទេ
+noOutgoingDocsFound,Không tìm thấy văn bản đi nào phù hợp với bộ lọc,No outgoing documents matching filters,រកមិនឃើញលិខិតចេញដែលត្រូវនឹងតម្រងទេ
+noInternalDocsFound,Không tìm thấy văn bản nội bộ hoặc quyết định nào phù hợp với bộ lọc,No internal documents or decisions matching filters,រកមិនឃើញលិខិតផ្ទៃក្នុង ឬសេចក្តីសម្រេចដែលត្រូវនឹងតម្រងទេ
+noSearchDocsFound,Không tìm thấy văn bản nào phù hợp với bộ lọc tìm kiếm,No documents matching search query,រកមិនឃើញលិខិតដែលត្រូវនឹងពាក្យស្វែងរកទេ
+docFooterDisplaying,Hiển thị,Showing,កំពុងបង្ហាញ
+docFooterDocsUnit,văn bản,documents,លិខិត
+docFooterClickHint,💡 Nhấp dòng để xem chi tiết & tệp đính kèm,💡 Click row to view details & attachments,💡 ចុចលើជួរដេកដើម្បីមើលព័ត៌មានលម្អិត & ឯកសារភ្ជាប់
+docFooterShortcutHint,⚡ Phím tắt Cmd + K để tra cứu toàn văn,⚡ Shortcut Cmd + K for full-text search,⚡ ផ្លូវកាត់ Cmd + K ដើម្បីស្វែងរកខ្លឹមសារទាំងមូល
+spotlightInputPlaceholder,"Tra cứu tức thì hợp đồng, văn bản, đối tác, số hiệu...","Instant search contracts, documents, partners, codes...","ស្វែងរកបន្ទាន់កិច្ចសន្យា, លិខិត, ដៃគូ, លេខកូដ..."
+spotlightContractsSection,HỢP ĐỒNG,CONTRACTS,កិច្ចសន្យា
+spotlightDocsSection,CÔNG VĂN & HỒ SƠ,DOCUMENTS & RECORDS,លិខិត & ឯកសារ
+spotlightSearching,Đang tra cứu cơ sở dữ liệu...,Searching database...,កំពុងស្វែងរកក្នុងមូលដ្ឋានទិន្នន័យ...
+spotlightNotFound,Không tìm thấy hồ sơ phù hợp với từ khóa,No matching records found for query,រកមិនឃើញកំណត់ត្រាដែលត្រូវនឹងពាក្យគន្លឹះទេ
+partnerListTitle,Danh mục Đối tác & Khách hàng,Partners & Clients Directory,បញ្ជីឈ្មោះដៃគូ & អតិថិជន
+partnerCodeHeader,Mã đối tác (Client ID),Partner ID,កូដដៃគូ (Client ID)
+partnerNameHeader,Tên đối tác (VN & Quốc tế),Partner Name (VN & Intl),ឈ្មោះដៃគូ (VN & អន្តរជាតិ)
+categoryColHeader,Phân loại,Category,ចំណាត់ថ្នាក់
+taxIdHeader,Mã số thuế,Tax ID,លេខអត្តសញ្ញាណកម្មសារពើពន្ធ
+contactPersonHeader,Đại diện / Đầu mối,Representative / Contact,តំណាង / ទំនាក់ទំនង
+addressHeader,Địa chỉ,Address,អាសយដ្ឋាន
+contractCountHeader,Số HĐ,Contracts,ចំនួនកិច្ចសន្យា
+validityHeader,Hiệu lực,Validity,សុពលភាព
+actionsHeader,Thao tác,Actions,សកម្មភាព
+addPartnerBtn,Thêm Đối Tác,Add Partner,បន្ថែមដៃគូថ្មី
+exportCsvBtn,Xuất Excel CSV,Export Excel CSV,ទាញយក Excel CSV
+partnerCountSummary,đối tác,partners,ដៃគូ
+searchPartnerPlaceholder,"Tìm theo tên, mã, MST, đầu mối...","Search by name, ID, tax code, contact...","ស្វែងរកតាមឈ្មោះ, កូដ, លេខពន្ធ, អ្នកទំនាក់ទំនង..."
+allCategories,Tất cả phân loại,All Categories,គ្រប់ចំណាត់ថ្នាក់ទាំងអស់
+lockPartnerAction,Khóa đối tác,Lock Partner,ចាក់សោដៃគូ
+unlockPartnerAction,Mở khóa đối tác,Unlock Partner,ដោះសោដៃគូ
+editPartnerAction,Sửa đối tác,Edit Partner,កែសម្រួលដៃគូ
+deletePartnerAction,Xóa đối tác,Delete Partner,លុបដៃគូ
+openInContractTable,Mở trong bảng Hợp Đồng,Open in Contract Table,បើកក្នុងតារាងកិច្ចសន្យា
+viewContractBtn,Xem HĐ,View Contracts,មើលកិច្ចសន្យា
+totalLinkedContracts,Tổng cộng,Total,សរុប
+linkedContractsWith,hợp đồng liên kết với,contracts linked with,កិច្ចសន្យាភ្ជាប់ជាមួយ
+excelImportContractTitle,Nhập Dữ Liệu Hợp Đồng Từ Excel (.xlsx),Import Contracts from Excel (.xlsx),នាំចូលទិន្នន័យកិច្ចសន្យាពី Excel (.xlsx)
+excelImportDocTitle,Nhập Sổ Công Văn Từ Excel (.xlsx),Import Document Log from Excel (.xlsx),នាំចូលសៀវភៅលិខិតពី Excel (.xlsx)
+excelImportDesc,Hỗ trợ tạo mới và cập nhật hàng loạt theo cột ID định danh.,Supports bulk creation and updates by record ID column.,គាំទ្រការបង្កើតថ្មី និងធ្វើបច្ចុប្បន្នភាពតាមជួរឈរលេខសម្គាល់ ID។
+noStandardTemplate,Chưa có file mẫu chuẩn? Tải về file mẫu Excel có sẵn các cột chuẩn:,Need a standardized template? Download the pre-formatted Excel template:,មិនទាន់មានគំរូស្តង់ដារមែនទេ? ទាញយកគំរូ Excel ដែលមានស្រាប់ជួរឈរ:
+dragOrClickUpload,"Bấm hoặc kéo thả file Excel (.xlsx, .csv) vào đây","Click or drag Excel file (.xlsx, .csv) here","ចុច ឬអូសទម្លាក់ឯកសារ Excel (.xlsx, .csv) មកទីនេះ"
+maxFileSize,Dung lượng tối đa 15MB.,Maximum file size: 15MB.,ទំហំអតិបរមា 15MB។
+detectedErrors,Phát hiện,Detected,បានរកឃើញ
+errorsInFile,lỗi trong file:,errors in file:,កំហុសក្នុងឯកសារ:
+previewTotal,Tổng số:,Total:,សរុប:
+previewNew,Thêm mới:,New:,បង្កើតថ្មី:
+previewUpdate,Cập nhật:,Updated:,ធ្វើបច្ចុប្បន្នភាព:
+rowsUnit,dòng,rows,ជួរដេក
+confirmImportBtn,Xác nhận nhập,Confirm Import,បញ្ជាក់ការនាំចូល
+previewDisplaying,Hiển thị xem trước,Showing preview of,កំពុងបង្ហាញមើលជាមុន
+recordsUnit,bản ghi,records,កំណត់ត្រា
+detailContractTitle,HỢP ĐỒNG,CONTRACT,កិច្ចសន្យា
+detailDocumentTitle,CÔNG VĂN / HỒ SƠ,DOCUMENT / RECORD,លិខិត / ឯកសារ
+contractValueLabel,Giá trị hợp đồng,Contract Value,តម្លៃកិច្ចសន្យា
+partyBLabel,Bên B (Đối tác),Party B (Partner),ភាគី ខ (ដៃគូ)
+partyALabel,Bên A (Chủ quản),Party A (Principal),ភាគី ក (ក្រុមហ៊ុន)
+contractDurationLabel,Thời hạn hợp đồng,Contract Duration,ថិរវេលាកិច្ចសន្យា
+contractDetailSectionTitle,Thông tin chi tiết hợp đồng,Contract Detailed Information,ព័ត៌មានលម្អិតនៃកិច្ចសន្យា
+docDetailSectionTitle,Thông tin chi tiết văn bản,Document Detailed Information,ព័ត៌មានលម្អិតនៃលិខិតរដ្ឋបាល
+originalContractNumberLabel,Số hợp đồng gốc,Original Contract No.,លេខកិច្ចសន្យាដើម
+uploadAttachmentBtn,Upload tệp,Upload File,បញ្ចូលឯកសារ
+replaceAttachmentBtn,Thay tệp,Replace File,ប្តូរឯកសារថ្មី
+uploadingAttachment,Đang tải...,Uploading...,កំពុងបញ្ចូល...
+transferGoogleDriveBtn,Chuyển về Google Drive,Transfer to Google Drive,ផ្ទេរទៅកាន់ Google Drive
+downloadFileBtn,Tải file,Download File,ទាញយកឯកសារ
+partnerLabel,Đối tác,Partner,ដៃគូ
+signedOnDate,Ký ngày,Signed on,ចុះកាលបរិច្ឆេទ
+allDocsAndContracts,Tất cả tài liệu & hợp đồng,All Documents & Contracts,ឯកសារ & កិច្ចសន្យាទាំងអស់
+createContractTitle,Thêm Hợp Đồng Mới,Add New Contract,បង្កើតកិច្ចសន្យាថ្មី
+createIncomingTitle,Tiếp Nhận Công Văn Đến,Receive Incoming Letter,ទទួលលិខិតចូលថ្មី
+createOutgoingTitle,Phát Hành Công Văn Đi,Issue Outgoing Letter,ចេញលិខិតចេញថ្មី
+contractTab,Hợp Đồng,Contract,កិច្ចសន្យា
+incomingTab,Công Văn Đến,Incoming Letter,លិខិតចូល
+outgoingTab,Công Văn Đi,Outgoing Letter,លិខិតចេញ
+loginCompanySub,CÔNG TY CỔ PHẦN ĐẦU TƯ QUỐC TẾ SAMBO GOLD — SGII,SAMBO GOLD INTERNATIONAL INVESTMENT JSC — SGII,ក្រុមហ៊ុនវិនិយោគអន្តរជាតិ សំបូរ ហ្គោល — SGII
+loginMainTitle,Hệ Thống Quản Lý Công Văn & Hợp Đồng,Document & Contract Management System,ប្រព័ន្ធគ្រប់គ្រងលិខិតរដ្ឋបាល & កិច្ចសន្យា
+loginDesc,"Cổng tra cứu, số hóa và theo dõi tiến độ hồ sơ pháp lý, công văn đến/đi","Portal for search, digitization, and progress tracking of legal records and documents",ច្រកផ្លូវសម្រាប់ស្វែងរក ធ្វើឌីជីថលភាវូបនីយកម្ម និងតាមដានវឌ្ឍនភាពឯកសារច្បាប់
+loginUsernameLabel,Tài khoản Đăng nhập,Username / Account,គណនីចូលប្រព័ន្ធ
+loginUsernamePlaceholder,Nhập tên đăng nhập...,Enter your username...,បញ្ចូលឈ្មោះគណនីរបស់អ្នក...
+loginPasswordLabel,Mật khẩu xác thực,Password,ពាក្យសម្ងាត់ផ្ទៀងផ្ទាត់
+loginPasswordPlaceholder,Nhập mật khẩu...,Enter your password...,បញ្ចូលពាក្យសម្ងាត់...
+loginRememberMe,Ghi nhớ phiên đăng nhập,Remember session,ចងចាំការចូលប្រព័ន្ធ
+loginDefaultDays,Mặc định: 7 ngày,Default: 7 days,លំនាំដើម: ៧ ថ្ងៃ
+loginSubmitBtn,Đăng Nhập Vào Hệ Thống,Log In to System,ចូលទៅកាន់ប្រព័ន្ធ
+loginAuthenticating,Đang xác thực...,Authenticating...,កំពុងផ្ទៀងផ្ទាត់...
+loginFooterTitle,Hệ thống Quản lý Lưu trữ Văn bản & Hồ sơ Pháp lý SGII,SGII Electronic Registry & Contract Management System,ប្រព័ន្ធគ្រប់គ្រង និងរក្សាទុកឯកសារច្បាប់ SGII
+loginFooterSub,Phiên bản 2.4 Enterprise • Triển khai trên Cloudflare,Version 2.4 Enterprise • Cloudflare Edge Deployed,កំណែ ២.៤ Enterprise • ដាក់ឱ្យដំណើរការលើ Cloudflare
+statusDraft,Dự thảo,Draft,សេចក្តីព្រាង
+statusSubmittedForApproval,Trình duyệt,Submitted for Approval,ដាក់ស្នើសុំអនុម័ត
+statusSigned,Đã ký,Signed,បានចុះហត្ថលេខា
+statusInExecution,Đang thực hiện,In Execution,កំពុងអនុវត្ត
+statusSuspended,Tạm dừng,Suspended,ផ្អាកបណ្តោះអាសន្ន
+statusLiquidation,Thanh lý,Liquidation,ទូទាត់បញ្ចប់
+statusCancelled,Hủy,Cancelled,បានលុបចោល
+statusPendingSignature,Trình ký,Pending Signature,ដាក់ស្នើចុះហត្ថលេខា
+statusSignedAwaitingDispatch,Đã ký - chờ gửi,Signed - Awaiting Dispatch,បានចុះហត្ថលេខា - រង់ចាំផ្ញើ
+statusDispatched,Đã gửi,Dispatched,បានផ្ញើ
+statusInProgress,Đang xử lý,In Progress,កំពុងដំណើរការ
+statusUnassigned,Chưa phân công,Unassigned,មិនទាន់ចាត់តាំង
+statusCompleted,Hoàn thành,Completed,បានបញ្ចប់
+statusCompletedLate,Hoàn thành (Trễ hạn),Completed (Late),បានបញ្ចប់ (យឺតពេល)
+statusInEffect,Còn hiệu lực,In Effect,នៅមានសុពលភាព
+statusLiquidated,Đã thanh lý,Liquidated,បានទូទាត់បញ្ចប់
+statusTerminated,Đã chấm dứt,Terminated,បានបញ្ចប់កិច្ចសន្យា
+errLoadDocuments,Không thể tải danh sách công văn,Failed to load documents,មិនអាចផ្ទុកបញ្ជីលិខិតបានទេ
+errLoadDocument,Không thể tải công văn,Failed to load document,មិនអាចផ្ទុកលិខិតបានទេ
+errCreateDocument,Không thể tạo công văn,Failed to create document,មិនអាចបង្កើតលិខិតបានទេ
+errUpdateDocument,Không thể cập nhật công văn,Failed to update document,មិនអាចធ្វើបច្ចុប្បន្នភាពលិខិតបានទេ
+errLoadNextNumber,Không thể lấy số văn bản tiếp theo,Failed to get the next document number,មិនអាចទាញយកលេខឯកសារបន្ទាប់បានទេ
+errLoadContracts,Không thể tải danh sách hợp đồng,Failed to load contracts,មិនអាចផ្ទុកបញ្ជីកិច្ចសន្យាបានទេ
+errLoadContract,Không thể tải hợp đồng,Failed to load contract,មិនអាចផ្ទុកកិច្ចសន្យាបានទេ
+errCreateContract,Không thể tạo hợp đồng,Failed to create contract,មិនអាចបង្កើតកិច្ចសន្យាបានទេ
+errUpdateContract,Không thể cập nhật hợp đồng,Failed to update contract,មិនអាចធ្វើបច្ចុប្បន្នភាពកិច្ចសន្យាបានទេ
+errLiquidateContract,Không thể thanh lý hợp đồng,Failed to liquidate contract,មិនអាចទូទាត់បញ្ចប់កិច្ចសន្យាបានទេ
+errImportContracts,Lỗi khi nhập dữ liệu hợp đồng,Failed to import contracts,មិនអាចនាំចូលទិន្នន័យកិច្ចសន្យាបានទេ
+errImportDocuments,Nhập dữ liệu văn bản thất bại,Document import failed,ការនាំចូលឯកសារបរាជ័យ
+errSearch,Tìm kiếm thất bại,Search failed,ការស្វែងរកបរាជ័យ
+errLoadStats,Không thể tải số liệu thống kê,Failed to load statistics,មិនអាចផ្ទុកស្ថិតិបានទេ
+errLoadCategories,Không thể tải danh mục,Failed to load categories,មិនអាចផ្ទុកប្រភេទបានទេ
+errLoadSettings,Không thể tải danh mục và thiết lập,Failed to load categories and settings,មិនអាចផ្ទុកប្រភេទ និងការកំណត់បានទេ
+errAddCategoryItem,Không thể thêm mục danh mục,Failed to add category item,មិនអាចបន្ថែមធាតុប្រភេទបានទេ
+errUpdateCategoryItem,Không thể cập nhật mục danh mục,Failed to update category item,មិនអាចធ្វើបច្ចុប្បន្នភាពធាតុប្រភេទបានទេ
+errDeleteCategoryItem,Không thể xóa mục danh mục,Failed to delete category item,មិនអាចលុបធាតុប្រភេទបានទេ
+errUpdateSettings,Không thể lưu thiết lập,Failed to save settings,មិនអាចរក្សាទុកការកំណត់បានទេ
+errLoadPartners,Không thể tải danh sách đối tác,Failed to load partners,មិនអាចផ្ទុកបញ្ជីដៃគូបានទេ
+errCreatePartner,Không thể thêm đối tác,Failed to create partner,មិនអាចបន្ថែមដៃគូបានទេ
+errUpdatePartner,Không thể cập nhật đối tác,Failed to update partner,មិនអាចធ្វើបច្ចុប្បន្នភាពដៃគូបានទេ
+errTogglePartnerLock,Không thể khóa/mở khóa đối tác,Failed to lock/unlock partner,មិនអាចចាក់សោ/ដោះសោដៃគូបានទេ
+errLoginFailed,Đăng nhập không thành công,Login failed,ការចូលប្រព័ន្ធបរាជ័យ
+errNotLoggedIn,Chưa đăng nhập,Not logged in,មិនទាន់បានចូលប្រព័ន្ធ
+errNetworkUploadDocument,Mất kết nối mạng khi tải tệp công văn lên.,Network connection lost while uploading the document file.,បាត់ការតភ្ជាប់បណ្តាញ ពេលកំពុងផ្ទុកឯកសារលិខិតឡើង។
+errTimeoutSaveDocument,Hết thời gian chờ lưu công văn (quá 45 giây).,Saving the document timed out (over 45 seconds).,អស់ពេលរង់ចាំរក្សាទុកលិខិត (លើស ៤៥ វិនាទី)។
+errNetworkUploadContract,Mất kết nối mạng khi tải tệp hợp đồng lên.,Network connection lost while uploading the contract file.,បាត់ការតភ្ជាប់បណ្តាញ ពេលកំពុងផ្ទុកឯកសារកិច្ចសន្យាឡើង។
+errTimeoutCreateContract,Hết thời gian chờ tạo hợp đồng (quá 45 giây).,Creating the contract timed out (over 45 seconds).,អស់ពេលរង់ចាំបង្កើតកិច្ចសន្យា (លើស ៤៥ វិនាទី)។
+errHttpCode,{message} (Mã lỗi HTTP {status}),{message} (HTTP error {status}),{message} (កូដកំហុស HTTP {status})
+errFileTooLarge,"Dung lượng tệp ({size} MB) vượt quá giới hạn cho phép (tối đa 5MB). Vui lòng dùng tính năng ""Lưu qua Google Drive"" đối với tệp dung lượng lớn.","File size ({size} MB) exceeds the allowed limit (max 5MB). Please use ""Save via Google Drive"" for large files.","ទំហំឯកសារ ({size} MB) លើសដែនកំណត់ដែលអនុញ្ញាត (អតិបរមា 5MB)។ សូមប្រើមុខងារ ""រក្សាទុកតាម Google Drive"" សម្រាប់ឯកសារធំ។"
+errUploadToServer,Tải tệp lên máy chủ thất bại,Failed to upload the file to the server,ការផ្ទុកឯកសារឡើងម៉ាស៊ីនមេបរាជ័យ
+errUploadFailed,Tải tệp lên thất bại,File upload failed,ការផ្ទុកឯកសារឡើងបរាជ័យ
+errNetworkUploadFile,Mất kết nối mạng hoặc máy chủ từ chối kết nối khi tải tệp.,Network lost or the server refused the connection while uploading.,បាត់បណ្តាញ ឬម៉ាស៊ីនមេបដិសេធការតភ្ជាប់ ពេលផ្ទុកឯកសារ។
+errTimeoutUploadFile,Hết thời gian chờ tải tệp (quá 45 giây). Vui lòng thử lại hoặc giảm kích thước tệp.,File upload timed out (over 45 seconds). Please retry or reduce the file size.,អស់ពេលរង់ចាំផ្ទុកឯកសារ (លើស ៤៥ វិនាទី)។ សូមព្យាយាមម្តងទៀត ឬបន្ថយទំហំឯកសារ។
+errMoveToDrive,Lỗi khi chuyển file về Google Drive,Failed to move the file to Google Drive,មិនអាចផ្ទេរឯកសារទៅ Google Drive បានទេ
+errUpdateCurrencies,Không thể cập nhật danh sách tiền tệ,Could not update the currency list,មិនអាចធ្វើបច្ចុប្បន្នភាពបញ្ជីរូបិយប័ណ្ណបានទេ
+errAddCurrency,Không thể thêm đơn vị tiền tệ,Could not add the currency,មិនអាចបន្ថែមរូបិយប័ណ្ណបានទេ
+errLoadUsers,Không thể lấy danh sách người dùng,Could not load users,មិនអាចផ្ទុកបញ្ជីអ្នកប្រើប្រាស់បានទេ
+errCreateUser,Không thể tạo tài khoản,Could not create the account,មិនអាចបង្កើតគណនីបានទេ
+errUpdateUser,Không thể cập nhật tài khoản,Could not update the account,មិនអាចធ្វើបច្ចុប្បន្នភាពគណនីបានទេ
+errDeleteUser,Không thể xóa tài khoản,Could not delete the account,មិនអាចលុបគណនីបានទេ
+appLoadingSystem,Đang tải hệ thống...,Loading system...,កំពុងផ្ទុកប្រព័ន្ធ...
+appLiquidateFailed,Không thể thanh lý hợp đồng: {error},Could not liquidate the contract: {error},មិនអាចទូទាត់បញ្ចប់កិច្ចសន្យាបានទេ: {error}
+appDeleteConfirm,"Bạn có chắc chắn muốn xóa hồ sơ: ""{title}""?","Are you sure you want to delete the record ""{title}""?","តើអ្នកប្រាកដថាចង់លុបឯកសារ ""{title}"" មែនទេ?"
+appDeleteFailed,Không thể xóa hồ sơ: {error},Could not delete the record: {error},មិនអាចលុបឯកសារបានទេ: {error}
+pageTitlePartners,Danh Bạ Đối Tác,Partner Directory,បញ្ជីដៃគូ
+pageTitleSettings,Cài Đặt Hệ Thống & Danh Mục,System Settings & Categories,ការកំណត់ប្រព័ន្ធ និងប្រភេទ
+pageTitleContracts,Sổ Quản Lý Hợp Đồng,Contract Register,សៀវភៅគ្រប់គ្រងកិច្ចសន្យា
+pageTitleDocuments,Sổ Quản Lý Công Văn Đến & Đi,Incoming & Outgoing Document Register,សៀវភៅគ្រប់គ្រងលិខិតចូល និងចេញ
+pageTitleHome,Quản Lý Văn Bản & Hợp Đồng Siêu Tốc,Fast Document & Contract Management,ការគ្រប់គ្រងឯកសារ និងកិច្ចសន្យារហ័ស
+loggedInAs,Đang đăng nhập: {name} ({username}),Signed in as: {name} ({username}),កំពុងចូលប្រព័ន្ធជា: {name} ({username})
+saving,Đang lưu...,Saving...,កំពុងរក្សាទុក...
+loginMissingFields,Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.,Please enter both username and password.,សូមបញ្ចូលឈ្មោះគណនី និងពាក្យសម្ងាត់ឱ្យបានពេញលេញ។
+loginInvalidCredentials,Tên đăng nhập hoặc mật khẩu không chính xác.,Incorrect username or password.,ឈ្មោះគណនី ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ។
+economicContractsTitle,HỢP ĐỒNG KINH TẾ ({count}),ECONOMIC CONTRACTS ({count}),កិច្ចសន្យាសេដ្ឋកិច្ច ({count})
+laborContractsTitle,HĐ LAO ĐỘNG - MẬT ({count}),LABOR CONTRACTS - CONFIDENTIAL ({count}),កិច្ចសន្យាការងារ - សម្ងាត់ ({count})
+laborAll,Tất cả HĐ Lao động,All Labor Contracts,កិច្ចសន្យាការងារទាំងអស់
+laborUrgentRenewal,Cần gia hạn gấp (≤7d),Urgent Renewal (≤7d),ត្រូវបន្តជាបន្ទាន់ (≤7ថ្ងៃ)
+laborExpiringSoon,Sắp hết hạn (≤30d),Expiring Soon (≤30d),ជិតផុតកំណត់ (≤30ថ្ងៃ)
+laborActiveFixedTerm,Còn hiệu lực (Có hạn),Active (Fixed-term),នៅមានសុពលភាព (មានកំណត់)
+laborExpired,Hết hạn HĐLĐ,Expired,ផុតកំណត់
+laborTerminated,Đã nghỉ việc / Thanh lý,Terminated / Resigned,បានលាឈប់ / បញ្ចប់
+laborIndefinite,HĐ Không xác định hạn,Indefinite Term,គ្មានកំណត់ពេល
+laborTotalStat,Tổng HĐ Lao động 🔒,Total Labor Contracts 🔒,កិច្ចសន្យាការងារសរុប 🔒
+laborIndefiniteStat,Không xác định hạn,Indefinite Term,គ្មានកំណត់ពេល
+filterBy,Lọc theo: {label},Filter by: {label},ត្រងតាម: {label}
+docTypeIncomingShort,CV Đến,Incoming,លិខិតចូល
+docTypeOutgoingShort,CV Đi,Outgoing,លិខិតចេញ
+docTypeInternal,Nội bộ,Internal,ផ្ទៃក្នុង
+docTypeOther,Khác,Other,ផ្សេងៗ
+directiveShort,Chỉ đạo,Directive,បទបញ្ជា
+spotlightFooterHint,Nhấn vào bất kỳ hồ sơ nào để mở xem chi tiết & bản xem trước,Click any record to open its details & preview,ចុចលើឯកសារណាមួយ ដើម្បីបើកមើលព័ត៌មានលម្អិត និងការមើលជាមុន
+spotlightOpenHint,Chọn mở,Open,បើក
+listTitleLaborAll,🔒 Hợp đồng lao động ({count}),🔒 Labor Contracts ({count}),🔒 កិច្ចសន្យាការងារ ({count})
+listTitleLaborUrgent,🔒 HĐ Lao động khẩn cấp (≤ 7 ngày),🔒 Urgent Labor Contracts (≤ 7 days),🔒 កិច្ចសន្យាការងារបន្ទាន់ (≤ 7 ថ្ងៃ)
+listTitleLaborWarning,🔒 HĐ Lao động sắp hết hạn (≤ 30 ngày),🔒 Labor Contracts Expiring Soon (≤ 30 days),🔒 កិច្ចសន្យាការងារជិតផុតកំណត់ (≤ 30 ថ្ងៃ)
+listTitleLaborActive,🔒 HĐ Lao động còn hiệu lực,🔒 Active Labor Contracts,🔒 កិច្ចសន្យាការងារនៅមានសុពលភាព
+listTitleLaborExpired,🔒 HĐ Lao động quá hạn,🔒 Expired Labor Contracts,🔒 កិច្ចសន្យាការងារផុតកំណត់
+listTitleLaborLiquidated,🔒 HĐ Lao động đã thanh lý / nghỉ việc,🔒 Terminated Labor Contracts / Resigned,🔒 កិច្ចសន្យាការងារបានបញ្ចប់ / លាឈប់
+listTitleLaborIndefinite,🔒 HĐ Lao động không xác định thời hạn,🔒 Indefinite-term Labor Contracts,🔒 កិច្ចសន្យាការងារគ្មានកំណត់ពេល
+listTitleDocsAll,Tất cả công văn & quyết định,All Documents & Decisions,លិខិត និងសេចក្តីសម្រេចទាំងអស់
+listTitleIncoming,Công văn đến (Sổ tiếp nhận),Incoming Documents (Receipt Log),លិខិតចូល (សៀវភៅទទួល)
+listTitleIncomingOverdue,Công văn đến QUÁ HẠN XỬ LÝ,Incoming Documents OVERDUE,លិខិតចូល ហួសកាលកំណត់
+listTitleIncomingExpiring,Công văn đến SẮP ĐẾN HẠN (≤ 3 ngày),Incoming Documents DUE SOON (≤ 3 days),លិខិតចូល ជិតដល់កាលកំណត់ (≤ 3 ថ្ងៃ)
+listTitleIncomingProcessing,Công văn đến ĐANG XỬ LÝ,Incoming Documents IN PROGRESS,លិខិតចូល កំពុងដំណើរការ
+listTitleIncomingCompleted,Công văn đến ĐÃ HOÀN THÀNH,Incoming Documents COMPLETED,លិខិតចូល បានបញ្ចប់
+listTitleIncomingUnassigned,Công văn đến CHƯA PHÂN CÔNG,Incoming Documents UNASSIGNED,លិខិតចូល មិនទាន់ចាត់តាំង
+listTitleOutgoing,Công văn đi (Phát hành công ty),Outgoing Documents (Company Issued),លិខិតចេញ (ចេញដោយក្រុមហ៊ុន)
+listTitleOutgoingSent,Công văn đi ĐÃ GỬI BƯU ĐIỆN / ĐỐI TÁC,Outgoing Documents SENT (Post / Partner),លិខិតចេញ បានផ្ញើ (ប្រៃសណីយ៍ / ដៃគូ)
+listTitleOutgoingSigning,Công văn đi ĐANG TRÌNH KÝ DUYỆT,Outgoing Documents PENDING SIGNATURE,លិខិតចេញ កំពុងដាក់ស្នើចុះហត្ថលេខា
+listTitleInternalDecisions,Văn bản Nội bộ & Quyết định,Internal Documents & Decisions,ឯកសារផ្ទៃក្នុង និងសេចក្តីសម្រេច
+listTitleDocuments,Tài liệu,Documents,ឯកសារ
+exportContractsTooltip,Xuất bảng dữ liệu Hợp đồng ra file Excel (.xlsx),Export contract data to an Excel file (.xlsx),នាំចេញទិន្នន័យកិច្ចសន្យាទៅជាឯកសារ Excel (.xlsx)
+importExcelTooltip,Nhập file Excel (.xlsx) với màn hình xem trước và kiểm tra lỗi,Import an Excel file (.xlsx) with preview and validation,នាំចូលឯកសារ Excel (.xlsx) ដោយមានការមើលជាមុន និងពិនិត្យកំហុស
+partnerToggleLockFailed,Lỗi khóa/mở khóa đối tác: {error},Could not lock/unlock the partner: {error},មិនអាចចាក់សោ/ដោះសោដៃគូបានទេ: {error}
+partnerDeleteConfirm,Bạn có chắc chắn muốn xóa đối tác [{code}] {name} không?,Are you sure you want to delete partner [{code}] {name}?,តើអ្នកប្រាកដថាចង់លុបដៃគូ [{code}] {name} មែនទេ?
+partnerDeleteFailed,Lỗi khi xóa đối tác: {error},Could not delete the partner: {error},មិនអាចលុបដៃគូបានទេ: {error}
+partnerViewContractsTooltip,Xem các hợp đồng đã và đang ký kết của {name},View contracts signed with {name},មើលកិច្ចសន្យាដែលបានចុះហត្ថលេខាជាមួយ {name}
+partnerNoResults,Không tìm thấy đối tác nào phù hợp với bộ lọc tìm kiếm.,No partners match the current filters.,រកមិនឃើញដៃគូដែលត្រូវនឹងតម្រងស្វែងរកទេ។
+partnerContractsTitle,Hợp đồng đối tác: [{code}] {name},Partner contracts: [{code}] {name},កិច្ចសន្យារបស់ដៃគូ: [{code}] {name}
+partnerContractsSummary,MST: {taxId} · Tìm thấy {count} hợp đồng đã & đang giao dịch,Tax ID: {taxId} · {count} past & current contracts found,លេខពន្ធ: {taxId} · រកឃើញកិច្ចសន្យា {count} (កន្លងមក និងបច្ចុប្បន្ន)
+partnerNoContracts,Chưa phát sinh hợp đồng nào với đối tác này trong cơ sở dữ liệu.,No contracts with this partner in the database yet.,មិនទាន់មានកិច្ចសន្យាជាមួយដៃគូនេះនៅក្នុងមូលដ្ឋានទិន្នន័យទេ។
+valueLabel,Giá trị,Value,តម្លៃ
+signedDateLabel,Ngày ký,Signed,ថ្ងៃចុះហត្ថលេខា
+endDateLabel,Hạn kết thúc,End date,ថ្ងៃបញ្ចប់
+inChargeLabel,Phụ trách,In charge,អ្នកទទួលបន្ទុក
+detailsBtn,Chi tiết,Details,លម្អិត
+urgencyNormal,Thường,Normal,ធម្មតា
+urgencyUrgent,Khẩn,Urgent,បន្ទាន់
+urgencyVeryUrgent,Thượng khẩn,Very urgent,បន្ទាន់ខ្លាំង
+urgencyFlash,Hỏa tốc,Flash,បន្ទាន់បំផុត
+detailEmptyTitle,Chưa chọn hồ sơ nào,No record selected,មិនទាន់បានជ្រើសរើសឯកសារ
+detailEmptyHint,Chọn một văn bản hoặc hợp đồng từ danh sách bên trái để xem chi tiết,Select a document or contract from the list on the left to see its details,ជ្រើសរើសឯកសារ ឬកិច្ចសន្យាពីបញ្ជីខាងឆ្វេង ដើម្បីមើលព័ត៌មានលម្អិត
+uploadTooLargeUseDrive,"Tệp ""{name}"" có dung lượng {size} MB, vượt quá giới hạn 5MB cho phép. Vui lòng chuyển sang chọn ""Chuyển về Google Drive"" hoặc nén nhỏ tệp.","File ""{name}"" is {size} MB, over the 5MB limit. Please use ""Move to Google Drive"" or compress the file.","ឯកសារ ""{name}"" មានទំហំ {size} MB លើសដែនកំណត់ 5MB។ សូមប្រើ ""ផ្ទេរទៅ Google Drive"" ឬបង្រួមឯកសារ។"
+uploadFileSuccess,"Tải lên tệp ""{name}"" thành công!","Uploaded ""{name}"" successfully!","បានផ្ទុកឡើង ""{name}"" ដោយជោគជ័យ!"
+uploadFileFailed,Lỗi khi tải tệp lên,File upload failed,ការផ្ទុកឯកសារឡើងបរាជ័យ
+driveSyncSuccess,Đã đồng bộ đường dẫn Google Drive thành công!,Google Drive link synced successfully!,បានធ្វើសមកាលកម្មតំណ Google Drive ដោយជោគជ័យ!
+driveSaveFailed,Lỗi khi lưu liên kết Google Drive,Could not save the Google Drive link,មិនអាចរក្សាទុកតំណ Google Drive បានទេ
+driveRemoveSuccess,Đã gỡ liên kết Google Drive khỏi hồ sơ.,Google Drive link removed from the record.,បានដកតំណ Google Drive ចេញពីឯកសារ។
+driveRemoveFailed,Lỗi khi gỡ liên kết Google Drive,Could not remove the Google Drive link,មិនអាចដកតំណ Google Drive បានទេ
+uploadingToServer,Đang tải tệp lên máy chủ...,Uploading file to the server...,កំពុងផ្ទុកឯកសារឡើងម៉ាស៊ីនមេ...
+uploadAndSaveSuccess,Tải lên và lưu hồ sơ thành công!,Uploaded and saved successfully!,បានផ្ទុកឡើង និងរក្សាទុកដោយជោគជ័យ!
+contractExpiredAlert,Hợp đồng đã quá hạn hiệu lực!,This contract has expired!,កិច្ចសន្យានេះបានផុតសុពលភាពហើយ!
+contractExpiringAlert,Hợp đồng sắp hết hạn trong 30 ngày tới!,This contract expires within 30 days!,កិច្ចសន្យានេះនឹងផុតកំណត់ក្នុងរយៈពេល ៣០ ថ្ងៃខាងមុខ!
+expiryDateLabel,Ngày hết hạn,Expiry date,ថ្ងៃផុតកំណត់
+notSpecified,Chưa xác định,Not specified,មិនទាន់កំណត់
+daysCount,{days} ngày,{days} days,{days} ថ្ងៃ
+liquidateNow,Thanh lý ngay,Liquidate now,ទូទាត់បញ្ចប់ឥឡូវ
+categoryAndDepartment,Phân loại & Phòng ban,Category & Department,ប្រភេទ និងនាយកដ្ឋាន
+defaultContractCategory,Dịch vụ,Service,សេវាកម្ម
+signingDateLabel,Ngày ký kết,Signing date,ថ្ងៃចុះហត្ថលេខា
+partnerTaxIdLabel,Mã số thuế đối tác,Partner tax ID,លេខពន្ធរបស់ដៃគូ
+contactAndPhoneLabel,Người liên hệ & SĐT,Contact & phone,អ្នកទំនាក់ទំនង និងលេខទូរស័ព្ទ
+cloudStorageLabel,Lưu trữ đám mây,Cloud storage,ការរក្សាទុកលើពពក
+renewalTermsLabel,Điều khoản gia hạn / Tái ký,Renewal / re-signing terms,លក្ខខណ្ឌបន្ត / ចុះហត្ថលេខាឡើងវិញ
+incomingDoc,Công văn đến,Incoming document,លិខិតចូល
+outgoingDoc,Công văn đi,Outgoing document,លិខិតចេញ
+documentBreadcrumb,VĂN BẢN,DOCUMENT,ឯកសារ
+issuingAuthorityLabel,Cơ quan ban hành,Issued by,ស្ថាប័នចេញ
+issuedInternally,Ban hành nội bộ,Issued internally,ចេញផ្ទៃក្នុង
+editDocumentTooltip,Chỉnh sửa thông tin văn bản,Edit document details,កែសម្រួលព័ត៌មានឯកសារ
+uploadReplacementTooltip,Tải lên tệp mới thay thế,Upload a replacement file,ផ្ទុកឯកសារថ្មីជំនួស
+uploadAttachmentTooltip,Tải lên tệp đính kèm,Upload an attachment,ផ្ទុកឯកសារភ្ជាប់
+replaceFile,Thay tệp,Replace file,ជំនួសឯកសារ
+uploadFile,Upload tệp,Upload file,ផ្ទុកឯកសារ
+driveButtonTooltip,Chuyển file về Google Drive hoặc đồng bộ liên kết,Move the file to Google Drive or sync its link,ផ្ទេរឯកសារទៅ Google Drive ឬធ្វើសមកាលកម្មតំណ
+moveToDrive,Chuyển về Google Drive,Move to Google Drive,ផ្ទេរទៅ Google Drive
+downloadFile,Tải tệp,Download,ទាញយក
+deleteDocumentTooltip,Xóa văn bản,Delete document,លុបឯកសារ
+processingStatusLabel,Tình trạng xử lý,Processing status,ស្ថានភាពដំណើរការ
+completedOnLabel,Hoàn thành ngày,Completed on,បានបញ្ចប់នៅថ្ងៃ
+responsibleUnitLabel,Đơn vị phụ trách,Responsible unit,អង្គភាពទទួលបន្ទុក
+boardDirectiveTitle,📌 Ý kiến chỉ đạo của Ban Giám đốc,📌 Board of Directors' directive,📌 បទបញ្ជារបស់គណៈនាយក
+categoryAndUrgency,Phân loại & Độ khẩn,Category & Urgency,ប្រភេទ និងកម្រិតបន្ទាន់
+senderOrRecipient,Cơ quan gửi / Nơi nhận,Sender / Recipient,អ្នកផ្ញើ / អ្នកទទួល
+internalCompany,Nội bộ công ty,Internal (company),ផ្ទៃក្នុងក្រុមហ៊ុន
+handlerAndUnit,Người & Đơn vị xử lý,Handler & Unit,អ្នក និងអង្គភាពដោះស្រាយ
+documentSummarySection,Thông tin trích yếu văn bản,Document summary,ព័ត៌មានសង្ខេបឯកសារ
+registrationNumber,Mã số đăng ký,Registration number,លេខចុះបញ្ជី
+originalNumberLabel,Số / Ký hiệu gốc,Original number / Reference,លេខ / និមិត្តសញ្ញាដើម
+issueDateLabel,Ngày ban hành,Issue date,ថ្ងៃចេញ
+sentDateLabel,Ngày gửi,Sent date,ថ្ងៃផ្ញើ
+receivedDateLabel,Ngày tiếp nhận,Received date,ថ្ងៃទទួល
+deliveryMethodLabel,Hình thức chuyển phát,Delivery method,វិធីបញ្ជូន
+linkedDocumentLabel,Văn bản liên kết / Phúc đáp,Linked document / Reply,ឯកសារភ្ជាប់ / ឆ្លើយតប
+originalStorageLabel,Nơi lưu trữ bản gốc,Original copy location,ទីតាំងរក្សាទុកច្បាប់ដើម
+keywordsLabel,Từ khóa / Nhãn danh mục,Keywords / Tags,ពាក្យគន្លឹះ / ស្លាក
+documentSummaryLabel,Trích yếu nội dung văn bản,Document summary,ខ្លឹមសារសង្ខេបឯកសារ
+driveModalTitle,Chuyển File Về Google Drive,Move File to Google Drive,ផ្ទេរឯកសារទៅ Google Drive
+driveModalSubtitle,Đồng bộ và lưu trữ hồ sơ trên Google Drive công ty,Sync and store the record on the company Google Drive,ធ្វើសមកាលកម្ម និងរក្សាទុកឯកសារលើ Google Drive របស់ក្រុមហ៊ុន
+contractWord,Hợp đồng,Contract,កិច្ចសន្យា
+documentWord,Văn bản,Document,ឯកសារ
+referenceNumberLabel,Số hiệu,Reference no.,លេខយោង
+attachmentLabel,Tệp đính kèm,Attachment,ឯកសារភ្ជាប់
+noLocalFile,Chưa tải lên tệp nội bộ,No local file uploaded,មិនទាន់ផ្ទុកឯកសារក្នុងប្រព័ន្ធ
+downloadForDrive,Tải về máy để đưa lên Drive,Download to upload to Drive,ទាញយកដើម្បីដាក់ទៅ Drive
+driveStep1,Bước 1: Mở thư mục Google Drive công ty,Step 1: Open the company Google Drive folder,ជំហានទី ១: បើកថតឯកសារ Google Drive របស់ក្រុមហ៊ុន
+openGoogleDrive,Mở Google Drive,Open Google Drive,បើក Google Drive
+driveStep1Hint,Kéo-thả tệp tài liệu của bạn vào thư mục lưu trữ trên Google Drive. Thư mục hiện tại:,Drag and drop your file into the storage folder on Google Drive. Current folder:,អូស និងទម្លាក់ឯកសាររបស់អ្នកទៅក្នុងថតរក្សាទុកលើ Google Drive។ ថតបច្ចុប្បន្ន:
+driveStep2,Bước 2: Dán đường dẫn Google Drive của tệp (Share URL),Step 2: Paste the file's Google Drive link (Share URL),ជំហានទី ២: បិទភ្ជាប់តំណ Google Drive របស់ឯកសារ (Share URL)
+driveStep2Hint,"Sau khi tải file lên Drive, nhấp chuột phải chọn ""Chia sẻ"" → ""Sao chép đường liên kết"" rồi dán vào đây để liên kết trực tiếp.","After uploading to Drive, right-click the file, choose ""Share"" → ""Copy link"" and paste it here.","បន្ទាប់ពីផ្ទុកទៅ Drive ចុចកណ្ដុរស្ដាំលើឯកសារ ជ្រើស ""ចែករំលែក"" → ""ចម្លងតំណ"" រួចបិទភ្ជាប់នៅទីនេះ។"
+useCompanyFolderLink,Gán liên kết thư mục chung công ty,Use the shared company folder link,ប្រើតំណថតរួមរបស់ក្រុមហ៊ុន
+openCurrentLink,Mở link hiện tại,Open current link,បើកតំណបច្ចុប្បន្ន
+removeDriveLink,Gỡ liên kết Drive,Remove Drive link,ដកតំណ Drive
+saveAndSync,Lưu & Đồng bộ,Save & Sync,រក្សាទុក និងធ្វើសមកាលកម្ម
+exportDocsTooltip,Xuất bảng dữ liệu ra file Excel (.xlsx),Export data to an Excel file (.xlsx),នាំចេញទិន្នន័យទៅជាឯកសារ Excel (.xlsx)
+importDocsTooltip,Nhập văn bản từ file Excel (.xlsx),Import documents from an Excel file (.xlsx),នាំចូលឯកសារពីឯកសារ Excel (.xlsx)
+deleteRecordTooltip,Xóa hồ sơ,Delete record,លុបឯកសារ
+defaultSendMethod,Trực tiếp / Email,In person / Email,ផ្ទាល់ / អ៊ីមែល
+badgeOutgoing,📤 Đi,📤 Out,📤 ចេញ
+badgeDecision,📜 Quyết định,📜 Decision,📜 សេចក្តីសម្រេច
+badgeInternal,📋 Nội bộ,📋 Internal,📋 ផ្ទៃក្នុង
+badgeIncoming,📥 Đến,📥 In,📥 ចូល
+partnerRequiredFields,Mã đối tác và Tên đối tác (VN) là thông tin bắt buộc.,Partner code and Vietnamese name are required.,លេខកូដដៃគូ និងឈ្មោះដៃគូ (VN) ត្រូវតែបំពេញ។
+partnerSaveFailed,Lỗi khi lưu thông tin đối tác,Could not save the partner,មិនអាចរក្សាទុកព័ត៌មានដៃគូបានទេ
+partnerEditTitle,Chỉnh Sửa Đối Tác: {code},Edit Partner: {code},កែសម្រួលដៃគូ: {code}
+partnerCreateTitle,Thêm Mới Đối Tác / Doanh Nghiệp,New Partner / Company,បន្ថែមដៃគូ / ក្រុមហ៊ុនថ្មី
+partnerEditSubtitle,"Cập nhật thông tin pháp lý, đầu mối liên hệ và địa chỉ","Update legal details, contacts and address",ធ្វើបច្ចុប្បន្នភាពព័ត៌មានផ្លូវច្បាប់ អ្នកទំនាក់ទំនង និងអាសយដ្ឋាន
+partnerCreateSubtitle,Đăng ký đối tác mới vào cơ sở dữ liệu để liên kết hợp đồng,Register a new partner in the database to link contracts,ចុះឈ្មោះដៃគូថ្មីក្នុងមូលដ្ឋានទិន្នន័យ ដើម្បីភ្ជាប់កិច្ចសន្យា
+partnerCodeLabel,Mã đối tác (Client Code),Partner code (Client Code),លេខកូដដៃគូ (Client Code)
+partnerCategoryLabel,Phân loại đối tác,Partner category,ប្រភេទដៃគូ
+partnerNameVnLabel,Tên doanh nghiệp / Đối tác (Tiếng Việt),Company / Partner name (Vietnamese),ឈ្មោះក្រុមហ៊ុន / ដៃគូ (វៀតណាម)
+partnerNameVnPlaceholder,VD: Công ty TNHH Huy Trương Logistics...,"e.g. Huy Truong Logistics Co., Ltd...",ឧ. ក្រុមហ៊ុន Huy Truong Logistics...
+partnerNameEnLabel,Tên quốc tế (English Name),International name (English),ឈ្មោះអន្តរជាតិ (អង់គ្លេស)
+partnerTaxIdLabelFull,Mã số thuế (Tax ID),Tax ID,លេខអត្តសញ្ញាណកម្មសារពើពន្ធ (Tax ID)
+legalRepresentativeLabel,Người đại diện pháp luật,Legal representative,អ្នកតំណាងស្របច្បាប់
+legalRepresentativePlaceholder,VD: Ông Nguyễn Văn A - Tổng Giám Đốc,e.g. Mr. Nguyen Van A - CEO,ឧ. លោក Nguyen Van A - អគ្គនាយក
+contactPointLabel,Đầu mối liên hệ / SĐT / Email,Contact / Phone / Email,អ្នកទំនាក់ទំនង / ទូរស័ព្ទ / អ៊ីមែល
+contactPointPlaceholder,VD: Chị Mai (Kế toán) - 0903123456,e.g. Ms. Mai (Accounting) - 0903123456,ឧ. អ្នកស្រី Mai (គណនេយ្យ) - 0903123456
+headOfficeAddressLabel,Địa chỉ trụ sở,Head office address,អាសយដ្ឋានការិយាល័យកណ្តាល
+headOfficeAddressPlaceholder,"VD: Tòa nhà Bitexco, Q.1, TP.HCM","e.g. Bitexco Tower, District 1, HCMC","ឧ. អគារ Bitexco, ខណ្ឌ ១, ទីក្រុងហូជីមិញ"
+partnerNotesLabel,Ghi chú đối tác,Partner notes,កំណត់ចំណាំដៃគូ
+partnerNotesPlaceholder,"Thông tin ngân hàng, thời hạn công nợ, đánh giá năng lực...","Bank details, payment terms, capability assessment...",ព័ត៌មានធនាគារ រយៈពេលបំណុល ការវាយតម្លៃសមត្ថភាព...
+partnerUpdateBtn,Cập Nhật Đối Tác,Update Partner,ធ្វើបច្ចុប្បន្នភាពដៃគូ
+partnerSaveNewBtn,Lưu Đối Tác Mới,Save New Partner,រក្សាទុកដៃគូថ្មី
+uploadTooLargeUseLink,"Tệp ""{name}"" có dung lượng {size} MB, vượt quá giới hạn 5MB cho phép. Vui lòng chuyển sang dán link Google Drive hoặc nén nhỏ tệp.","File ""{name}"" is {size} MB, over the 5MB limit. Please paste a Google Drive link instead or compress the file.","ឯកសារ ""{name}"" មានទំហំ {size} MB លើសដែនកំណត់ 5MB។ សូមបិទភ្ជាប់តំណ Google Drive ជំនួស ឬបង្រួមឯកសារ។"
+overwriteChosen,"Bạn đã chọn ghi đè. Nhấn ""Lưu"" lần nữa để lưu bản của bạn thay cho bản mới hơn.","You chose to overwrite. Click ""Save"" again to save your version over the newer one.","អ្នកបានជ្រើសរើសសរសេរជាន់។ ចុច ""រក្សាទុក"" ម្តងទៀត ដើម្បីរក្សាទុកកំណែរបស់អ្នកជំនួសកំណែថ្មីជាង។"
+contractRequiredFields,Số hợp đồng và tên hợp đồng là bắt buộc.,Contract number and title are required.,លេខកិច្ចសន្យា និងចំណងជើងកិច្ចសន្យាត្រូវតែបំពេញ។
+documentRequiredFields,Số văn bản và trích yếu là bắt buộc.,Document number and summary are required.,លេខឯកសារ និងខ្លឹមសារសង្ខេបត្រូវតែបំពេញ។
+editContractTitle,Chỉnh Sửa Hợp Đồng: {number},Edit Contract: {number},កែសម្រួលកិច្ចសន្យា: {number}
+editDocumentTitle,Chỉnh Sửa Văn Bản: {number},Edit Document: {number},កែសម្រួលឯកសារ: {number}
+editContractSubtitle,"Cập nhật giá trị, thời hạn hiệu lực, điều khoản gia hạn và vị trí lưu trữ","Update value, validity period, renewal terms and storage location",ធ្វើបច្ចុប្បន្នភាពតម្លៃ រយៈពេលសុពលភាព លក្ខខណ្ឌបន្ត និងទីតាំងរក្សាទុក
+editDocumentSubtitle,"Cập nhật ý kiến chỉ đạo, cán bộ xử lý, tiến độ hoàn thành và nơi lưu trữ","Update directive, handler, progress and storage location",ធ្វើបច្ចុប្បន្នភាពបទបញ្ជា អ្នកដោះស្រាយ វឌ្ឍនភាព និងទីតាំងរក្សាទុក
+conflictLoadLatest,Tải bản mới nhất (bỏ thay đổi của tôi),Load latest version (discard my changes),ផ្ទុកកំណែចុងក្រោយ (បោះបង់ការផ្លាស់ប្តូររបស់ខ្ញុំ)
+conflictKeepMine,Giữ bản của tôi và ghi đè,Keep my version and overwrite,រក្សាកំណែរបស់ខ្ញុំ ហើយសរសេរជាន់
+dochubContractNumberLabel,Số hợp đồng DocHub,DocHub contract number,លេខកិច្ចសន្យា DocHub
+originalContractNumberPartnerLabel,Số hợp đồng gốc / Đối tác ký,Original contract number / Partner ref,លេខកិច្ចសន្យាដើម / លេខរបស់ដៃគូ
+contractTitleVnLabel,Tên / Nội dung hợp đồng (Tiếng Việt),Contract title / content (Vietnamese),ចំណងជើង / ខ្លឹមសារកិច្ចសន្យា (វៀតណាម)
+contractTitleEnLabel,Tên hợp đồng tiếng Anh (nếu có),English contract title (optional),ចំណងជើងកិច្ចសន្យាជាភាសាអង់គ្លេស (បើមាន)
+partyAEntityLabel,Bên A (Chủ thể / Doanh nghiệp),Party A (Entity / Company),ភាគី A (អង្គភាព / ក្រុមហ៊ុន)
+partyAPlaceholder,Chọn pháp nhân Bên A hoặc nhập...,Select or type Party A entity...,ជ្រើសរើស ឬវាយបញ្ចូលអង្គភាពភាគី A...
+contractCategoryLabel,Phân loại hợp đồng,Contract category,ប្រភេទកិច្ចសន្យា
+selectContractCategory,Chọn phân loại hợp đồng,Select contract category,ជ្រើសរើសប្រភេទកិច្ចសន្យា
+responsibleDepartmentLabel,Phòng ban phụ trách,Responsible department,នាយកដ្ឋានទទួលបន្ទុក
+selectDepartment,Chọn phòng ban,Select department,ជ្រើសរើសនាយកដ្ឋាន
+contractStatusLabel,Trạng thái hợp đồng,Contract status,ស្ថានភាពកិច្ចសន្យា
+contractStatusActiveOption,Đang hiệu lực,Active,កំពុងមានសុពលភាព
+contractStatusLiquidatedOption,Đã hoàn thành / Thanh lý,Completed / Liquidated,បានបញ្ចប់ / ទូទាត់បញ្ចប់
+contractStatusExpiredOption,Đã hết hạn,Expired,ផុតកំណត់
+contractStatusPendingOption,Chờ ký / Dự thảo,Awaiting signature / Draft,រង់ចាំចុះហត្ថលេខា / សេចក្តីព្រាង
+currencyLabel,Đơn vị tiền tệ,Currency,រូបិយប័ណ្ណ
+exchangeRateLabel,Tỷ giá quy đổi (VND/USD),Exchange rate (VND/USD),អត្រាប្តូរប្រាក់ (VND/USD)
+startDateLabel,Ngày bắt đầu hiệu lực,Effective start date,ថ្ងៃចាប់ផ្តើមសុពលភាព
+endEffectiveDateLabel,Ngày kết thúc hiệu lực,Effective end date,ថ្ងៃបញ្ចប់សុពលភាព
+renewalTermsFormLabel,Điều khoản gia hạn (Renewal Terms),Renewal terms,លក្ខខណ្ឌបន្ត
+renewalTermsPlaceholder,VD: Tự động gia hạn 1 năm nếu không có thông báo chấm dứt...,e.g. Auto-renews for 1 year unless terminated by notice...,ឧ. បន្តដោយស្វ័យប្រវត្តិ ១ ឆ្នាំ ប្រសិនបើគ្មានការជូនដំណឹងបញ្ចប់...
+originalFileLocationLabel,Vị trí lưu trữ hồ sơ gốc,Original file location,ទីតាំងរក្សាទុកឯកសារដើម
+originalFileLocationPlaceholder,VD: Tủ Pháp chế - Kệ 01,e.g. Legal cabinet - Shelf 01,ឧ. ទូនីតិកម្ម - ធ្នើ ០១
+additionalNotesLabel,Ghi chú bổ sung,Additional notes,កំណត់ចំណាំបន្ថែម
+attachmentsAndCloudSection,Tài liệu đính kèm & Lưu trữ đám mây,Attachments & Cloud storage,ឯកសារភ្ជាប់ និងការរក្សាទុកលើពពក
+serverAttachmentLabel,Tệp đính kèm máy chủ,Server attachment,ឯកសារភ្ជាប់លើម៉ាស៊ីនមេ
+replaceWithNewFile,Thay tệp mới,Replace with a new file,ជំនួសដោយឯកសារថ្មី
+uploadFileBtn,Tải lên tệp,Upload a file,ផ្ទុកឯកសារឡើង
+uploadingToServerShort,Đang tải lên máy chủ...,Uploading to server...,កំពុងផ្ទុកឡើងម៉ាស៊ីនមេ...
+attachmentUploadSuccess,Tải lên tệp đính kèm thành công!,Attachment uploaded successfully!,បានផ្ទុកឯកសារភ្ជាប់ដោយជោគជ័យ!
+cloudLinkLabel,Đường dẫn lưu trữ đám mây (Google Drive / OneDrive),Cloud storage link (Google Drive / OneDrive),តំណរក្សាទុកលើពពក (Google Drive / OneDrive)
+cloudLinkPlaceholder,https://drive.google.com/... hoặc https://onedrive.live.com/...,https://drive.google.com/... or https://onedrive.live.com/...,https://drive.google.com/... ឬ https://onedrive.live.com/...
+saveContractChanges,Lưu Thay Đổi Hợp Đồng,Save Contract Changes,រក្សាទុកការផ្លាស់ប្តូរកិច្ចសន្យា
+saveDocumentChanges,Lưu Thay Đổi Văn Bản,Save Document Changes,រក្សាទុកការផ្លាស់ប្តូរឯកសារ
+documentNumberFormLabel,Số công văn / Hồ sơ,Document / Record number,លេខលិខិត / ឯកសារ
+senderOriginalNumberLabel,Số gốc cơ quan gửi / Ký hiệu,Sender's original number / Reference,លេខដើមរបស់អ្នកផ្ញើ / និមិត្តសញ្ញា
+docTypeLabel,Loại văn bản,Document type,ប្រភេទឯកសារ
+issuerSenderLabel,Cơ quan ban hành / Gửi,Issuer / Sender,ស្ថាប័នចេញ / អ្នកផ្ញើ
+recipientUnitLabel,Nơi nhận / Đơn vị nhận,Recipient / Receiving unit,អ្នកទទួល / អង្គភាពទទួល
+handlingDepartmentLabel,Phòng ban xử lý,Handling department,នាយកដ្ឋានដោះស្រាយ
+mainHandlerLabel,Cán bộ xử lý chính,Main handler,មន្ត្រីដោះស្រាយចម្បង
+resolutionStatusLabel,Trạng thái giải quyết,Resolution status,ស្ថានភាពដោះស្រាយ
+issueSignDateLabel,Ngày ban hành / Ký,Issue / Signing date,ថ្ងៃចេញ / ចុះហត្ថលេខា
+receivedDateFormLabel,Ngày đến / Tiếp nhận,Date received,ថ្ងៃមកដល់ / ទទួល
+deadlineFormLabel,Hạn xử lý (Deadline),Deadline,កាលកំណត់ដោះស្រាយ
+actualCompletionDateLabel,Ngày hoàn thành thực tế,Actual completion date,ថ្ងៃបញ្ចប់ជាក់ស្តែង
+leadershipDirectiveLabel,Ý kiến chỉ đạo của Lãnh đạo / Ban Giám Đốc,Directive from Management / Board of Directors,បទបញ្ជារបស់ថ្នាក់ដឹកនាំ / គណៈនាយក
+directivePlaceholder,VD: Giao anh Thành kiểm tra gấp và báo cáo trước ngày 28/10...,e.g. Assign Mr. Thanh to review urgently and report before 28/10...,ឧ. ប្រគល់ឱ្យលោក Thanh ពិនិត្យជាបន្ទាន់ និងរាយការណ៍មុនថ្ងៃ 28/10...
+linkedDocFormLabel,Liên kết văn bản (Linked Doc),Linked document,តំណឯកសារពាក់ព័ន្ធ
+examplePlaceholder,VD: {example}...,e.g. {example}...,ឧ. {example}...
+uploadTooLargeSaveViaDrive,"Tệp ""{name}"" có dung lượng {size} MB, vượt quá giới hạn 5MB cho phép. Vui lòng chuyển sang chọn ""Lưu qua Google Drive"" hoặc nén nhỏ tệp.","File ""{name}"" is {size} MB, over the 5MB limit. Please choose ""Save via Google Drive"" or compress the file.","ឯកសារ ""{name}"" មានទំហំ {size} MB លើសដែនកំណត់ 5MB។ សូមជ្រើសរើស ""រក្សាទុកតាម Google Drive"" ឬបង្រួមឯកសារ។"
+requiredFieldsAlert,Vui lòng điền các trường bắt buộc (*),Please fill in all required fields (*),សូមបំពេញព័ត៌មានដែលត្រូវការ (*)
+createContractFailed,Lỗi tạo hợp đồng: {error},Could not create the contract: {error},មិនអាចបង្កើតកិច្ចសន្យាបានទេ: {error}
+receiveDocumentFailed,Lỗi tiếp nhận công văn: {error},Could not register the incoming document: {error},មិនអាចចុះបញ្ជីលិខិតចូលបានទេ: {error}
+issueDocumentFailed,Lỗi phát hành công văn: {error},Could not issue the outgoing document: {error},មិនអាចចេញលិខិតបានទេ: {error}
+createLaborTitle,🔒 Tạo Hợp Đồng Lao Động (Hồ Sơ Mật - Lương & Chế Độ),🔒 New Labor Contract (Confidential - Salary & Benefits),🔒 បង្កើតកិច្ចសន្យាការងារ (សម្ងាត់ - ប្រាក់ខែ និងអត្ថប្រយោជន៍)
+createContractDesc,"Nhập thông tin hợp đồng kinh tế, giá trị, thời hạn và phân loại để tự động theo dõi hạn","Enter the economic contract details, value, term and category so deadlines are tracked automatically",បញ្ចូលព័ត៌មានកិច្ចសន្យាសេដ្ឋកិច្ច តម្លៃ រយៈពេល និងប្រភេទ ដើម្បីតាមដានកាលកំណត់ដោយស្វ័យប្រវត្តិ
+createLaborDesc,Hồ sơ bảo mật: Chỉ Quản trị viên hệ thống và Nhân sự được phân quyền riêng mới có thể xem,Confidential record: only system administrators and authorized HR staff can view it,ឯកសារសម្ងាត់: មានតែអ្នកគ្រប់គ្រងប្រព័ន្ធ និងបុគ្គលិកធនធានមនុស្សដែលមានសិទ្ធិប៉ុណ្ណោះអាចមើលបាន
+createIncomingDesc,"Nhập số văn bản, cơ quan gửi, ý kiến chỉ đạo BGĐ và hạn xử lý của công văn đến","Enter the incoming document's number, sender, board directive and deadline",បញ្ចូលលេខឯកសារ អ្នកផ្ញើ បទបញ្ជារបស់គណៈនាយក និងកាលកំណត់របស់លិខិតចូល
+createOutgoingDesc,"Tự động tạo số văn bản đi chuẩn quy định, quản lý bộ phận soạn thảo và nơi gửi",Generates the outgoing document number in the standard format and tracks the drafting unit and recipients,បង្កើតលេខលិខិតចេញតាមទម្រង់ស្តង់ដារដោយស្វ័យប្រវត្តិ និងគ្រប់គ្រងអង្គភាពព្រាង និងអ្នកទទួល
+laborTabLabel,HĐ Lao Động (Mật),Labor Contract (Confidential),កិច្ចសន្យាការងារ (សម្ងាត់)
+laborContractNumberLabel,Số Hợp đồng lao động,Labor contract number,លេខកិច្ចសន្យាការងារ
+contractNumberLabel,Số hợp đồng,Contract number,លេខកិច្ចសន្យា
+laborContractTypeCount,Loại Hợp đồng lao động ({count} loại),Labor contract type ({count} types),ប្រភេទកិច្ចសន្យាការងារ ({count} ប្រភេទ)
+contractCategoryCount,Phân loại hợp đồng ({count} loại),Contract category ({count} types),ប្រភេទកិច្ចសន្យា ({count} ប្រភេទ)
+laborTitleLabel,Chức danh & Nội dung HĐLĐ,Position & labor contract content,មុខតំណែង និងខ្លឹមសារកិច្ចសន្យាការងារ
+contractTitleLabel,Tiêu đề / Tên hợp đồng,Contract title,ចំណងជើងកិច្ចសន្យា
+laborTitlePlaceholder,VD: Hợp đồng lao động Kỹ sư trưởng Khai thác mỏ - Nguyễn Văn A...,"e.g. Labor contract, Chief Mining Engineer - Nguyen Van A...",ឧ. កិច្ចសន្យាការងារ វិស្វករជាន់ខ្ពស់ផ្នែករ៉ែ - Nguyen Van A...
+contractTitlePlaceholder,VD: Hợp đồng cung cấp dịch vụ bảo trì thiết bị chế biến khoáng sản...,e.g. Maintenance services contract for mineral processing equipment...,ឧ. កិច្ចសន្យាសេវាថែទាំឧបករណ៍កែច្នៃរ៉ែ...
+laborPartyALabel,Bên A (Người sử dụng lao động),Party A (Employer),ភាគី A (និយោជក)
+contractPartyALabel,Bên A (Chủ đầu tư / Mua),Party A (Investor / Buyer),ភាគី A (ម្ចាស់វិនិយោគ / អ្នកទិញ)
+legalEntitiesCount,({count} pháp nhân),({count} entities),({count} អង្គភាព)
+enterOtherEntity,+ Nhập pháp nhân khác...,+ Enter another entity...,+ បញ្ចូលអង្គភាពផ្សេង...
+newPartyAPlaceholder,Nhập tên pháp nhân Bên A mới...,Enter the new Party A entity name...,បញ្ចូលឈ្មោះអង្គភាពភាគី A ថ្មី...
+laborPartyBLabel,Bên B (Họ và tên Nhân sự / Người lao động),Party B (Employee full name),ភាគី B (ឈ្មោះពេញរបស់និយោជិត)
+employeeNamePlaceholder,Nhập họ và tên người lao động (VD: Nguyễn Văn A)...,Enter the employee's full name (e.g. Nguyen Van A)...,បញ្ចូលឈ្មោះពេញរបស់និយោជិត (ឧ. Nguyen Van A)...
+contractPartyBLabel,Bên B (Đối tác / Nhà cung cấp),Party B (Partner / Supplier),ភាគី B (ដៃគូ / អ្នកផ្គត់ផ្គង់)
+partnersCount,({count} đối tác),({count} partners),({count} ដៃគូ)
+selectPartnerOption,-- Chọn Đối tác / Nhà cung cấp ({count} đối tác) --,-- Select partner / supplier ({count} partners) --,-- ជ្រើសរើសដៃគូ / អ្នកផ្គត់ផ្គង់ ({count} ដៃគូ) --
+enterNewPartner,+ Nhập đối tác mới khác...,+ Enter a new partner...,+ បញ្ចូលដៃគូថ្មី...
+newPartnerPlaceholder,Nhập tên nhà cung cấp / đối tác mới...,Enter the new supplier / partner name...,បញ្ចូលឈ្មោះអ្នកផ្គត់ផ្គង់ / ដៃគូថ្មី...
+employeeIdLabel,Mã nhân viên / Số CCCD / MST TNCN,Employee ID / National ID / Personal tax ID,លេខបុគ្គលិក / អត្តសញ្ញាណប័ណ្ណ / លេខពន្ធផ្ទាល់ខ្លួន
+employeeContactLabel,Chức vụ / Số điện thoại / Email nhân sự,Position / Phone / Email,មុខតំណែង / ទូរស័ព្ទ / អ៊ីមែល
+partnerRepresentativeLabel,Người đại diện / Thông tin liên hệ,Representative / Contact details,អ្នកតំណាង / ព័ត៌មានទំនាក់ទំនង
+employeeContactPlaceholder,VD: Kỹ sư trưởng - 0988xxxxxx...,e.g. Chief Engineer - 0988xxxxxx...,ឧ. វិស្វករជាន់ខ្ពស់ - 0988xxxxxx...
+partnerContactPlaceholder,VD: Ông Nguyễn Văn A - 0988xxxxxx...,e.g. Mr. Nguyen Van A - 0988xxxxxx...,ឧ. លោក Nguyen Van A - 0988xxxxxx...
+departmentsCountLabel,Bộ phận phụ trách ({count} bộ phận),Responsible department ({count} departments),នាយកដ្ឋានទទួលបន្ទុក ({count} នាយកដ្ឋាន)
+laborSalaryLabel,🔒 Mức lương / Thu nhập Gross (Bảo mật),🔒 Gross salary / income (Confidential),🔒 ប្រាក់ខែ / ចំណូលសរុប (សម្ងាត់)
+effectiveDateLabel,Ngày hiệu lực,Effective date,ថ្ងៃចូលជាធរមាន
+emptyIfIndefinite,(Trống nếu vô hạn),(Leave empty if indefinite),(ទុកទទេ ប្រសិនបើគ្មានកំណត់)
+storageTypeLabel,Hình thức lưu trữ,Storage type,ប្រភេទការរក្សាទុក
+physicalLocationLabel,Vị trí lưu trữ vật lý,Physical storage location,ទីតាំងរក្សាទុកជាក់ស្តែង
+contractLocationPlaceholder,VD: Tủ HC-01 / Kệ HĐ-2026...,e.g. Cabinet HC-01 / Shelf HD-2026...,ឧ. ទូ HC-01 / ធ្នើ HD-2026...
+renewalNotesLabel,Điều khoản gia hạn / Ghi chú,Renewal terms / Notes,លក្ខខណ្ឌបន្ត / កំណត់ចំណាំ
+renewalNotesPlaceholder,"Ghi chú điều khoản tự động gia hạn, báo trước thời hạn, hoặc quy định thanh lý...","Notes on auto-renewal, notice periods or liquidation rules...",កំណត់ចំណាំអំពីការបន្តស្វ័យប្រវត្តិ រយៈពេលជូនដំណឹង ឬវិធានទូទាត់បញ្ចប់...
+contractAttachmentSection,Tệp đính kèm hoặc Đường dẫn lưu trữ (Google Drive / OneDrive),Attachment or storage link (Google Drive / OneDrive),ឯកសារភ្ជាប់ ឬតំណរក្សាទុក (Google Drive / OneDrive)
+incomingAttachmentSection,Tệp văn bản scan hoặc Đường dẫn lưu trữ (Google Drive / OneDrive),Scanned file or storage link (Google Drive / OneDrive),ឯកសារស្កេន ឬតំណរក្សាទុក (Google Drive / OneDrive)
+outgoingAttachmentSection,Tệp phát hành hoặc Đường dẫn lưu trữ (Google Drive / OneDrive),Issued file or storage link (Google Drive / OneDrive),ឯកសារដែលបានចេញ ឬតំណរក្សាទុក (Google Drive / OneDrive)
+pasteDriveLinkMode,Dán Link Drive (Mặc định),Paste Drive link (default),បិទភ្ជាប់តំណ Drive (លំនាំដើម)
+uploadFileMode,Tải file lên,Upload file,ផ្ទុកឯកសារឡើង
+selectedFileInfo,Đã chọn: {name} ({size} KB),Selected: {name} ({size} KB),បានជ្រើសរើស: {name} ({size} KB)
+uploadingFileName,Đang tải lên máy chủ: {name},Uploading to server: {name},កំពុងផ្ទុកឡើងម៉ាស៊ីនមេ: {name}
+supportedFileTypes,"Hỗ trợ: PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX), Hình ảnh, Tệp nén...","Supported: PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX), images, archives...","គាំទ្រ: PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX), រូបភាព, ឯកសារបង្ហាប់..."
+cloudLinkInputPlaceholder,"Dán link Google Drive, OneDrive, SharePoint... (VD: https://drive.google.com/file/d/...)","Paste a Google Drive, OneDrive, SharePoint... link (e.g. https://drive.google.com/file/d/...)","បិទភ្ជាប់តំណ Google Drive, OneDrive, SharePoint... (ឧ. https://drive.google.com/file/d/...)"
+cloudLinkHint,Hệ thống sẽ liên kết trực tiếp tới tài liệu lưu trữ đám mây ngoài.,The system will link directly to the external cloud document.,ប្រព័ន្ធនឹងភ្ជាប់ដោយផ្ទាល់ទៅឯកសារលើពពកខាងក្រៅ។
+incomingNumberLabel,Số đến,Incoming no.,លេខចូល
+autoNumberTooltip,Lấy mã số tiếp theo tự động,Get the next number automatically,យកលេខបន្ទាប់ដោយស្វ័យប្រវត្តិ
+autoNumberBtn,Tự sinh số,Auto number,បង្កើតលេខស្វ័យប្រវត្តិ
+originalDocNumberLabel,Số / Ký hiệu gốc của văn bản,Document's original number / reference,លេខ / និមិត្តសញ្ញាដើមរបស់ឯកសារ
+incomingTitlePlaceholder,VD: Yêu cầu bổ sung hồ sơ nghiệm thu PCCC nhà xưởng chế biến khoáng sản...,e.g. Request for additional fire safety acceptance documents for the processing plant...,ឧ. សំណើបន្ថែមឯកសារទទួលយកសុវត្ថិភាពអគ្គីភ័យសម្រាប់រោងចក្រកែច្នៃរ៉ែ...
+docTypeCountLabel,Loại văn bản ({count} loại),Document type ({count} types),ប្រភេទឯកសារ ({count} ប្រភេទ)
+senderAgencyCountLabel,Cơ quan / Đơn vị gửi ({count} cơ quan),Sending agency / unit ({count} agencies),ស្ថាប័ន / អង្គភាពផ្ញើ ({count} ស្ថាប័ន)
+stateAgenciesGroup,Cơ quan Quản lý Nhà nước & Địa phương,State & local authorities,ស្ថាប័នរដ្ឋ និងមូលដ្ឋាន
+partnersFromDirectoryGroup,Nhà thầu / Đối tác (từ danh bạ),Contractors / Partners (from directory),អ្នកម៉ៅការ / ដៃគូ (ពីបញ្ជី)
+enterOtherAgency,+ Nhập cơ quan / đơn vị khác...,+ Enter another agency / unit...,+ បញ្ចូលស្ថាប័ន / អង្គភាពផ្សេង...
+newAgencyPlaceholder,Nhập tên cơ quan / đơn vị gửi mới...,Enter the new sending agency / unit...,បញ្ចូលឈ្មោះស្ថាប័ន / អង្គភាពផ្ញើថ្មី...
+receivingDeptCountLabel,Bộ phận tiếp nhận / Xử lý ({count} bộ phận),Receiving / handling department ({count} departments),នាយកដ្ឋានទទួល / ដោះស្រាយ ({count} នាយកដ្ឋាន)
+assignedHandlerLabel,Người phụ trách xử lý,Assigned handler,អ្នកទទួលបន្ទុកដោះស្រាយ
+unassignedOption,-- Chưa phân công --,-- Unassigned --,-- មិនទាន់ចាត់តាំង --
+enterOtherStaff,+ Nhập cán bộ khác...,+ Enter another staff member...,+ បញ្ចូលបុគ្គលិកផ្សេង...
+newHandlerPlaceholder,Nhập họ tên cán bộ xử lý...,Enter the handler's full name...,បញ្ចូលឈ្មោះពេញរបស់អ្នកដោះស្រាយ...
+documentDateLabel,Ngày văn bản,Document date,កាលបរិច្ឆេទឯកសារ
+securityLevelLabel,Độ mật,Confidentiality,កម្រិតសម្ងាត់
+originalCopyLocationLabel,Vị trí lưu trữ bản gốc,Original copy location,ទីតាំងរក្សាទុកច្បាប់ដើម
+incomingLocationPlaceholder,VD: Tủ HC-01 / Kệ CVĐ-2026...,e.g. Cabinet HC-01 / Shelf CVD-2026...,ឧ. ទូ HC-01 / ធ្នើ CVD-2026...
+boardDirectiveLabel,Ý kiến chỉ đạo của Ban Giám đốc,Board of Directors' directive,បទបញ្ជារបស់គណៈនាយក
+incomingDirectivePlaceholder,VD: Giao Facilities chủ trì hoàn thiện hồ sơ báo cáo BGĐ trước 15/10...,e.g. Facilities to complete the file and report to the Board before 15/10...,ឧ. ប្រគល់ឱ្យផ្នែក Facilities បញ្ចប់ឯកសារ និងរាយការណ៍ទៅគណៈនាយកមុនថ្ងៃ 15/10...
+autoOutgoingNumberLabel,Số đi tự sinh,Auto-generated outgoing no.,លេខចេញស្វ័យប្រវត្តិ
+autoOutgoingNumberTooltip,Tự động tính STT/Năm/Mã loại-Mã BP,Computes No./Year/Type code-Department code automatically,គណនា លេខ/ឆ្នាំ/កូដប្រភេទ-កូដនាយកដ្ឋាន ដោយស្វ័យប្រវត្តិ
+autoOutgoingNumberBtn,Tự sinh số đi,Auto outgoing no.,បង្កើតលេខចេញស្វ័យប្រវត្តិ
+outgoingTitlePlaceholder,VD: Báo cáo công tác bảo vệ môi trường định kỳ năm 2026...,e.g. Periodic environmental protection report for 2026...,ឧ. របាយការណ៍ការពារបរិស្ថានប្រចាំឆ្នាំ 2026...
+draftingDeptCountLabel,Bộ phận soạn thảo ({count} bộ phận),Drafting department ({count} departments),នាយកដ្ឋានព្រាង ({count} នាយកដ្ឋាន)
+internalCompanyGroup,Nội bộ doanh nghiệp,Internal (company),ផ្ទៃក្នុងក្រុមហ៊ុន
+partnersAndCustomersGroup,Đối tác & Khách hàng,Partners & Customers,ដៃគូ និងអតិថិជន
+enterOtherRecipient,+ Nhập nơi nhận khác...,+ Enter another recipient...,+ បញ្ចូលអ្នកទទួលផ្សេង...
+newRecipientPlaceholder,Nhập tên đơn vị / cá nhân nhận công văn...,Enter the receiving unit / person...,បញ្ចូលអង្គភាព / បុគ្គលទទួលលិខិត...
+drafterLabel,Người soạn thảo,Drafted by,អ្នកព្រាង
+enterOtherDrafter,+ Nhập người soạn khác...,+ Enter another drafter...,+ បញ្ចូលអ្នកព្រាងផ្សេង...
+newDrafterPlaceholder,Nhập họ tên người soạn thảo...,Enter the drafter's full name...,បញ្ចូលឈ្មោះពេញរបស់អ្នកព្រាង...
+approverLabel,Người ký duyệt,Approved / signed by,អ្នកអនុម័ត / ចុះហត្ថលេខា
+enterOtherSigner,+ Nhập người ký khác...,+ Enter another signer...,+ បញ្ចូលអ្នកចុះហត្ថលេខាផ្សេង...
+newSignerPlaceholder,Nhập họ tên người ký duyệt...,Enter the signer's full name...,បញ្ចូលឈ្មោះពេញរបស់អ្នកចុះហត្ថលេខា...
+sendMethodLabel,Hình thức gửi,Send method,វិធីផ្ញើ
+issueStatusLabel,Trạng thái phát hành,Issue status,ស្ថានភាពចេញ
+replyToIncomingLabel,Phúc đáp cho Công văn Đến số (nếu có),Reply to incoming document no. (if any),ឆ្លើយតបលិខិតចូលលេខ (បើមាន)
+standaloneDocOption,-- Không (Văn bản độc lập / Mới) --,-- None (standalone / new document) --,-- គ្មាន (ឯកសារឯករាជ្យ / ថ្មី) --
+enterOtherDocNumber,+ Nhập số công văn khác...,+ Enter another document number...,+ បញ្ចូលលេខលិខិតផ្សេង...
+outgoingLocationPlaceholder,VD: Tủ HC-02 / Kệ 2026...,e.g. Cabinet HC-02 / Shelf 2026...,ឧ. ទូ HC-02 / ធ្នើ 2026...
+saveContractBtn,Lưu Hợp Đồng,Save Contract,រក្សាទុកកិច្ចសន្យា
+saveLaborBtn,🔒 Lưu HĐ Lao Động,🔒 Save Labor Contract,🔒 រក្សាទុកកិច្ចសន្យាការងារ
+receiveAndLogBtn,Tiếp Nhận & Lưu Sổ,Receive & Log,ទទួល និងកត់ត្រា
+issueAndLogBtn,Phát Hành & Lưu Sổ,Issue & Log,ចេញ និងកត់ត្រា
+excelEmptyFile,File Excel rỗng hoặc không có dữ liệu hàng nào.,The Excel file is empty or has no data rows.,ឯកសារ Excel ទទេ ឬគ្មានជួរទិន្នន័យ។
+excelMissingContractNumber,Thiếu số hợp đồng hoặc ID bản ghi.,Missing contract number or record ID.,ខ្វះលេខកិច្ចសន្យា ឬ ID ឯកសារ។
+excelMissingDocumentNumber,Thiếu số văn bản hoặc ID bản ghi.,Missing document number or record ID.,ខ្វះលេខឯកសារ ឬ ID ឯកសារ។
+excelReadFailed,Không thể đọc file: {error},Could not read the file: {error},មិនអាចអានឯកសារបានទេ: {error}
+excelImportSuccess,Nhập thành công! Đã thêm mới {added} và cập nhật {updated} bản ghi.,Import complete! Added {added} and updated {updated} records.,នាំចូលដោយជោគជ័យ! បានបន្ថែម {added} និងធ្វើបច្ចុប្បន្នភាព {updated} ឯកសារ។
+excelSaveFailed,Lỗi lưu dữ liệu: {error},Could not save the data: {error},មិនអាចរក្សាទុកទិន្នន័យបានទេ: {error}
+excelRowError,Dòng {row}: {error},Row {row}: {error},ជួរ {row}: {error}
+contractNumberShort,Số HĐ,Contract no.,លេខកិច្ចសន្យា
+documentNumberShort,Số CV,Document no.,លេខលិខិត
+titleOrSummary,Tiêu đề / Trích yếu,Title / Summary,ចំណងជើង / ខ្លឹមសារ
+actionColumn,Hành động,Action,សកម្មភាព
+actionUpdate,Cập nhật,Update,ធ្វើបច្ចុប្បន្នភាព
+actionAddNew,Thêm mới,Add new,បន្ថែមថ្មី
+scannedRecord,Bản scan / Hồ sơ điện tử,Scan / Electronic record,ច្បាប់ស្កេន / ឯកសារអេឡិចត្រូនិច
+attachedDocument,Tài liệu đính kèm,Attached document,ឯកសារដែលបានភ្ជាប់
+openOnDriveTooltip,Mở hồ sơ trên Google Drive,Open the record on Google Drive,បើកឯកសារលើ Google Drive
+openOnDrive,Mở trên Google Drive,Open on Google Drive,បើកលើ Google Drive
+changeDrive,Đổi Drive,Change Drive,ប្តូរ Drive
+openFile,Mở tệp,Open file,បើកឯកសារ
+openInNewTab,Mở trong tab mới,Open in a new tab,បើកក្នុងផ្ទាំងថ្មី
+pdfPreviewUnsupported,Trình duyệt của bạn không hỗ trợ xem trước trực tiếp PDF.,Your browser can't preview PDFs directly.,កម្មវិធីរុករករបស់អ្នកមិនគាំទ្រការមើល PDF ដោយផ្ទាល់ទេ។
+openPdfInNewTab,Mở file PDF trong tab mới,Open the PDF in a new tab,បើក PDF ក្នុងផ្ទាំងថ្មី
+trainingMaterial,Tài liệu chuyên đề tập huấn,Training material,ឯកសារបណ្តុះបណ្តាល
+trainingMaterialDefaultSummary,Tài liệu hướng dẫn và tập huấn nghiệp vụ thi hành án dân sự.,Guidance and training material on civil judgment enforcement.,ឯកសារណែនាំ និងបណ្តុះបណ្តាលអំពីការអនុវត្តសាលក្រមរដ្ឋប្បវេណី។
+officialCopy,Bản quyền chính thức,Official copy,ច្បាប់ផ្លូវការ
+pptxFormat,Định dạng: Microsoft PowerPoint (.pptx),Format: Microsoft PowerPoint (.pptx),ទម្រង់: Microsoft PowerPoint (.pptx)
+downloadPptx,Tải bài trình chiếu PPTX,Download PPTX presentation,ទាញយកបទបង្ហាញ PPTX
+cloudStoredTitle,Tài liệu được lưu trữ trên Cloud / Đường dẫn liên kết ngoài,Document stored in the cloud / external link,ឯកសាររក្សាទុកលើពពក / តំណខាងក្រៅ
+cloudStoredDesc,Văn bản được liên kết đến kho lưu trữ trực tuyến:,This document is linked to online storage:,ឯកសារនេះត្រូវបានភ្ជាប់ទៅកន្លែងរក្សាទុកលើបណ្តាញ:
+openOnlineDocument,Truy cập tài liệu trực tuyến,Open the online document,ចូលមើលឯកសារលើបណ្តាញ
+fileFormatInfo,Định dạng: {type},Format: {type},ទម្រង់: {type}
+binaryFile,Tệp nhị phân,Binary file,ឯកសារប្រព័ន្ធគោលពីរ
+fileSizeInfo,· Dung lượng: {size},· Size: {size},· ទំហំ: {size}
+downloadToDevice,Tải tệp về máy ({size}),Download ({size}),ទាញយក ({size})
+registryRecordTitle,Hồ sơ lưu trữ theo số hiệu sổ sách,Record kept by registry number,ឯកសាររក្សាទុកតាមលេខចុះបញ្ជី
+registryRecordDesc,Văn bản này đã được ghi nhận đầy đủ thông tin vào hệ thống quản lý. Bạn có thể tải lên tệp đính kèm hoặc chuyển file về Google Drive để đồng bộ đám mây.,This document is fully recorded in the system. You can upload an attachment or move the file to Google Drive to sync it to the cloud.,ឯកសារនេះត្រូវបានកត់ត្រាពេញលេញក្នុងប្រព័ន្ធ។ អ្នកអាចផ្ទុកឯកសារភ្ជាប់ ឬផ្ទេរឯកសារទៅ Google Drive ដើម្បីធ្វើសមកាលកម្មលើពពក។
+beingUpdated,Đang cập nhật,Pending,កំពុងធ្វើបច្ចុប្បន្នភាព
+defaultStorageCabinet,Tủ lưu trữ hồ sơ công ty,Company records cabinet,ទូរក្សាទុកឯកសាររបស់ក្រុមហ៊ុន
+standardFileName,Tên file quy ước,Standard file name,ឈ្មោះឯកសារស្តង់ដារ
+uploadAttachmentNow,Upload tệp đính kèm ngay,Upload an attachment now,ផ្ទុកឯកសារភ្ជាប់ឥឡូវនេះ
+auditLogin,Đăng nhập (Login),Login,ចូលប្រព័ន្ធ (Login)
+auditCreate,Thêm mới (Create),Create,បង្កើតថ្មី (Create)
+auditUpdate,Cập nhật (Update),Update,ធ្វើបច្ចុប្បន្នភាព (Update)
+auditDelete,Xóa (Delete),Delete,លុប (Delete)
+auditExcelImport,Nhập Excel (Import),Excel Import,នាំចូល Excel (Import)
+auditSystemActivityAuditLogs,Nhật Ký Thao Tác Hệ Thống (Audit Logs),System Activity & Audit Logs,កំណត់ហេតុសកម្មភាពប្រព័ន្ធ (Audit Logs)
+auditTracksAllSensitiveOperationsLogin,"Ghi nhận tất cả các thao tác nhạy cảm (Đăng nhập, thêm, sửa, xóa, nhập Excel...) kèm thời gian & tài khoản.","Tracks all sensitive operations (Login, create, update, delete, Excel import...) with timestamp & user account.",កត់ត្រារាល់ប្រតិបត្តិការសំខាន់ៗ (ចូលប្រព័ន្ធ បង្កើត កែប្រែ លុប នាំចូល Excel...) ជាមួយពេលវេលា និងគណនី។
+auditRefresh,Làm mới,Refresh,ផ្ទុកឡើងវិញ
+auditSearchByAccountDocumentContract,"Tìm theo tài khoản, ID văn bản/hợp đồng, chi tiết...","Search by account, document/contract ID, details...",ស្វែងរកតាមគណនី លេខសម្គាល់ឯកសារ/កិច្ចសន្យា ព័ត៌មានលម្អិត...
+auditAction,Hành động:,Action:,សកម្មភាព៖
+auditAll,Tất cả,All,ទាំងអស់
+auditLogin2,Đăng nhập,Login,ចូលប្រព័ន្ធ
+auditCreate2,Thêm mới,Create,បង្កើតថ្មី
+auditExcelImport2,Nhập Excel,Excel Import,នាំចូល Excel
+auditEntity,Đối tượng:,Entity:,ប្រភេទ៖
+auditAuth,Tài khoản (Auth),Auth,គណនី (Auth)
+auditCategory,Danh mục,Category,ប្រភេទ
+auditUser,Người dùng,User,អ្នកប្រើប្រាស់
+auditTimeGmt7,Thời gian (GMT+7),Time (GMT+7),ពេលវេលា (GMT+7)
+auditAccount,Tài khoản,Account,គណនី
+auditAction2,Thao tác,Action,សកម្មភាព
+auditEntity2,Đối tượng,Entity,ប្រភេទ
+auditIdKey,ID / Khóa,ID / Key,លេខសម្គាល់
+auditNoMatchingAuditLogRecords,Không tìm thấy bản ghi nhật ký phù hợp.,No matching audit log records found.,រកមិនឃើញកំណត់ហេតុដែលត្រូវគ្នាទេ។
+usersCreatedSuccess,"Tạo tài khoản ""{username}"" thành công!","User ""{username}"" created successfully!","បានបង្កើតគណនី ""{username}"" ដោយជោគជ័យ!"
+usersLockedSuccess,Đã khóa tài khoản {username},Account {username} locked successfully,បានចាក់សោគណនី {username}
+usersUnlockedSuccess,Đã mở khóa tài khoản {username},Account {username} unlocked successfully,បានដោះសោគណនី {username}
+usersLaborAccessGranted,Đã CẤP QUYỀN xem Hợp đồng Lao động (Mật) cho tài khoản {username},Granted Labor Contract access for {username},បានផ្តល់សិទ្ធិមើលកិច្ចសន្យាការងារ (សម្ងាត់) ដល់គណនី {username}
+usersLaborAccessRevoked,Đã THU HỒI QUYỀN xem Hợp đồng Lao động (Mật) cho tài khoản {username},Revoked Labor Contract access for {username},បានដកសិទ្ធិមើលកិច្ចសន្យាការងារ (សម្ងាត់) ពីគណនី {username}
+usersPasswordResetSuccess,Đặt lại mật khẩu cho {username} thành công!,Password reset for {username} succeeded!,បានកំណត់ពាក្យសម្ងាត់ឡើងវិញសម្រាប់ {username} ដោយជោគជ័យ!
+usersRoleChanged,Đã chuyển vai trò tài khoản {username} thành {role},Changed role of {username} to {role},បានប្តូរតួនាទីរបស់គណនី {username} ទៅជា {role}
+usersFailedToLoadUserAccounts,Không thể tải danh sách tài khoản,Failed to load user accounts,មិនអាចផ្ទុកបញ្ជីគណនីបានទេ
+usersPleaseFillInUsernameFull,"Vui lòng điền đủ tên đăng nhập, họ tên và email","Please fill in username, full name, and email",សូមបំពេញឈ្មោះចូលប្រព័ន្ធ ឈ្មោះពេញ និងអ៊ីមែលឱ្យបានគ្រប់
+usersErrorCreatingUserAccount,Lỗi tạo tài khoản,Error creating user account,មិនអាចបង្កើតគណនីបានទេ
+usersCannotLockThePrimaryAdmin,Không thể khóa tài khoản Quản trị viên gốc!,Cannot lock the primary Admin account!,មិនអាចចាក់សោគណនីអ្នកគ្រប់គ្រងដើមបានទេ!
+usersFailedToUpdateStatus,Lỗi thay đổi trạng thái,Failed to update status,មិនអាចប្តូរស្ថានភាពបានទេ
+usersAdminAccountsHaveFullAccess,Quản trị viên (Admin) mặc định có toàn quyền xem Hợp đồng Lao động!,Admin accounts have full access to Labor Contracts by default!,អ្នកគ្រប់គ្រង (Admin) មានសិទ្ធិពេញលេញមើលកិច្ចសន្យាការងារតាមលំនាំដើម!
+usersFailedToUpdateLaborContract,Lỗi cập nhật quyền Hợp đồng Lao động,Failed to update Labor Contract permission,មិនអាចធ្វើបច្ចុប្បន្នភាពសិទ្ធិកិច្ចសន្យាការងារបានទេ
+usersFailedToResetPassword,Lỗi đặt lại mật khẩu,Failed to reset password,មិនអាចកំណត់ពាក្យសម្ងាត់ឡើងវិញបានទេ
+usersCannotChangeRoleOfPrimary,Không thể đổi quyền của Quản trị viên gốc!,Cannot change role of primary Admin!,មិនអាចប្តូរតួនាទីរបស់អ្នកគ្រប់គ្រងដើមបានទេ!
+usersFailedToUpdateRole,Lỗi cập nhật vai trò,Failed to update role,មិនអាចធ្វើបច្ចុប្បន្នភាពតួនាទីបានទេ
+usersManageUserAccountsAdminUser,"Quản lý tài khoản cá nhân, phân quyền Admin / User và phân quyền riêng xem mục Hợp đồng Lao động (Mật).","Manage user accounts, Admin / User roles, and dedicated permission to access Confidential Labor Contracts.",គ្រប់គ្រងគណនីអ្នកប្រើប្រាស់ តួនាទី Admin / User និងសិទ្ធិមើលកិច្ចសន្យាការងារសម្ងាត់។
+usersAddUserAccount,Thêm tài khoản mới,Add User Account,បន្ថែមគណនីថ្មី
+usersText,STT,#,ល.រ
+usersUsername,TÀI KHOẢN,USERNAME,គណនី
+usersFullName,HỌ VÀ TÊN,FULL NAME,គោត្តនាម និងនាម
+usersDepartment,PHÒNG BAN,DEPARTMENT,នាយកដ្ឋាន
+usersRole,VAI TRÒ (ROLE),ROLE,តួនាទី
+usersLaborContractsAccess,QUYỀN HĐ LAO ĐỘNG (MẬT),LABOR CONTRACTS ACCESS,សិទ្ធិកិច្ចសន្យាការងារ
+usersStatus,TRẠNG THÁI,STATUS,ស្ថានភាព
+usersActions,THAO TÁC,ACTIONS,សកម្មភាព
+usersLoadingUserAccounts,Đang tải danh sách tài khoản...,Loading user accounts...,កំពុងផ្ទុកបញ្ជីគណនី...
+usersNoUserAccountsFound,Chưa có tài khoản nào,No user accounts found,មិនទាន់មានគណនីទេ
+usersAdminFullAccess,Admin (Toàn quyền),Admin (Full Access),Admin (សិទ្ធិពេញលេញ)
+usersUserViewDownload,User (Chỉ xem/tải),User (View / Download),User (មើល/ទាញយក)
+usersDefaultAdmin,Mặc định (Admin),Default (Admin),លំនាំដើម (Admin)
+usersClickToGrantRevokeAccess,Bấm để Cấp / Thu hồi quyền xem & quản lý mục Hợp đồng Lao động (Mật),Click to Grant / Revoke access to Confidential Labor Contracts,ចុចដើម្បីផ្តល់ / ដកសិទ្ធិមើល និងគ្រប់គ្រងកិច្ចសន្យាការងារ (សម្ងាត់)
+usersAuthorizedClickToRevoke,Được xem HĐLĐ (Bấm để thu hồi),Authorized (Click to revoke),មានសិទ្ធិមើល (ចុចដើម្បីដកសិទ្ធិ)
+usersNoAccessClickToGrant,Không có quyền (Bấm để cấp),No Access (Click to grant),គ្មានសិទ្ធិ (ចុចដើម្បីផ្តល់សិទ្ធិ)
+usersResetPassword,Đặt lại mật khẩu,Reset password,កំណត់ពាក្យសម្ងាត់ឡើងវិញ
+usersUnlockAccount,Mở khóa tài khoản,Unlock account,ដោះសោគណនី
+usersLockAccount,Khóa tài khoản,Lock account,ចាក់សោគណនី
+usersAddUserAccount2,Thêm tài khoản người dùng,Add User Account,បន្ថែមគណនីអ្នកប្រើប្រាស់
+usersUsername2,Tên đăng nhập (Username),Username,ឈ្មោះគណនី (Username)
+usersFullName2,Họ và tên,Full Name,គោត្តនាម និងនាម
+usersInitialPassword,Mật khẩu khởi tạo,Initial Password,ពាក្យសម្ងាត់ដំបូង
+usersRole2,Vai trò (Role),Role,តួនាទី
+usersDepartment2,Phòng ban,Department,នាយកដ្ឋាន
+usersEGHrAccountingEngineering,"VD: HCNS, Kế toán, Kỹ thuật...","e.g. HR, Accounting, Engineering...",ឧ. រដ្ឋបាល គណនេយ្យ បច្ចេកទេស...
+usersGrantSpecialPermissionToAccess,Cấp quyền riêng xem & quản lý mục Hợp đồng Lao động (Mật - Lương & Chế độ),Grant special permission to access Confidential Labor Contracts (Salary & Benefits),ផ្តល់សិទ្ធិពិសេសមើល និងគ្រប់គ្រងកិច្ចសន្យាការងារ (សម្ងាត់ - ប្រាក់ខែ និងអត្ថប្រយោជន៍)
+usersCreateAccount,Tạo tài khoản,Create Account,បង្កើតគណនី
+usersResetPassword2,Đặt lại mật khẩu:,Reset password:,កំណត់ពាក្យសម្ងាត់ឡើងវិញ៖
+usersNewPassword,Mật khẩu mới,New Password,ពាក្យសម្ងាត់ថ្មី
+usersUpdatePassword,Cập nhật mật khẩu,Update Password,ធ្វើបច្ចុប្បន្នភាពពាក្យសម្ងាត់
+settingsCurrencyActivated,Đã kích hoạt tiền tệ {code},Currency {code} activated,បានបើកដំណើរការរូបិយប័ណ្ណ {code}
+settingsCurrencySuspended,Đã tạm ngưng tiền tệ {code},Currency {code} suspended,បានផ្អាករូបិយប័ណ្ណ {code}
+settingsDeleteItemConfirm,"Bạn có chắc muốn xóa ""{label}"" khỏi danh mục không?","Are you sure you want to delete ""{label}"" from this category?","តើអ្នកប្រាកដថាចង់លុប ""{label}"" ចេញពីប្រភេទនេះមែនទេ?"
+settingsAlertLevel1Hint,ngày (Hiện tại: ≤ {days} ngày hiển thị huy hiệu đỏ KHẨN CẤP),days (Current: ≤ {days} days shows red URGENT badge),ថ្ងៃ (បច្ចុប្បន្ន: ≤ {days} ថ្ងៃ បង្ហាញស្លាកក្រហម បន្ទាន់)
+settingsAlertLevel2Hint,ngày (Hiện tại: ≤ {days} ngày hiển thị huy hiệu vàng CẢNH BÁO),days (Current: ≤ {days} days shows yellow WARNING badge),ថ្ងៃ (បច្ចុប្បន្ន: ≤ {days} ថ្ងៃ បង្ហាញស្លាកលឿង ការព្រមាន)
+settingsFailedToLoadSettings,Lỗi khi tải cấu hình: ,Failed to load settings: ,មិនអាចផ្ទុកការកំណត់បានទេ: 
+settingsPleaseEnterCurrencyCodeIso,Vui lòng nhập Mã tiền tệ (ISO) và Tên gọi!,Please enter Currency Code (ISO) and Name!,សូមបញ្ចូលកូដរូបិយប័ណ្ណ (ISO) និងឈ្មោះ!
+settingsCurrencyAddedSuccessfully,Đã thêm loại tiền tệ thành công!,Currency added successfully!,បានបន្ថែមរូបិយប័ណ្ណដោយជោគជ័យ!
+settingsErrorAddingCurrency,Lỗi thêm tiền tệ: ,Error adding currency: ,មិនអាចបន្ថែមរូបិយប័ណ្ណបានទេ: 
+settingsErrorUpdatingCurrency,Lỗi cập nhật tiền tệ: ,Error updating currency: ,មិនអាចធ្វើបច្ចុប្បន្នភាពរូបិយប័ណ្ណបានទេ: 
+settingsAlertParametersAndSystemConfiguration,Đã lưu thành công tham số cảnh báo và cấu hình hệ thống!,Alert parameters and system configuration saved successfully!,បានរក្សាទុកប៉ារ៉ាម៉ែត្រការជូនដំណឹង និងការកំណត់ប្រព័ន្ធដោយជោគជ័យ!
+settingsFailedToSaveSettings,Không thể lưu tham số: ,Failed to save settings: ,មិនអាចរក្សាទុកប៉ារ៉ាម៉ែត្របានទេ: 
+settingsAddedToCategorySuccessfully,Đã thêm thành công vào danh mục!,Added to category successfully!,បានបន្ថែមទៅក្នុងប្រភេទដោយជោគជ័យ!
+settingsErrorAddingItem,Lỗi khi thêm mục: ,Error adding item: ,មិនអាចបន្ថែមធាតុបានទេ: 
+settingsCategoryItemUpdatedSuccessfully,Đã cập nhật mục thành công!,Category item updated successfully!,បានធ្វើបច្ចុប្បន្នភាពធាតុដោយជោគជ័យ!
+settingsErrorUpdatingItem,Lỗi khi cập nhật mục: ,Error updating item: ,មិនអាចធ្វើបច្ចុប្បន្នភាពធាតុបានទេ: 
+settingsItemDeletedFromCategory,Đã xóa mục khỏi danh mục!,Item deleted from category!,បានលុបធាតុចេញពីប្រភេទ!
+settingsErrorDeletingItem,Lỗi khi xóa mục: ,Error deleting item: ,មិនអាចលុបធាតុបានទេ: 
+settingsReferenceCategoriesSystemConfiguration,Danh Mục Tham Chiếu & Cấu Hình Hệ Thống,Reference Categories & System Configuration,បញ្ជីយោង និងការកំណត់ប្រព័ន្ធ
+settingsManageDocumentTypesIssuingAgencies,"Quản lý danh mục loại văn bản, cơ quan, phòng ban, nhân sự, phân loại hợp đồng và ngưỡng cảnh báo","Manage document types, issuing agencies, internal departments, personnel, contract types, and alert thresholds",គ្រប់គ្រងប្រភេទឯកសារ ស្ថាប័នចេញផ្សាយ នាយកដ្ឋានផ្ទៃក្នុង បុគ្គលិក ប្រភេទកិច្ចសន្យា និងការជូនដំណឹង
+settingsDocumentTypes,Loại Văn Bản,Document Types,ប្រភេទឯកសារ
+settingsIssuingAgencies,Cơ Quan Ban Hành,Issuing Agencies,ស្ថាប័នចេញផ្សាយ
+settingsInternalDepartments,Phòng Ban Nội Bộ,Internal Departments,នាយកដ្ឋានផ្ទៃក្នុង
+settingsPersonnelDirectory,Danh Bạ Nhân Sự,Personnel Directory,បញ្ជីបុគ្គលិក
+settingsContractsStorage,Hợp Đồng & Lưu Trữ,Contracts & Storage,កិច្ចសន្យា និងការរក្សាទុក
+settingsAlertSystemSettings,Tham Số Cảnh Báo & Hệ Thống,Alert & System Settings,ការកំណត់ការជូនដំណឹង
+settingsCurrencies,Tiền Tệ,Currencies,រូបិយប័ណ្ណ
+settingsAccountsPermissions,Tài Khoản & Phân Quyền,Accounts & Permissions,គណនី និងសិទ្ធិ
+settingsAuditLogs,Nhật Ký Thao Tác,Audit Logs,កំណត់ហេតុប្រតិបត្តិការ
+settingsDocumentTypesCodeSymbols,Danh Mục Loại Văn Bản & Ký Hiệu Mã Số,Document Types & Code Symbols,ប្រភេទឯកសារ និងនិមិត្តសញ្ញាកូដ
+settingsUsedToAutoGenerateIncoming,"Được dùng để tự động tạo mã số văn bản đi/đến (VD: CV = Công văn, QĐ = Quyết định)","Used to auto-generate incoming/outgoing document numbers (e.g., CV = Official Letter, QĐ = Decision)","ប្រើសម្រាប់បង្កើតលេខកូដឯកសារចេញ/ចូលដោយស្វ័យប្រវត្តិ (ឧ. CV = លិខិតផ្លូវការ, QĐ = សេចក្តីសម្រេច)"
+settingsAddDocumentType,Thêm Loại Văn Bản,Add Document Type,បន្ថែមប្រភេទឯកសារ
+settingsCodeEGTb,Mã viết tắt (VD: TB),"Code (e.g., TB)",កូដកាត់ (ឧ. TB)
+settingsDocumentTypeNameEG,Tên loại văn bản (VD: Thông báo),"Document Type Name (e.g., Notice)",ឈ្មោះប្រភេទឯកសារ
+settingsDescriptionNote,Mô tả / Ghi chú,Description / Note,ការពិពណ៌នា / កំណត់សម្គាល់
+settingsPleaseEnterBothCodeAnd,Vui lòng nhập cả mã viết tắt và tên loại văn bản,Please enter both code and document type name,សូមបញ្ចូលទាំងកូដអក្សរកាត់ និងឈ្មោះប្រភេទឯកសារ
+settingsSave,Lưu,Save,រក្សាទុក
+settingsCodeSymbol,Mã Ký Hiệu,Code Symbol,លេខកូដ
+settingsDocumentTypeName,Tên Loại Văn Bản,Document Type Name,ឈ្មោះប្រភេទឯកសារ
+settingsDescriptionRegulation,Mô Tả Quy Định,Description / Regulation,ការពិពណ៌នា
+settingsActions,Thao Tác,Actions,សកម្មភាព
+settingsEditItem,Sửa mục,Edit item,កែប្រែ
+settingsDeleteItem,Xóa mục,Delete item,លុប
+settingsIssuingAgenciesDocumentPartners,Cơ Quan Ban Hành & Đối Tác Gửi Nhận Văn Bản,Issuing Agencies & Document Partners,ស្ថាប័នចេញផ្សាយ និងដៃគូទទួល/ផ្ញើឯកសារ
+settingsListOfStateRegulatoryAgencies,"Danh sách cơ quan quản lý nhà nước, sở ngành và đối tác gửi/nhận công văn","List of state regulatory agencies, ministries, departments, and correspondence partners",បញ្ជីស្ថាប័នរដ្ឋ មន្ទីរ និងដៃគូទទួល/ផ្ញើលិខិតផ្លូវការ
+settingsAddAgency,Thêm Cơ Quan,Add Agency,បន្ថែមស្ថាប័ន
+settingsAgencyOrOrganizationName,"Tên cơ quan, tổ chức (VD: Sở Kế hoạch và Đầu tư Tỉnh Tây Ninh)",Agency or organization name,ឈ្មោះស្ថាប័ន ឬអង្គភាព
+settingsPleaseEnterAgencyName,Vui lòng nhập tên cơ quan,Please enter agency name,សូមបញ្ចូលឈ្មោះស្ថាប័ន
+settingsEdit,Sửa,Edit,កែប្រែ
+settingsInternalDepartmentsFunctionalDivisions,Phòng Ban & Khối Chức Năng Nội Bộ,Internal Departments & Functional Divisions,នាយកដ្ឋាន និងផ្នែកមុខងារផ្ទៃក្នុង
+settingsDepartmentCodesUsedInOutgoing,Ký hiệu phòng ban dùng trong số công văn đi và phân công xử lý văn bản,Department codes used in outgoing document numbers and document assignment,លេខកូដនាយកដ្ឋានប្រើក្នុងលេខលិខិតចេញ និងការចាត់តាំងឯកសារ
+settingsAddDepartment,Thêm Phòng Ban,Add Department,បន្ថែមនាយកដ្ឋាន
+settingsDeptCodeEGTckt,Mã BP (VD: TCKT),"Dept Code (e.g., TCKT)",កូដនាយកដ្ឋាន
+settingsDepartmentNameEGFinance,Tên phòng ban (VD: Phòng Tài chính - Kế toán),"Department Name (e.g., Finance & Accounting)",ឈ្មោះនាយកដ្ឋាន
+settingsDepartmentHeadLead,Trưởng bộ phận / Phụ trách,Department Head / Lead,ប្រធាននាយកដ្ឋាន
+settingsPleaseEnterDepartmentCodeAnd,Vui lòng nhập mã và tên phòng ban,Please enter department code and name,សូមបញ្ចូលកូដ និងឈ្មោះនាយកដ្ឋាន
+settingsDepartmentCode,Mã Phòng Ban,Department Code,កូដនាយកដ្ឋាន
+settingsDepartmentName,Tên Phòng Ban,Department Name,ឈ្មោះនាយកដ្ឋាន
+settingsDepartmentLead,Lãnh Đạo / Phụ Trách,Department Lead,អ្នកទទួលបន្ទុក
+settingsPersonnelDocumentHandlersDirectory,Danh Bạ Cán Bộ & Nhân Sự Xử Lý Văn Bản,Personnel & Document Handlers Directory,បញ្ជីឈ្មោះបុគ្គលិក និងអ្នកទទួលបន្ទុកឯកសារ
+settingsListOfIncomingDocumentHandlers,"Danh sách người xử lý công văn đến, người ký công văn đi và phụ trách theo dõi hợp đồng","List of incoming document handlers, outgoing signers, and contract supervisors",បញ្ជីអ្នកទទួលបន្ទុកលិខិតចូល អ្នកចុះហត្ថលេខាលិខិតចេញ និងអ្នកតាមដានកិច្ចសន្យា
+settingsAddPersonnel,Thêm Nhân Sự,Add Personnel,បន្ថែមបុគ្គលិក
+settingsFullName,Họ và tên (*),Full Name (*),គោត្តនាម និងនាម (*)
+settingsTitleRole,Chức danh / Vai trò,Title / Role,តួនាទី
+settingsPhoneEmail,SĐT / Email,Phone / Email,ទូរស័ព្ទ / អ៊ីមែល
+settingsPleaseEnterPersonnelFullName,Vui lòng nhập họ và tên nhân sự,Please enter personnel full name,សូមបញ្ចូលឈ្មោះពេញរបស់បុគ្គលិក
+settingsFullName2,Họ và Tên,Full Name,គោត្តនាម និងនាម
+settingsDepartment,Phòng Ban,Department,នាយកដ្ឋាន
+settingsTitleRole2,Chức Danh,Title / Role,តួនាទី
+settingsContact,Liên Hệ,Contact,ទំនាក់ទំនង
+settingsSpecialist,Chuyên viên,Specialist,អ្នកជំនាញ
+settingsContractCategories,Phân Loại Hợp Đồng,Contract Categories,ប្រភេទកិច្ចសន្យា
+settingsContractClassificationGroups,"Phân nhóm hợp đồng kinh tế, thương mại",Contract classification groups,ក្រុមចំណាត់ថ្នាក់កិច្ចសន្យា
+settingsEnterNewContractCategoryName,Nhập tên loại hợp đồng mới:,Enter new contract category name:,បញ្ចូលឈ្មោះប្រភេទកិច្ចសន្យាថ្មី:
+settingsAdd,Thêm,Add,បន្ថែម
+settingsPhysicalStorageLocationsCabinets,Vị Trí & Tủ Lưu Trữ Vật Lý,Physical Storage Locations & Cabinets,ទីតាំង និងទូរក្សាទុកឯកសារ
+settingsOriginalHardcopyArchiveLocations,Nơi cất giữ hồ sơ gốc,Original hardcopy archive locations,ទីតាំងរក្សាទុកឯកសារដើម
+settingsEnterNewStorageLocation,Nhập vị trí lưu trữ mới:,Enter new storage location:,បញ្ចូលទីតាំងរក្សាទុកថ្មី:
+settingsOutgoingDispatchMethods,Hình Thức Gửi Công Văn Đi,Outgoing Dispatch Methods,មធ្យោបាយផ្ញើលិខិតចេញ
+settingsDeliveryDispatchChannels,Phương thức phát hành,Delivery & dispatch channels,មធ្យោបាយបញ្ជូន
+settingsEnterNewDispatchMethod,Nhập hình thức gửi mới:,Enter new dispatch method:,បញ្ចូលវិធីផ្ញើថ្មី:
+settingsPartyAInvestorContractingEntity,Bên A (Chủ Đầu Tư / Pháp Nhân Mua),Party A (Investor / Contracting Entity),ភាគី A (អ្នកវិនិយោគ / ក្រុមហ៊ុន)
+settingsLegalEntitiesSubsidiariesOrBranches,"Các pháp nhân, công ty thành viên hoặc chi nhánh ký hợp đồng","Legal entities, subsidiaries, or branches signing contracts",នីតិបុគ្គល ក្រុមហ៊ុនបុត្រសម្ព័ន្ធ ឬសាខាចុះកិច្ចសន្យា
+settingsEnterNewPartyALegal,Nhập tên Bên A / Pháp nhân công ty mới:,Enter new Party A / Legal Entity name:,បញ្ចូលឈ្មោះភាគី A / អង្គភាពក្រុមហ៊ុនថ្មី:
+settingsNoPartyAEntitiesYet,"Chưa có pháp nhân Bên A nào. Bấm ""+ Thêm"" để tạo mới.","No Party A entities yet. Click ""+ Add"" to create one.","មិនទាន់មានអង្គភាពភាគី A ទេ។ ចុច ""+ បន្ថែម"" ដើម្បីបង្កើតថ្មី។"
+settingsExpirationAlertParametersSystemStandards,Tham Số Cảnh Báo Hết Hạn & Quy Chuẩn Hệ Thống,Expiration Alert Parameters & System Standards,ប៉ារ៉ាម៉ែត្រជូនដំណឹងផុតកំណត់ និងស្តង់ដារប្រព័ន្ធ
+settingsAutomatedAlertThresholdsAppliedAcross,Các mốc thời gian cảnh báo tự động áp dụng cho hợp đồng và sổ công văn đến/đi,Automated alert thresholds applied across all contracts and incoming/outgoing documents,កម្រិតពេលវេលាជូនដំណឹងស្វ័យប្រវត្តិសម្រាប់កិច្ចសន្យា និងឯកសារចេញ/ចូល
+settingsLevel1AlertThresholdUrgent,Ngưỡng Cảnh Báo Cấp 1 - Khẩn Cấp (Số ngày trước khi hết hạn),Level 1 Alert Threshold - Urgent (Days before expiration),កម្រិតជូនដំណឹងទី ១ - បន្ទាន់ (ចំនួនថ្ងៃមុនផុតកំណត់)
+settingsLevel2AlertThresholdEarly,Ngưỡng Cảnh Báo Cấp 2 - Cảnh Báo Sớm (Số ngày trước khi hết hạn),Level 2 Alert Threshold - Early Warning (Days before expiration),កម្រិតជូនដំណឹងទី ២ - ជូនដំណឹងជាមុន (ចំនួនថ្ងៃមុនផុតកំណត់)
+settingsPrimaryReportingCurrency,Đồng Tiền Báo Cáo Tổng Hợp,Primary Reporting Currency,រូបិយប័ណ្ណរបាយការណ៍សរុប
+settingsUsdUsDollarMatchesExcel,USD (Đô la Mỹ - Khớp Dashboard Excel),USD (US Dollar - Matches Excel Dashboard),USD (ដុល្លារអាមេរិក - ត្រូវនឹង Dashboard Excel)
+settingsVndVietnameseDong,VND (Việt Nam Đồng),VND (Vietnamese Dong),VND (ដុងវៀតណាម)
+settingsCompanyCodePrefix,Mã Doanh Nghiệp (Prefix),Company Code (Prefix),លេខកូដក្រុមហ៊ុន (Prefix)
+settingsManagingCompanyName,Tên Doanh Nghiệp Chủ Quản,Managing Company Name,ឈ្មោះក្រុមហ៊ុនគ្រប់គ្រង
+settingsCompanyGoogleDriveArchiveFolder,Thư mục Google Drive lưu trữ hồ sơ công ty,Company Google Drive Archive Folder URL,ថតឯកសារ Google Drive សម្រាប់រក្សាទុកឯកសារក្រុមហ៊ុន
+settingsSharedGoogleDriveFolderLink,"Đường dẫn thư mục Google Drive dùng chung khi bấm nút ""Chuyển file về Google Drive"" từ chi tiết hồ sơ.","Shared Google Drive folder link opened when clicking ""Save to Google Drive"" from record details.","តំណថត Google Drive រួម ដែលបើកនៅពេលចុចប៊ូតុង ""ផ្ទេរឯកសារទៅ Google Drive"" ពីព័ត៌មានលម្អិតឯកសារ។"
+settingsSaveAlertSettings,Lưu Thiết Lập Cảnh Báo,Save Alert Settings,រក្សាទុកការកំណត់
+settingsCurrenciesFormattingDirectoryIso4217,Danh Mục Loại Tiền Tệ & Định Dạng (ISO 4217),Currencies & Formatting Directory (ISO 4217),បញ្ជីប្រភេទរូបិយប័ណ្ណ និងទម្រង់ (ISO 4217)
+settingsMultiCurrencySupportUsdKhr,"Hỗ trợ đa tiền tệ (USD, KHR, VND, EUR, AUD, THB...) với số chữ số thập phân và tỷ giá quy đổi","Multi-currency support (USD, KHR, VND, EUR, AUD, THB...) with decimal precision and exchange rates","គាំទ្ររូបិយប័ណ្ណច្រើន (USD, KHR, VND, EUR, AUD, THB...) ជាមួយខ្ទង់ទសភាគ និងអត្រាប្តូរប្រាក់"
+settingsAddCurrency,Thêm Tiền Tệ,Add Currency,បន្ថែមរូបិយប័ណ្ណ
+settingsCodeIso,Mã (ISO),Code (ISO),កូដ (ISO)
+settingsEGAustralianDollar,VD: Đô la Úc (Australian Dollar),e.g. Australian Dollar,ឧ. ដុល្លារអូស្ត្រាលី (Australian Dollar)
+settingsDecimals,Số thập phân,Decimals,ចំនួនទសភាគ
+settingsExchangeRate,Tỷ giá quy đổi,Exchange Rate,អត្រាប្តូរប្រាក់
+settingsCancel,Hủy,Cancel,បោះបង់
+settingsDecimalPlaces,Chữ số thập phân,Decimal Places,ចំនួនទសភាគ
+settingsExchangeRate2,Tỷ giá chuẩn,Exchange Rate,អត្រាប្តូរប្រាក់
+settingsDecimals2,chữ số,decimals,ខ្ទង់
+settingsActive,Đang kích hoạt,Active,សកម្ម
+settingsSuspended,Tạm ngưng,Suspended,ផ្អាក
+settingsSuspend,Tạm ngưng,Suspend,ផ្អាក
+settingsActivate,Kích hoạt,Activate,ធ្វើឱ្យសកម្ម
+daysLeftUrgentFormat,Còn {days} ngày (Gấp),{days} days left (urgent),នៅសល់ {days} ថ្ងៃ (បន្ទាន់)
+srvAuthRequired,Yêu cầu đăng nhập để thực hiện thao tác này.,Please sign in to continue.,សូមចូលប្រព័ន្ធដើម្បីបន្ត។
+srvForbidden,Truy cập bị từ chối: Bạn không có quyền thực hiện thao tác này.,Access denied: you don't have permission to do this.,ការចូលប្រើត្រូវបានបដិសេធ: អ្នកគ្មានសិទ្ធិធ្វើប្រតិបត្តិការនេះទេ។
+srvAdminOnly,Truy cập bị từ chối: Chỉ Quản trị viên (Admin) mới có quyền thực hiện thao tác này.,Access denied: only administrators can do this.,ការចូលប្រើត្រូវបានបដិសេធ: មានតែអ្នកគ្រប់គ្រងប៉ុណ្ណោះអាចធ្វើប្រតិបត្តិការនេះ។
+srvContractNotFound,Không tìm thấy hợp đồng,Contract not found,រកមិនឃើញកិច្ចសន្យា
+srvLaborContractForbidden,Hợp đồng lao động bảo mật: Bạn không có quyền xem hồ sơ này.,Confidential labor contract: you don't have permission to view this record.,កិច្ចសន្យាការងារសម្ងាត់: អ្នកគ្មានសិទ្ធិមើលឯកសារនេះទេ។
+srvContractListInvalid,Danh sách hợp đồng không hợp lệ hoặc rỗng,The contract list is invalid or empty,បញ្ជីកិច្ចសន្យាមិនត្រឹមត្រូវ ឬទទេ
+srvContractFieldsRequired,Thiếu thông tin bắt buộc của hợp đồng,Required contract fields are missing,ខ្វះព័ត៌មានចាំបាច់របស់កិច្ចសន្យា
+srvLaborOnlyManage,Bạn chỉ được phân quyền quản lý mục Hợp đồng Lao động.,You are only allowed to manage Labor Contracts.,អ្នកមានសិទ្ធិគ្រប់គ្រងតែកិច្ចសន្យាការងារប៉ុណ្ណោះ។
+srvLaborOnlyEdit,Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.,You are only allowed to edit Labor Contracts.,អ្នកមានសិទ្ធិកែសម្រួលតែកិច្ចសន្យាការងារប៉ុណ្ណោះ។
+srvDocumentNotFound,Không tìm thấy văn bản,Document not found,រកមិនឃើញឯកសារ
+srvDocumentListInvalid,Danh sách văn bản không hợp lệ hoặc rỗng,The document list is invalid or empty,បញ្ជីឯកសារមិនត្រឹមត្រូវ ឬទទេ
+srvDocumentFieldsRequired,"Thiếu thông tin bắt buộc (số văn bản, trích yếu)","Required fields are missing (document number, title)",ខ្វះព័ត៌មានចាំបាច់ (លេខឯកសារ ខ្លឹមសារ)
+srvCategoryItemNotFound,Không tìm thấy mục danh mục,Category item not found,រកមិនឃើញធាតុប្រភេទ
+srvUserNotFound,Không tìm thấy người dùng,User not found,រកមិនឃើញអ្នកប្រើប្រាស់
+srvUsernameTaken,Tên đăng nhập đã tồn tại trong hệ thống,This username already exists,ឈ្មោះចូលប្រព័ន្ធនេះមានរួចហើយ
+srvPrimaryAdminProtected,Không thể hạ quyền hoặc khóa tài khoản Quản trị viên gốc,The primary administrator can't be demoted or locked,មិនអាចបន្ថយសិទ្ធិ ឬចាក់សោគណនីអ្នកគ្រប់គ្រងដើមបានទេ
+srvPrimaryAdminDelete,Không thể xóa tài khoản Quản trị viên gốc,The primary administrator account can't be deleted,មិនអាចលុបគណនីអ្នកគ្រប់គ្រងដើមបានទេ
+srvFileRequired,Vui lòng chọn tệp để tải lên,Please choose a file to upload,សូមជ្រើសរើសឯកសារដើម្បីផ្ទុកឡើង
+srvFileSaveFailed,Không thể lưu tệp tải lên,Could not save the uploaded file,មិនអាចរក្សាទុកឯកសារដែលបានផ្ទុកឡើងបានទេ
+srvRecordKindInvalid,"Loại hồ sơ không hợp lệ (hỗ trợ: contract, document)","Invalid record type (supported: contract, document)","ប្រភេទឯកសារមិនត្រឹមត្រូវ (គាំទ្រ: contract, document)"
+srvDriveSyncFailed,Lỗi khi chuyển file về Google Drive,Could not move the file to Google Drive,មិនអាចផ្ទេរឯកសារទៅ Google Drive បានទេ
+srvFileNotFound,Không tìm thấy tệp,File not found,រកមិនឃើញឯកសារ
+srvFileForbidden,Bạn không có quyền xem tệp này.,You don't have permission to view this file.,អ្នកគ្មានសិទ្ធិមើលឯកសារនេះទេ។
+srvFileTypeUnsupported,"Định dạng tệp ""{ext}"" không được hỗ trợ.","File type ""{ext}"" is not supported.","មិនគាំទ្រប្រភេទឯកសារ ""{ext}"" ទេ។"
+srvFileTooLarge,Tệp vượt quá giới hạn 5MB cho phép.,The file exceeds the 5MB limit.,ឯកសារលើសដែនកំណត់ 5MB។
+srvPartnerNotFound,Không tìm thấy đối tác,Partner not found,រកមិនឃើញដៃគូ
+srvPartnerCodeTaken,Mã đối tác '{code}' đã tồn tại trong hệ thống,Partner code '{code}' already exists,លេខកូដដៃគូ '{code}' មានរួចហើយ
+srvDbNotMigrated,Cơ sở dữ liệu chưa được nâng cấp (chạy npm run db:migrate:remote).,The database has not been migrated (run npm run db:migrate:remote).,មូលដ្ឋានទិន្នន័យមិនទាន់ធ្វើបច្ចុប្បន្នភាព (ដំណើរការ npm run db:migrate:remote)។
+srvInternalError,Lỗi máy chủ nội bộ.,Internal server error.,កំហុសម៉ាស៊ីនមេខាងក្នុង។
+srvServerNotConfigured,Máy chủ chưa được cấu hình bảo mật (AUTH_SECRET).,The server's security settings are not configured (AUTH_SECRET).,ម៉ាស៊ីនមេមិនទាន់កំណត់ការរក្សាសុវត្ថិភាព (AUTH_SECRET)។
+srvCredentialsRequired,Vui lòng nhập tên đăng nhập và mật khẩu.,Please enter your username and password.,សូមបញ្ចូលឈ្មោះចូលប្រព័ន្ធ និងពាក្យសម្ងាត់។
+srvTooManyAttempts,Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút.,Too many failed sign-in attempts. Please try again in 15 minutes.,ចូលប្រព័ន្ធខុសច្រើនដងពេក។ សូមព្យាយាមម្តងទៀតក្នុងរយៈពេល ១៥ នាទី។
+srvInvalidCredentials,Tên đăng nhập hoặc mật khẩu không chính xác.,Incorrect username or password.,ឈ្មោះចូលប្រព័ន្ធ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ។
+srvAccountLocked,Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.,Your account is locked. Please contact an administrator.,គណនីរបស់អ្នកត្រូវបានចាក់សោ។ សូមទាក់ទងអ្នកគ្រប់គ្រង។
+srvSessionInvalid,Phiên làm việc không hợp lệ hoặc đã hết hạn.,Your session is invalid or has expired.,វគ្គការងាររបស់អ្នកមិនត្រឹមត្រូវ ឬផុតកំណត់ហើយ។
+srvPasswordChangeRequired,Bạn cần đổi mật khẩu trước khi tiếp tục.,You need to change your password before continuing.,អ្នកត្រូវប្តូរពាក្យសម្ងាត់មុនពេលបន្ត។
+srvCurrentPasswordWrong,Mật khẩu hiện tại không chính xác.,The current password is incorrect.,ពាក្យសម្ងាត់បច្ចុប្បន្នមិនត្រឹមត្រូវទេ។
+srvPasswordReuse,Vui lòng chọn mật khẩu mới khác mật khẩu hiện tại/mặc định.,Please choose a new password different from the current/default one.,សូមជ្រើសរើសពាក្យសម្ងាត់ថ្មីដែលខុសពីពាក្យសម្ងាត់បច្ចុប្បន្ន/លំនាំដើម។
+srvPasswordTooShort,Mật khẩu phải có ít nhất {min} ký tự.,The password must be at least {min} characters long.,ពាក្យសម្ងាត់ត្រូវមានយ៉ាងហោចណាស់ {min} តួអក្សរ។
+srvPasswordNeedsLettersAndDigits,Mật khẩu phải chứa cả chữ và số.,The password must contain both letters and digits.,ពាក្យសម្ងាត់ត្រូវមានទាំងអក្សរ និងលេខ។
+srvRevisionConflict,Hồ sơ đã được người khác cập nhật trong lúc bạn chỉnh sửa. Vui lòng mở lại để xem bản mới nhất rồi sửa lại.,"Someone else updated this record while you were editing. Please reopen it to see the latest version, then edit again.",មាននរណាម្នាក់បានធ្វើបច្ចុប្បន្នភាពឯកសារនេះ ពេលអ្នកកំពុងកែសម្រួល។ សូមបើកម្តងទៀតដើម្បីមើលកំណែចុងក្រោយ ហើយកែសម្រួលម្តងទៀត។
+srvValidationFailed,Dữ liệu không hợp lệ ở các trường: {fields},Invalid data in fields: {fields},ទិន្នន័យមិនត្រឹមត្រូវនៅក្នុងវាល: {fields}
+seed:Công văn,Công văn,Official Letter (Công văn),លិខិតផ្លូវការ
+seed:Văn bản hành chính giao dịch chính thức,Văn bản hành chính giao dịch chính thức,Official administrative correspondence,លិខិតរដ្ឋបាលផ្លូវការ
+seed:Quyết định,Quyết định,Decision (Quyết định),សេចក្តីសម្រេច
+seed:Quyết định ban hành nội bộ hoặc từ cơ quan NN,Quyết định ban hành nội bộ hoặc từ cơ quan NN,Internal or state agency decision,សេចក្តីសម្រេចផ្ទៃក្នុង ឬពីស្ថាប័នរដ្ឋ
+seed:Tờ trình,Tờ trình,Proposal / Submission (Tờ trình),របាយការណ៍ស្នើសុំ
+"seed:Tờ trình xin phê duyệt chủ trương, ngân sách","Tờ trình xin phê duyệt chủ trương, ngân sách",Proposal for policy or budget approval,សំណើសុំអនុម័តគោលនយោបាយ ឬថវិកា
+seed:Thông báo,Thông báo,Announcement / Notice (Thông báo),សេចក្តីជូនដំណឹង
+seed:Thông báo nội bộ hoặc từ cơ quan quản lý,Thông báo nội bộ hoặc từ cơ quan quản lý,Internal or regulatory agency notice,សេចក្តីជូនដំណឹងផ្ទៃក្នុង ឬពីស្ថាប័នគ្រប់គ្រង
+seed:Báo cáo,Báo cáo,Report (Báo cáo),របាយការណ៍
+"seed:Báo cáo tiến độ, định kỳ, chuyên đề","Báo cáo tiến độ, định kỳ, chuyên đề","Progress, periodic, or thematic report",របាយការណ៍វឌ្ឍនភាព ប្រចាំកាល ឬតាមប្រធានបទ
+seed:Biên bản,Biên bản,Minutes / Memorandum (Biên bản),កំណត់ហេតុ
+"seed:Biên bản họp, nghiệm thu, làm việc","Biên bản họp, nghiệm thu, làm việc","Meeting, acceptance, or working minutes",កំណត់ហេតុប្រជុំ ទទួលយកការងារ ឬការងារ
+seed:Giấy ủy quyền,Giấy ủy quyền,Power of Attorney (Giấy ủy quyền),លិខិតប្រគល់សិទ្ធិ
+"seed:Ủy quyền đại diện pháp lý, giao dịch","Ủy quyền đại diện pháp lý, giao dịch",Legal representation or transaction authorization,ការប្រគល់សិទ្ធិតំណាងផ្លូវច្បាប់ ឬប្រតិបត្តិការ
+seed:Hợp đồng,Hợp đồng,Contract (Hợp đồng),កិច្ចសន្យា
+"seed:Hợp đồng kinh tế, thương mại, dịch vụ","Hợp đồng kinh tế, thương mại, dịch vụ","Economic, commercial, or service contract",កិច្ចសន្យាសេដ្ឋកិច្ច ពាណិជ្ជកម្ម ឬសេវាកម្ម
+seed:Phụ lục HĐ,Phụ lục HĐ,Contract Addendum (Phụ lục HĐ),ឧបសម្ព័ន្ធកិច្ចសន្យា
+"seed:Phụ lục điều chỉnh, gia hạn hợp đồng","Phụ lục điều chỉnh, gia hạn hợp đồng",Contract amendment or extension addendum,ឧបសម្ព័ន្ធកែប្រែ ឬបន្តកិច្ចសន្យា
+seed:Biên bản Thanh lý,Biên bản Thanh lý,Liquidation Minutes (Biên bản Thanh lý),កំណត់ហេតុទូទាត់បញ្ចប់
+seed:Biên bản thanh lý và đóng hợp đồng,Biên bản thanh lý và đóng hợp đồng,Contract liquidation and closure minutes,កំណត់ហេតុទូទាត់ និងបិទកិច្ចសន្យា
+seed:Đề nghị Thanh toán,Đề nghị Thanh toán,Payment Request (Đề nghị Thanh toán),សំណើទូទាត់ប្រាក់
+"seed:Hồ sơ đề nghị thanh toán, tạm ứng","Hồ sơ đề nghị thanh toán, tạm ứng",Payment or advance request dossier,ឯកសារស្នើទូទាត់ ឬបុរេប្រទាន
+seed:Ban Giám đốc,Ban Giám đốc,Board of Directors (Ban Giám đốc),គណៈនាយក
+seed:Tài chính - Kế toán,Tài chính - Kế toán,Finance & Accounting (Tài chính - Kế toán),ហិរញ្ញវត្ថុ និងគណនេយ្យ
+seed:Hành chính - Nhân sự,Hành chính - Nhân sự,HR & Administration (Hành chính - Nhân sự),រដ្ឋបាល និងធនធានមនុស្ស
+seed:Kế hoạch - Đầu tư,Kế hoạch - Đầu tư,Planning & Investment (Kế hoạch - Đầu tư),ផែនការ និងវិនិយោគ
+seed:Pháp chế - Tuân thủ,Pháp chế - Tuân thủ,Legal & Compliance (Pháp chế - Tuân thủ),នីតិកម្ម និងអនុលោមភាព
+seed:Kỹ thuật - Xây dựng,Kỹ thuật - Xây dựng,Engineering & Construction (Kỹ thuật - Xây dựng),បច្ចេកទេស និងសំណង់
+seed:Mua sắm - Đấu thầu,Mua sắm - Đấu thầu,Procurement & Bidding (Mua sắm - Đấu thầu),លទ្ធកម្ម និងការដេញថ្លៃ
+seed:Kinh doanh - Thương mại,Kinh doanh - Thương mại,Sales & Commercial (Kinh doanh - Thương mại),អាជីវកម្ម និងពាណិជ្ជកម្ម
+seed:Vận hành - Khai thác,Vận hành - Khai thác,Operations (Vận hành - Khai thác),ប្រតិបត្តិការ
+seed:Công nghệ thông tin,Công nghệ thông tin,Information Technology (CNTT),បច្ចេកវិទ្យាព័ត៌មាន
+seed:An ninh - An toàn,An ninh - An toàn,Security & Safety (An ninh - An toàn),សន្តិសុខ និងសុវត្ថិភាព
+seed:Đối ngoại - Truyền thông,Đối ngoại - Truyền thông,External Relations & PR (Đối ngoại),ទំនាក់ទំនងខាងក្រៅ និងផ្សព្វផ្សាយ
+seed:Trợ lý Chủ tịch,Trợ lý Chủ tịch,Chairman Assistant (Trợ lý Chủ tịch),ជំនួយការប្រធាន
+seed:Ban kiểm soát nội bộ,Ban kiểm soát nội bộ,Internal Audit Board (Ban kiểm soát nội bộ),គណៈកម្មការសវនកម្មផ្ទៃក្នុង
+seed:Ban quản lý Dự án,Ban quản lý Dự án,Project Management Board (Ban quản lý Dự án),គណៈគ្រប់គ្រងគម្រោង
+seed:Chuyên viên,Chuyên viên,Specialist,មន្ត្រីជំនាញ
+seed:Nhà thầu thi công,Nhà thầu thi công,Construction contractor,អ្នកម៉ៅការសំណង់
+seed:Nhà cung cấp vật tư / thiết bị,Nhà cung cấp vật tư / thiết bị,Materials / equipment supplier,អ្នកផ្គត់ផ្គង់សម្ភារៈ / ឧបករណ៍
+seed:Dịch vụ kỹ thuật & bảo trì,Dịch vụ kỹ thuật & bảo trì,Technical & maintenance services,សេវាបច្ចេកទេស និងថែទាំ
+seed:Khách hàng / Chủ đầu tư,Khách hàng / Chủ đầu tư,Customer / Investor,អតិថិជន / ម្ចាស់វិនិយោគ
+seed:Cơ quan quản lý / Đối tác chiến lược,Cơ quan quản lý / Đối tác chiến lược,Regulator / Strategic partner,ស្ថាប័នគ្រប់គ្រង / ដៃគូយុទ្ធសាស្ត្រ
+seed:Tư vấn & Kiểm định,Tư vấn & Kiểm định,Consulting & Inspection,ការប្រឹក្សា និងការត្រួតពិនិត្យ
+seed:Khác,Khác,Other,ផ្សេងៗ
+seed:Kế hoạch,Kế hoạch,Plan,ផែនការ
+seed:Giấy mời,Giấy mời,Invitation,លិខិតអញ្ជើញ
+seed:Hợp đồng / Phụ lục,Hợp đồng / Phụ lục,Contract / Annex,កិច្ចសន្យា / ឧបសម្ព័ន្ធ
+seed:Giấy phép / Chấp thuận,Giấy phép / Chấp thuận,Permit / Approval,អាជ្ញាប័ណ្ណ / ការអនុញ្ញាត
+seed:Thư / Email chính thức,Thư / Email chính thức,Official letter / Email,លិខិត / អ៊ីមែលផ្លូវការ
+seed:An toàn - Sức khỏe - Môi trường,An toàn - Sức khỏe - Môi trường,"Health, Safety & Environment",សុវត្ថិភាព សុខភាព និងបរិស្ថាន
+seed:Khai thác,Khai thác,Mining,ការជីកយករ៉ែ
+seed:Chế biến,Chế biến,Processing,ការកែច្នៃ
+seed:Cơ điện - Bảo trì,Cơ điện - Bảo trì,Mechanical & Electrical - Maintenance,មេកានិច អគ្គិសនី - ថែទាំ
+seed:Hạ tầng - Facilities,Hạ tầng - Facilities,Facilities,ហេដ្ឋារចនាសម្ព័ន្ធ
+seed:Pháp chế - Đối ngoại,Pháp chế - Đối ngoại,Legal & External Affairs,នីតិកម្ម និងកិច្ចការខាងក្រៅ
+seed:Mua sắm - Kho,Mua sắm - Kho,Procurement & Warehouse,លទ្ធកម្ម និងឃ្លាំង
+seed:Thăm do - Địa chất,Thăm do - Địa chất,Exploration & Geology,ការរុករក និងភូគព្ភសាស្ត្រ
+seed:Toàn công ty,Toàn công ty,Whole company,ក្រុមហ៊ុនទាំងមូល
+seed:Thường,Thường,Normal,ធម្មតា
+seed:Hạn chế (nội bộ),Hạn chế (nội bộ),Restricted (internal),កម្រិត (ផ្ទៃក្នុង)
+seed:Mật,Mật,Confidential,សម្ងាត់
+seed:Tối mật,Tối mật,Secret,សម្ងាត់ខ្លាំង
+seed:Tuyệt mật,Tuyệt mật,Top secret,សម្ងាត់បំផុត
+seed:Gốc,Gốc,Original,ច្បាប់ដើម
+seed:Bản sao (Copy),Bản sao (Copy),Copy,ច្បាប់ចម្លង
+seed:Bản scan điện tử,Bản scan điện tử,Electronic scan,ច្បាប់ស្កេនអេឡិចត្រូនិច
+seed:Giao trực tiếp,Giao trực tiếp,Hand delivery,ប្រគល់ផ្ទាល់
+seed:Bưu điện,Bưu điện,Post,ប្រៃសណីយ៍
+seed:Chuyển phát nhanh,Chuyển phát nhanh,Express courier,សេវាដឹកជញ្ជូនរហ័ស
+seed:Email công vụ,Email công vụ,Official email,អ៊ីមែលផ្លូវការ
+seed:Cổng dịch vụ công / Trục liên thông,Cổng dịch vụ công / Trục liên thông,Public service portal / Interlinked system,វិបផតថលសេវាសាធារណៈ / ប្រព័ន្ធតភ្ជាប់
+seed:Hợp đồng lao động xác định thời hạn (12 - 36 tháng),Hợp đồng lao động xác định thời hạn (12 - 36 tháng),Fixed-term labor contract (12 - 36 months),កិច្ចសន្យាការងារមានកំណត់ (១២ - ៣៦ ខែ)
+seed:Hợp đồng lao động không xác định thời hạn,Hợp đồng lao động không xác định thời hạn,Indefinite-term labor contract,កិច្ចសន្យាការងារគ្មានកំណត់
+seed:Hợp đồng thử việc (Probation Contract),Hợp đồng thử việc (Probation Contract),Probation contract,កិច្ចសន្យាសាកល្បងការងារ
+seed:Phụ lục điều chỉnh lương & chế độ đãi ngộ (Mật),Phụ lục điều chỉnh lương & chế độ đãi ngộ (Mật),Salary & benefits adjustment annex (Confidential),ឧបសម្ព័ន្ធកែតម្រូវប្រាក់ខែ និងអត្ថប្រយោជន៍ (សម្ងាត់)
+seed:Hợp đồng chuyên gia / Cố vấn cấp cao (Mật),Hợp đồng chuyên gia / Cố vấn cấp cao (Mật),Expert / Senior advisor contract (Confidential),កិច្ចសន្យាអ្នកជំនាញ / ទីប្រឹក្សាជាន់ខ្ពស់ (សម្ងាត់)

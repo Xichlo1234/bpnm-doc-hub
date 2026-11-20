@@ -1,0 +1,229 @@
+{
+  "doc_types": [
+    {
+      "name": "Công văn",
+      "code": "CV"
+    },
+    {
+      "name": "Quyết định",
+      "code": "QĐ"
+    },
+    {
+      "name": "Thông báo",
+      "code": "TB"
+    },
+    {
+      "name": "Tờ trình",
+      "code": "TTr"
+    },
+    {
+      "name": "Báo cáo",
+      "code": "BC"
+    },
+    {
+      "name": "Kế hoạch",
+      "code": "KH"
+    },
+    {
+      "name": "Giấy mời",
+      "code": "GM"
+    },
+    {
+      "name": "Biên bản",
+      "code": "BB"
+    },
+    {
+      "name": "Hợp đồng / Phụ lục",
+      "code": "HĐ"
+    },
+    {
+      "name": "Giấy phép / Chấp thuận",
+      "code": "GP"
+    },
+    {
+      "name": "Thư / Email chính thức",
+      "code": "TH"
+    }
+  ],
+  "agencies": [
+    "UBND tỉnh Sơn La",
+    "Sở Nông nghiệp và Môi trường",
+    "Sở Công Thương",
+    "Sở Xây dựng",
+    "Thuế tỉnh",
+    "Công an tỉnh (PCCC)",
+    "Bảo hiểm xã hội tỉnh",
+    "UBND xã sở tại",
+    "Công ty mẹ / Cổ đông",
+    "Nhà thầu",
+    "Nhà cung cấp",
+    "Ngân hàng",
+    "Khác"
+  ],
+  "departments": [
+    {
+      "name": "Ban Giám đốc",
+      "code": "BGĐ"
+    },
+    {
+      "name": "Hành chính - Nhân sự",
+      "code": "HCNS"
+    },
+    {
+      "name": "Tài chính - Kế toán",
+      "code": "TCKT"
+    },
+    {
+      "name": "An toàn - Sức khỏe - Môi trường",
+      "code": "HSE"
+    },
+    {
+      "name": "Khai thác",
+      "code": "KT"
+    },
+    {
+      "name": "Chế biến",
+      "code": "CB"
+    },
+    {
+      "name": "Cơ điện - Bảo trì",
+      "code": "CĐ"
+    },
+    {
+      "name": "Hạ tầng - Facilities",
+      "code": "FAC"
+    },
+    {
+      "name": "Pháp chế - Đối ngoại",
+      "code": "PCĐN"
+    },
+    {
+      "name": "Mua sắm - Kho",
+      "code": "MSK"
+    },
+    {
+      "name": "Thăm do - Địa chất",
+      "code": "GEO"
+    }
+  ],
+  "personnel": [
+    {
+      "name": "Nguyễn Văn Thành",
+      "department": "Ban Giám đốc"
+    },
+    {
+      "name": "Lê Thị Ngọc Hoan",
+      "department": "Hành chính - Nhân sự"
+    },
+    {
+      "name": "Trần Thị Thu Trang",
+      "department": "Hành chính - Nhân sự"
+    },
+    {
+      "name": "Nguyễn Thị Ngọc",
+      "department": "Tài chính - Kế toán"
+    },
+    {
+      "name": "Nguyễn Thị Linh",
+      "department": "An toàn - Sức khỏe - Môi trường"
+    },
+    {
+      "name": "Đinh Văn Tiến",
+      "department": "Pháp chế - Đối ngoại"
+    },
+    {
+      "name": "Trần Anh Sơn",
+      "department": "Hạ tầng - Facilities"
+    },
+    {
+      "name": "Vũ Minh Dự",
+      "department": "Môi trường - Env"
+    },
+    {
+      "name": "Ngô Thị Lan",
+      "department": "Mua sắm - Kho"
+    }
+  ],
+  "urgency_levels": [
+    "Thường",
+    "Khẩn",
+    "Thượng khẩn",
+    "Hỏa tốc"
+  ],
+  "security_levels": [
+    "Thường",
+    "Hạn chế (nội bộ)",
+    "Mật",
+    "Tối mật",
+    "Tuyệt mật"
+  ],
+  "send_methods": [
+    "Giao trực tiếp",
+    "Bưu điện",
+    "Chuyển phát nhanh",
+    "Email",
+    "Cổng dịch vụ công / Trục liên thông",
+    "Fax"
+  ],
+  "outgoing_statuses": [
+    "Dự thảo",
+    "Trình ký",
+    "Đã ký - chờ gửi",
+    "Đã gửi",
+    "Hủy"
+  ],
+  "contract_types": [
+    "Xay dung / Thi cong (Construction)",
+    "Cung cap thiet bi / Vat tu (Supply)",
+    "Dich vu ky thuat (Technical Services)",
+    "Tu van (Consulting)",
+    "Thue (nha, dat, thiet bi) (Lease)",
+    "Van tai (Transport)",
+    "Dich vu lao dong / Khoan viec (Labor/Manpower)",
+    "Bao hiem (Insurance)",
+    "Nguyen tac / Khung (Framework Agreement)",
+    "Phu luc / Sua doi bo sung (Annex/Amendment)",
+    "Agreement/ Thoa thuan",
+    "Minutes/ Bien ban",
+    "Notice/ Thong bao",
+    "Khac (Other)"
+  ],
+  "contract_departments": [
+    "ADM - Hanh chinh",
+    "LEG - Phap che",
+    "LND - Dat dai - Cong dong",
+    "ENV - Moi truong",
+    "HSE - An toan-SK-MT",
+    "HR - Nhan su",
+    "FIN - Tai chinh-Ke toan",
+    "ENG - Ky thuat",
+    "PRO - San xuat",
+    "COM - Truyen thong",
+    "IT - CNTT",
+    "GEO - Dia chat-Tham do",
+    "MIN - Khai thac ham lo",
+    "PLT - Bao tri nha may",
+    "SCM - Chuoi cung ung",
+    "QAC - Chat luong"
+  ],
+  "storage_types": [
+    "Gốc",
+    "Bản sao (Copy)",
+    "Bản scan điện tử"
+  ],
+  "contract_statuses": [
+    "Dự thảo",
+    "Trình duyệt",
+    "Đã ký",
+    "Đang thực hiện",
+    "Tạm dừng",
+    "Thanh lý",
+    "Hủy"
+  ],
+  "parties_a": [
+    "Công ty Cổ phần đầu tư quốc tế Sambo Gold - SGII",
+    "Chi nhánh Công ty Cổ phần đầu tư quốc tế Sambo Gold tại Sơn La",
+    "Ban Quản lý Dự án Khai thác Khoáng sản SGII",
+    "Công ty TNHH Đầu tư & Phát triển Mỏ Tây Bắc"
+  ]
+}
