@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { notify } from '../context/ToastContext.tsx';
 import { X, UploadCloud, AlertCircle, CheckCircle2, FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
 import { readExcelFile, downloadExcelTemplate } from '../utils/excelHelper.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -238,7 +239,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
         onClose();
       }, 1500);
     } catch (err: any) {
-      alert(tf('excelSaveFailed', { error: err?.message || String(err) }));
+      notify.error(tf('excelSaveFailed', { error: err?.message || String(err) }));
     } finally {
       setIsLoading(false);
     }

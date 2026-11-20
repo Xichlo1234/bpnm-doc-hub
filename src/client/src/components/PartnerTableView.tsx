@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { notify } from '../context/ToastContext.tsx';
 import type { PartnerRecord, ContractRecord } from '../../../server/types.ts';
 import { Search, Download, Building2, ArrowRight, Lock, Unlock, Plus, Pencil, Trash2, X, FileText, ExternalLink, Calendar, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api.ts';
@@ -45,7 +46,7 @@ export const PartnerTableView: React.FC<PartnerTableViewProps> = ({
       await api.togglePartnerLock(p.id);
       onRefreshPartners?.();
     } catch (err) {
-      alert(tf('partnerToggleLockFailed', { error: String(err) }));
+      notify.error(tf('partnerToggleLockFailed', { error: String(err) }));
     }
   };
 
@@ -55,7 +56,7 @@ export const PartnerTableView: React.FC<PartnerTableViewProps> = ({
         await api.deletePartner(p.id);
         onRefreshPartners?.();
       } catch (err) {
-        alert(tf('partnerDeleteFailed', { error: String(err) }));
+        notify.error(tf('partnerDeleteFailed', { error: String(err) }));
       }
     }
   };

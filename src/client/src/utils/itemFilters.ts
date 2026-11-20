@@ -2,6 +2,7 @@ import type { NavFilter } from '../components/Sidebar.tsx';
 import type { UnifiedItem } from '../components/ItemList.tsx';
 import { formatMessage, type TranslationKey, type Translations } from '../i18n/index.ts';
 import { isLaborContract, type ContractRecord, type DocumentRecord } from '../../../server/types.ts';
+import { stageOf } from '../../../server/utils/workflow.ts';
 
 // Sidebar filter → list contents. Pure functions so App.tsx only wires state, and so the filters
 // can be unit-tested (tests/item_filters.test.ts).
@@ -53,6 +54,11 @@ function contractListTitle(filter: string, t: Translations, economicCount: numbe
 
 const isIncoming = (d: DocumentRecord) => d.doc_type === 'incoming';
 const isOutgoing = (d: DocumentRecord) => d.doc_type === 'outgoing';
+// Workflow stage (server/utils/workflow.ts), so legacy status values are grouped correctly
+const outgoingStage = (d: DocumentRecord) => stageOf('outgoing', d.status).code;
+const isArchivedDocument = (d: DocumentRecord) =>
+  (isIncoming(d) || isOutgoing(d)) && stageOf(d.doc_type as 'incoming' | 'outgoing', d.status).code === 'archived';
+const isClosedContract = (c: ContractRecord) => c.status === 'liquidated' || c.status === 'terminated';
 
 const DOCUMENT_FILTERS: Record<string, { title: TranslationKey; predicate: (d: DocumentRecord) => boolean }> = {
   docs_all: { title: 'listTitleDocsAll', predicate: () => true },
@@ -78,13 +84,17 @@ const DOCUMENT_FILTERS: Record<string, { title: TranslationKey; predicate: (d: D
     predicate: (d) => isIncoming(d) && (!d.handler || d.handler.trim() === ''),
   },
   docs_outgoing: { title: 'listTitleOutgoing', predicate: isOutgoing },
-  docs_outgoing_sent: {
-    title: 'listTitleOutgoingSent',
-    predicate: (d) => isOutgoing(d) && d.status !== 'Dự thảo',
+  docs_outgoing_draft: {
+    title: 'listTitleOutgoingDraft',
+    predicate: (d) => isOutgoing(d) && outgoingStage(d) === 'draft',
   },
   docs_outgoing_signing: {
     title: 'listTitleOutgoingSigning',
-    predicate: (d) => isOutgoing(d) && d.status === 'Dự thảo',
+    predicate: (d) => isOutgoing(d) && ['pending_signature', 'signed'].includes(outgoingStage(d)),
+  },
+  docs_outgoing_sent: {
+    title: 'listTitleOutgoingSent',
+    predicate: (d) => isOutgoing(d) && ['issued', 'archived'].includes(outgoingStage(d)),
   },
   docs_decision: {
     title: 'listTitleInternalDecisions',
@@ -107,6 +117,13 @@ export function filterItems(
     return {
       title: t.allDocsAndContracts || t.allContracts,
       items: [...asDocumentItems(documents), ...asContractItems(contracts)],
+    };
+  }
+
+  if (filter === 'archive') {
+    return {
+      title: t.listTitleArchive,
+      items: [...asDocumentItems(documents.filter(isArchivedDocument)), ...asContractItems(contracts.filter(isClosedContract))],
     };
   }
 

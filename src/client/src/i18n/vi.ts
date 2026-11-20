@@ -413,8 +413,8 @@ export const vi = {
   listTitleIncomingCompleted: 'Công văn đến ĐÃ HOÀN THÀNH',
   listTitleIncomingUnassigned: 'Công văn đến CHƯA PHÂN CÔNG',
   listTitleOutgoing: 'Công văn đi (Phát hành công ty)',
-  listTitleOutgoingSent: 'Công văn đi ĐÃ GỬI BƯU ĐIỆN / ĐỐI TÁC',
-  listTitleOutgoingSigning: 'Công văn đi ĐANG TRÌNH KÝ DUYỆT',
+  listTitleOutgoingSent: "Công văn đi ĐÃ PHÁT HÀNH",
+  listTitleOutgoingSigning: "Công văn đi ĐANG TRÌNH KÝ / ĐÃ KÝ CHỜ PHÁT HÀNH",
   listTitleInternalDecisions: 'Văn bản Nội bộ & Quyết định',
   listTitleDocuments: 'Tài liệu',
   // Contract & partner tables
@@ -1128,6 +1128,22 @@ export const vi = {
   ctAppendixSaved: "Đã lưu phụ lục {number}.",
   ctNoAppendices: "Chưa có phụ lục.",
   ctValueByCurrency: "Giá trị HĐ hiệu lực theo loại tiền",
+  selectPlaceholder: "— Chọn —",
+  navOverview: "TỔNG QUAN",
+  navAllDocs: "Tất cả văn bản",
+  navOutgoingDraft: "Dự thảo",
+  navArchiveTitle: "KHO LƯU TRỮ",
+  navArchive: "Hồ sơ đã lưu trữ / kết thúc",
+  navAdminTitle: "QUẢN TRỊ",
+  navAdminSettings: "Thiết lập, tài khoản & thùng rác",
+  navOpenMenu: "Mở menu",
+  listTitleOutgoingDraft: "Công văn đi đang DỰ THẢO",
+  listTitleArchive: "Kho lưu trữ: văn bản đã lưu trữ, hợp đồng đã thanh lý/chấm dứt",
+  economicContractsNavTitle: "HỢP ĐỒNG KINH TẾ",
+  laborContractsNavTitle: "HỢP ĐỒNG LAO ĐỘNG",
+  partnersNavTitle: "ĐỐI TÁC",
+  backToList: "Quay lại danh sách",
+  recordSavedSuccess: "Đã lưu hồ sơ thành công.",
 };
 
 export type TranslationKey = keyof typeof vi;

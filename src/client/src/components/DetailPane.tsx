@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { notify } from '../context/ToastContext.tsx';
 import {
   Download,
   CheckCircle,
@@ -183,7 +184,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
       setIsDriveModalOpen(false);
       showToast(t.driveSyncSuccess);
     } catch (err: any) {
-      alert(err.message || t.driveSaveFailed);
+      notify.error(err.message || t.driveSaveFailed);
     } finally {
       setIsSavingDrive(false);
     }
@@ -212,7 +213,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
       setIsDriveModalOpen(false);
       showToast(t.driveRemoveSuccess);
     } catch (err: any) {
-      alert(err.message || t.driveRemoveFailed);
+      notify.error(err.message || t.driveRemoveFailed);
     } finally {
       setIsSavingDrive(false);
     }

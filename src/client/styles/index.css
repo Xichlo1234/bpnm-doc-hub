@@ -2028,3 +2028,255 @@ body {
 .workflow-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 10px; }
 .workflow-log { list-style: none; padding: 0; margin: 10px 0 0; font-size: 12px; }
 .workflow-log li { padding: 6px 0; border-top: 1px solid var(--border-subtle); }
+
+/* ---------------------------------------------------------------------------
+   Navigation & responsive layout (PR04)
+   --------------------------------------------------------------------------- */
+button.nav-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+}
+button.nav-item:focus-visible,
+.view-switch-btn:focus-visible,
+button.quick-dropzone:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+button.quick-dropzone {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+.view-switch {
+  display: flex;
+  background: var(--bg-input);
+  padding: 2px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  margin-right: 6px;
+}
+.view-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.view-switch-btn.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+.nav-toggle,
+.sidebar-close,
+.split-view-back {
+  display: none;
+}
+.split-view {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+.split-view-list {
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  min-width: 360px;
+  max-width: 460px;
+  border-right: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+.split-view-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Tablet: sidebar becomes a drawer, list column narrower */
+@media (max-width: 1024px) {
+  .nav-toggle,
+  .sidebar-close {
+    display: inline-flex;
+  }
+  .sidebar-close {
+    align-self: flex-end;
+  }
+  .sidebar-pane {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1200;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.25));
+  }
+  .sidebar-pane.sidebar-open {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1100;
+  }
+  .split-view-list {
+    width: 340px;
+    min-width: 300px;
+  }
+  .detail-pane {
+    padding: 16px 18px;
+  }
+  .contract-stats-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Phone: one column; the detail replaces the list while a record is open */
+@media (max-width: 720px) {
+  .top-header {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 6px;
+  }
+  .view-switch {
+    display: none;
+  }
+  .split-view-list {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border-right: none;
+  }
+  .split-view-detail {
+    display: none;
+  }
+  .split-view-has-detail .split-view-list {
+    display: none;
+  }
+  .split-view-has-detail .split-view-detail {
+    display: flex;
+  }
+  .split-view-back {
+    display: inline-flex;
+    margin: 8px 12px 0;
+    align-self: flex-start;
+  }
+  .detail-pane {
+    padding: 12px;
+  }
+  .contract-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 8px 12px;
+  }
+}
+.toast-host {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 6px);
+  font-size: 13px;
+  box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.2));
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+.toast span { flex: 1; }
+.toast-success { border-left: 4px solid #16a34a; }
+.toast-error { border-left: 4px solid #dc2626; }
+.toast-info { border-left: 4px solid #2563eb; }
+.toast-close { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; }
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.detail-top-bar {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.detail-title-section {
+  min-width: 0;
+  flex: 1 1 280px;
+}
+.detail-actions-row {
+  flex-wrap: wrap;
+}
+@media (max-width: 720px) {
+  .detail-top-bar {
+    flex-direction: column;
+  }
+  .detail-title {
+    font-size: 18px;
+  }
+  /* KPI cards: one scrollable row instead of three stacked rows */
+  .contract-stats-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+  }
+  .contract-stats-bar .stat-card {
+    min-width: 140px;
+    flex: 0 0 auto;
+  }
+  .split-view-has-detail ~ .contract-stats-bar,
+  .main-workspace .split-view-has-detail {
+    min-height: 0;
+  }
+}
+@media (max-width: 1024px) {
+  .header-actions {
+    gap: 6px;
+  }
+}
+@media (max-width: 720px) {
+  .detail-title-section {
+    flex: none;
+  }
+}
+@media (max-width: 720px) {
+  .brand-info {
+    display: none;
+  }
+  .spotlight-trigger {
+    flex: 0 0 auto;
+    width: 38px;
+    min-width: 38px;
+    overflow: hidden;
+  }
+  .spotlight-shortcut {
+    display: none;
+  }
+  /* All header actions stay reachable: the row scrolls sideways on narrow screens */
+  .top-header .header-actions {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}

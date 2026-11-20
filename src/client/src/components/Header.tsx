@@ -11,6 +11,7 @@ import {
   Building2,
   SlidersHorizontal,
   LogOut,
+  Menu,
   ShieldCheck,
   Bell,
   CheckCheck,
@@ -35,6 +36,8 @@ interface HeaderProps {
   onOpenSpotlight: () => void;
   onOpenCreate: () => void;
   onSelectDocumentById?: (id: string) => void;
+  /** Opens the sidebar drawer on small screens */
+  onOpenNav?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -44,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleViewMode,
   onOpenSpotlight,
   onOpenCreate,
+  onOpenNav,
   onSelectDocumentById,
 }) => {
   const { user, logout } = useAuth();
@@ -100,6 +104,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="top-header">
+      {onOpenNav && (
+        <button type="button" className="btn-icon nav-toggle" onClick={onOpenNav} title={t.navOpenMenu} aria-label={t.navOpenMenu}>
+          <Menu size={18} />
+        </button>
+      )}
       {/* Brand Logo */}
       <div className="brand-section">
         <div className="brand-logo">
@@ -122,126 +131,27 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Header Actions */}
       <div className="header-actions">
-        {/* View Mode Toggle: Thẻ | Sổ Công Văn | Bảng Hợp Đồng */}
-        <div
-          style={{
-            display: 'flex',
-            background: 'var(--bg-input)',
-            padding: 2,
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            marginRight: 6,
-          }}
-        >
-          <button
-            onClick={() => onToggleViewMode('split')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 10px',
-              borderRadius: 6,
-              border: 'none',
-              background: viewMode === 'split' ? 'var(--bg-surface)' : 'transparent',
-              color: viewMode === 'split' ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: viewMode === 'split' ? 'var(--shadow-sm)' : 'none',
-            }}
-            title={t.cardView}
-          >
-            <Columns size={13} />
-            <span className="header-label header-label-view">{t.cardView}</span>
-          </button>
-
-          <button
-            onClick={() => onToggleViewMode('doc_table')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 10px',
-              borderRadius: 6,
-              border: 'none',
-              background: viewMode === 'doc_table' ? 'var(--bg-surface)' : 'transparent',
-              color: viewMode === 'doc_table' ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: viewMode === 'doc_table' ? 'var(--shadow-sm)' : 'none',
-            }}
-            title={t.docTable}
-          >
-            <BookOpen size={13} color="var(--accent-primary)" />
-            <span className="header-label header-label-view">{t.docTable}</span>
-          </button>
-
-          <button
-            onClick={() => onToggleViewMode('contract_table')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 10px',
-              borderRadius: 6,
-              border: 'none',
-              background: viewMode === 'contract_table' ? 'var(--bg-surface)' : 'transparent',
-              color: viewMode === 'contract_table' ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: viewMode === 'contract_table' ? 'var(--shadow-sm)' : 'none',
-            }}
-            title={t.contractTable}
-          >
-            <Table2 size={13} color="#107C41" />
-            <span className="header-label header-label-view">{t.contractTable}</span>
-          </button>
-
-          <button
-            onClick={() => onToggleViewMode('partners')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 10px',
-              borderRadius: 6,
-              border: 'none',
-              background: viewMode === 'partners' ? 'var(--bg-surface)' : 'transparent',
-              color: viewMode === 'partners' ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: viewMode === 'partners' ? 'var(--shadow-sm)' : 'none',
-            }}
-            title={t.partners}
-          >
-            <Building2 size={13} color="#D97706" />
-            <span className="header-label header-label-view">{t.partners}</span>
-          </button>
-
-          <button
-            onClick={() => onToggleViewMode('settings')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 10px',
-              borderRadius: 6,
-              border: 'none',
-              background: viewMode === 'settings' ? 'var(--bg-surface)' : 'transparent',
-              color: viewMode === 'settings' ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: viewMode === 'settings' ? 'var(--shadow-sm)' : 'none',
-            }}
-            title={t.settings}
-          >
-            <SlidersHorizontal size={13} color="#6366F1" />
-            <span className="header-label header-label-view">{t.settings}</span>
-          </button>
+        {/* View mode: cards | document register | contract table. Partners and settings live in the sidebar. */}
+        <div className="view-switch" role="group" aria-label={t.cardView}>
+          {(
+            [
+              ['split', Columns, t.cardView, undefined],
+              ['doc_table', BookOpen, t.docTable, 'var(--accent-primary)'],
+              ['contract_table', Table2, t.contractTable, '#107C41'],
+            ] as const
+          ).map(([mode, Icon, label, color]) => (
+            <button
+              key={mode}
+              type="button"
+              className={viewMode === mode ? 'view-switch-btn active' : 'view-switch-btn'}
+              aria-pressed={viewMode === mode}
+              onClick={() => onToggleViewMode(mode)}
+              title={label}
+            >
+              <Icon size={13} color={color} />
+              <span className="header-label header-label-view">{label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Language Switch Toggle: 🇻🇳 VN | 🇬🇧 EN | 🇰🇭 KM */}
