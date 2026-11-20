@@ -146,6 +146,8 @@ export interface NotificationRecord {
   target_type?: 'document' | 'contract' | null;
   recipient?: string | null;
   recipient_email?: string | null;
+  // The account the notification is addressed to; null = unresolved (shown to admins only)
+  recipient_user_id?: string | null;
   read: boolean;
   due_date?: string | null;
   directive?: string | null;
@@ -166,6 +168,8 @@ export interface UserAccount {
   department?: string | null;
   preferred_language?: string;
   can_access_labor_contracts?: boolean;
+  // Read access to documents whose security level is "Mật" / "Tối mật" / "Tuyệt mật"
+  can_access_confidential_documents?: boolean;
   // Bumped whenever credentials or privileges change; invalidates every token issued before.
   token_version?: number;
   must_change_password?: boolean;

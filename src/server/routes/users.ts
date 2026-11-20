@@ -13,6 +13,7 @@ const EDITABLE_USER_FIELDS = [
   'department',
   'preferred_language',
   'can_access_labor_contracts',
+  'can_access_confidential_documents',
 ] as const;
 
 function toSafeUser(user: UserAccount) {
@@ -45,7 +46,8 @@ usersRouter.get('/:id', (c) => {
 usersRouter.post('/', async (c) => {
   const parsed = parseInput(c, userInput.create, await c.req.json().catch(() => null));
   if (!parsed.ok) return parsed.response;
-  const { username, password, name, email, role, department, can_access_labor_contracts } = parsed.data;
+  const { username, password, name, email, role, department, can_access_labor_contracts, can_access_confidential_documents } =
+    parsed.data;
   const weakness = validatePasswordStrength(password);
   if (weakness) {
     return c.json({ error: weakness.message, code: weakness.code, params: weakness.params }, 400);
@@ -65,6 +67,9 @@ usersRouter.post('/', async (c) => {
     role: role || 'user',
     department: department || '',
     can_access_labor_contracts: role === 'admin' ? true : Boolean(can_access_labor_contracts),
+    can_access_confidential_documents: role === 'admin' ? true : Boolean(can_access_confidential_documents),
+    // The admin chose this password, so the user must replace it at first login
+    must_change_password: true,
   });
 
   store.recordAuditLog({
@@ -110,6 +115,8 @@ usersRouter.patch('/:id', async (c) => {
     // A password reset revokes all of the user's existing sessions. Role/permission/lock changes
     // need no revocation: auth.ts re-reads them from the store on every request.
     updates.token_version = (existing.token_version || 0) + 1;
+    // A password set by an admin is temporary unless the admin is changing their own
+    updates.must_change_password = currentUser?.id !== id;
   }
 
   const updated = store.updateUser(id, updates)!;

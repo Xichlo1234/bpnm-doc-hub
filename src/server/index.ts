@@ -36,10 +36,43 @@ app.use('/api/*', async (c, next) => {
   await store.flush(db);
 });
 
-app.use('/api/*', async (c, next) => {
+// Browser hardening for every response. The CSP allows only same-origin scripts; inline styles are
+// used throughout the React components, and Google Fonts serves the web fonts.
+export const SECURITY_HEADERS: Record<string, string> = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'same-origin',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "connect-src 'self'",
+    "frame-src 'self' blob:",
+    "object-src 'self' blob:",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '),
+};
+
+function withSecurityHeaders(res: Response): Response {
+  // Responses from fetch()/ASSETS have immutable headers; copy once
+  const out = new Response(res.body, res);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    // File downloads set their own stricter CSP (sandbox) for active content
+    if (name === 'Content-Security-Policy' && out.headers.has(name)) continue;
+    out.headers.set(name, value);
+  }
+  return out;
+}
+
+app.use('*', async (c, next) => {
   await next();
-  c.header('X-Content-Type-Options', 'nosniff');
-  c.header('Referrer-Policy', 'same-origin');
+  c.res = withSecurityHeaders(c.res);
 });
 
 // Every API route requires a signed session except login/logout/health (see auth.ts)

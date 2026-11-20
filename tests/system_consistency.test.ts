@@ -56,7 +56,7 @@ describe('System Architecture & Consistency Regression Tests', () => {
     process.env.NODE_ENV = 'production';
     try {
       // 1. Login via api.login -> sets token in authStorage ('sgii_auth_token')
-      const loginRes = await api.login('admin', 'Admin@6868');
+      const loginRes = await api.login('admin', 'AdminTest@2026');
       expect(loginRes.token).toBeTruthy();
       expect(authStorage.getToken()).toBe(loginRes.token);
       // Notice localStorage has 'sgii_auth_token', NOT 'auth_token'
@@ -248,7 +248,7 @@ describe('System Architecture & Consistency Regression Tests', () => {
     const adminLoginRes = await app.request('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'Admin@6868' }),
+      body: JSON.stringify({ username: 'admin', password: 'AdminTest@2026' }),
     });
     expect(adminLoginRes.status).toBe(200);
     const { token: adminToken } = (await adminLoginRes.json()) as any;
@@ -279,8 +279,19 @@ describe('System Architecture & Consistency Regression Tests', () => {
       body: JSON.stringify({ username: 'staff_regular', password: 'Staff@2026' }),
     });
     expect(staffLoginRes.status).toBe(200);
-    const { token: staffToken, user: staffProfile } = (await staffLoginRes.json()) as any;
-    // The admin-assigned password works right away, no forced change
+    const { token: tempToken, user: staffProfile } = (await staffLoginRes.json()) as any;
+    // The admin-assigned password is temporary: everything but a password change is refused
+    expect(staffProfile.must_change_password).toBe(true);
+    const blocked = await app.request('/api/contracts', { headers: { Authorization: `Bearer ${tempToken}` } });
+    expect(blocked.status).toBe(403);
+    expect(((await blocked.json()) as any).code).toBe('PASSWORD_CHANGE_REQUIRED');
+    const changed = await app.request('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tempToken}` },
+      body: JSON.stringify({ current_password: 'Staff@2026', new_password: 'StaffOwn@2026' }),
+    });
+    expect(changed.status).toBe(200);
+    const { token: staffToken } = (await changed.json()) as any;
     const firstRes = await app.request('/api/contracts', {
       headers: { Authorization: `Bearer ${staffToken}` },
     });

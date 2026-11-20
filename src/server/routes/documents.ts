@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { store } from '../db/store.ts';
-import { saveUploadedFile } from '../utils/fileStorage.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
+import { canReadDocument } from '../utils/access.ts';
+import { readRecordRequest, storeAttachment, applyCloudLink } from '../utils/recordRequest.ts';
 import { documentInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
 
 export const documentsRouter = new Hono();
@@ -9,7 +10,8 @@ export const documentsRouter = new Hono();
 // GET /api/documents?type=incoming|outgoing|decision|internal|all
 documentsRouter.get('/', (c) => {
   const type = c.req.query('type');
-  const docs = store.getDocuments(type);
+  const user = getAuthUser(c);
+  const docs = store.getDocuments(type).filter((d) => canReadDocument(user, d));
   return c.json(docs);
 });
 
@@ -33,6 +35,9 @@ documentsRouter.get('/:id', (c) => {
   const doc = store.getDocument(id);
   if (!doc) {
     return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
+  }
+  if (!canReadDocument(getAuthUser(c), doc)) {
+    return c.json({ error: 'Văn bản mật: Bạn không có quyền xem hồ sơ này.', code: 'DOCUMENT_FORBIDDEN' }, 403);
   }
   return c.json(doc);
 });
@@ -74,50 +79,13 @@ documentsRouter.post('/bulk-import', requireAdmin, async (c) => {
 
 // POST /api/documents (Admin Only)
 documentsRouter.post('/', requireAdmin, async (c) => {
-  const contentType = c.req.header('content-type') || '';
-  let body: any;
+  const request = await readRecordRequest(c);
+  if (request.file) request.body.doc_type = request.body.doc_type || 'internal';
 
-  if (contentType.includes('application/json')) {
-    body = await c.req.json();
-  } else if (contentType.includes('multipart/form-data')) {
-    const formData = await c.req.formData();
-    body = {};
-    for (const [key, value] of formData.entries()) {
-      if (key !== 'file' && typeof value === 'string') {
-        body[key] = value;
-      }
-    }
-    body.doc_type = body.doc_type || 'internal';
-    const file = formData.get('file');
-    if (file && typeof file === 'object' && 'name' in file && (file as File).size > 0) {
-      const uploaded = await saveUploadedFile(file as File, c.env);
-      body.file_name = uploaded.file_name;
-      body.file_size = uploaded.file_size;
-      body.file_type = uploaded.file_type;
-      body.file_key = uploaded.file_key;
-    }
-  } else {
-    body = await c.req.json().catch(() => ({}));
-  }
-
-  const parsed = parseInput(c, documentInput.create, body);
+  const parsed = parseInput(c, documentInput.create, request.body);
   if (!parsed.ok) return parsed.response;
-  body = parsed.data;
-
-  // Handle cloud drive link if provided
-  if (body.google_drive_url && !body.file_key) {
-    const driveUrl = String(body.google_drive_url).trim();
-    if (driveUrl) {
-      body.google_drive_url = driveUrl;
-      body.google_drive_synced_at = new Date().toISOString();
-      body.file_key = driveUrl;
-      if (!body.file_name) {
-        body.file_name = driveUrl.includes('onedrive') || driveUrl.includes('sharepoint')
-          ? 'OneDrive / SharePoint Link'
-          : 'Google Drive Link';
-      }
-    }
-  }
+  const body: any = parsed.data;
+  applyCloudLink(body);
 
   if (!body.document_number || !body.title) {
     return c.json({ error: 'Missing required fields (document_number, title)', code: 'DOCUMENT_FIELDS_REQUIRED' }, 400);
@@ -126,12 +94,14 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     body.issue_date = new Date().toISOString().substring(0, 10);
   }
 
-  const currentUser = getAuthUser(c);
-  const newDoc = store.createDocument(body);
+  const currentUser = getAuthUser(c)!;
+  const attachment = request.file ? await storeAttachment(c, request.file, currentUser.id) : null;
+  if (attachment) Object.assign(body, attachment.fields);
 
+  const newDoc = store.createDocument(body);
   store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
+    user_id: currentUser.id,
+    username: currentUser.username,
     action: 'create',
     entity_type: 'document',
     entity_id: newDoc.id,
@@ -139,7 +109,13 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     details: `Tạo văn bản ${newDoc.document_number} - ${newDoc.title}`,
   });
 
-  await store.persistAsync();
+  try {
+    await store.persistAsync();
+  } catch (err) {
+    // The record was not saved: do not keep its file
+    await attachment?.rollback();
+    throw err;
+  }
   return c.json(newDoc, 201);
 });
 

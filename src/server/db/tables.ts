@@ -147,6 +147,7 @@ export const usersTable: TableSpec = {
     department: optText,
     preferred_language: optText,
     can_access_labor_contracts: optBool,
+    can_access_confidential_documents: optBool, // migration 0005
     token_version: optNum,
     must_change_password: optBool,
     created_at: text,
@@ -165,6 +166,7 @@ export const notificationsTable: TableSpec = {
     target_type: optText,
     recipient: optText,
     recipient_email: optText,
+    recipient_user_id: optText, // migration 0005
     read: bool,
     due_date: optText,
     directive: optText,

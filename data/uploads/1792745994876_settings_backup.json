@@ -1,8 +1,0 @@
-{
-  "alert_level_1_days": 30,
-  "alert_level_2_days": 60,
-  "report_currency": "USD",
-  "company_code": "SGII",
-  "company_name": "Sambo Gold",
-  "google_drive_folder_url": "https://drive.google.com/drive/my-drive"
-}

@@ -23,6 +23,8 @@ export interface UserProfile {
   department?: string | null;
   status: 'active' | 'locked';
   can_access_labor_contracts?: boolean;
+  can_access_confidential_documents?: boolean;
+  must_change_password?: boolean;
 }
 
 declare module 'hono' {
@@ -40,8 +42,9 @@ const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 export const SESSION_COOKIE = 'sgii_session';
 const SESSION_COOKIE_PATH = '/api/files';
 
-// Seed passwords that shipped in source control; a password change may not pick one of them.
-const KNOWN_DEFAULT_PASSWORDS = new Set(['Admin@6868', 'User@123456', '123456']);
+// Seed passwords that shipped in source control. Logging in with one forces a password change, and a
+// password change may not pick one of them.
+export const KNOWN_DEFAULT_PASSWORDS = new Set(['Admin@6868', 'User@123456', '123456']);
 
 // Per-session logout, stored in auth_revoked_sessions so it applies to every isolate. The local set
 // only saves a query for sessions this isolate already knows are revoked.
@@ -72,6 +75,8 @@ export function toUserProfile(account: UserAccount): UserProfile {
     department: account.department,
     status: account.status,
     can_access_labor_contracts: account.role === 'admin' || Boolean(account.can_access_labor_contracts),
+    can_access_confidential_documents: account.role === 'admin' || Boolean(account.can_access_confidential_documents),
+    must_change_password: Boolean(account.must_change_password),
   };
 }
 
@@ -111,6 +116,8 @@ async function resolveUser(token: string, secret: string, db: SqlDatabase): Prom
 }
 
 const PUBLIC_API_PATHS = new Set(['/api/health', '/api/auth/login', '/api/auth/logout']);
+// The only endpoints an account that must change its password can call.
+const PASSWORD_CHANGE_ALLOWED_PATHS = new Set(['/api/auth/me', '/api/auth/change-password']);
 
 /**
  * Global API middleware: authenticates every /api/* request (except PUBLIC_API_PATHS) and stores
@@ -138,6 +145,13 @@ export async function authenticate(c: Context, next: Next) {
   const user = token ? await resolveUser(token, secret, await getDatabase(c.env)) : null;
   if (!user) {
     return c.json({ error: 'Yêu cầu đăng nhập để thực hiện thao tác này.', code: 'AUTH_REQUIRED' }, 401);
+  }
+
+  if (user.must_change_password && !PASSWORD_CHANGE_ALLOWED_PATHS.has(path)) {
+    return c.json(
+      { error: 'Bạn cần đổi mật khẩu khởi tạo trước khi sử dụng hệ thống.', code: 'PASSWORD_CHANGE_REQUIRED' },
+      403
+    );
   }
 
   c.set('user', user);
@@ -214,6 +228,12 @@ export async function resetLoginThrottle() {
   await db.prepare('DELETE FROM auth_login_failures').run();
 }
 
+let dummyHash: Promise<string> | null = null;
+function dummyPasswordHash(): Promise<string> {
+  if (!dummyHash) dummyHash = hashPassword(randomId(24));
+  return dummyHash;
+}
+
 export const authRouter = new Hono();
 
 // POST /api/auth/login
@@ -238,7 +258,8 @@ authRouter.post('/login', async (c) => {
   }
 
   const account = store.getUserByUsername(trimmedUser);
-  const { ok, needsRehash } = await verifyPassword(password, account?.password);
+  // Unknown usernames still pay for a PBKDF2 run so response time does not reveal which exist
+  const { ok, needsRehash } = await verifyPassword(password, account?.password ?? (await dummyPasswordHash()));
   if (!account || !ok) {
     await recordLoginFailure(db, throttleKey);
     return c.json({ error: 'Tên đăng nhập hoặc mật khẩu không chính xác.', code: 'INVALID_CREDENTIALS' }, 401);
@@ -249,9 +270,14 @@ authRouter.post('/login', async (c) => {
     return c.json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.', code: 'ACCOUNT_LOCKED' }, 403);
   }
 
-  // Upgrade legacy plaintext passwords to PBKDF2 on first successful login
-  if (needsRehash) {
-    store.updateUser(account.id, { password: await hashPassword(password) });
+  // Upgrade legacy plaintext passwords to PBKDF2 on first successful login, and force a change of
+  // any password that shipped in source control.
+  const usesDefaultPassword = KNOWN_DEFAULT_PASSWORDS.has(password);
+  if (needsRehash || (usesDefaultPassword && !account.must_change_password)) {
+    store.updateUser(account.id, {
+      ...(needsRehash ? { password: await hashPassword(password) } : {}),
+      ...(usesDefaultPassword ? { must_change_password: true } : {}),
+    });
     await store.persistAsync();
   }
 

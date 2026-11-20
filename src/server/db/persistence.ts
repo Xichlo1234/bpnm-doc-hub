@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ContractRecord, DocumentRecord, PartnerRecord, NotificationRecord, UserAccount, AuditLogRecord, CurrencyItem } from '../types.ts';
-import { initialContracts, initialDocuments, initialPartners } from './seed.ts';
+import { getSeedDataset } from './seed.ts';
 import initialCategories from './categories.json';
 
 // Pre-migration data sources (data/*.json locally, the system_data blob on D1) and seed defaults.
@@ -27,8 +27,9 @@ export const defaultUsers: UserAccount[] = [
   {
     id: 'admin_root',
     username: 'admin',
-    // Bootstrap password for a fresh install only
+    // Bootstrap password for a fresh install only; the backend forces a change on first login
     password: 'Admin@6868',
+    must_change_password: true,
     name: 'Quản trị viên Hệ thống',
     email: 'admin@sgii.vn',
     role: 'admin',
@@ -42,6 +43,7 @@ export const defaultUsers: UserAccount[] = [
     id: 'user_viewer',
     username: 'user',
     password: 'User@123456',
+    must_change_password: true,
     name: 'Chuyên viên Tra cứu',
     email: 'user@sgii.vn',
     role: 'user',
@@ -126,14 +128,15 @@ export async function readLegacyD1Dataset(db: any): Promise<Partial<PersistedDat
 /** Fills every missing/empty collection of a (possibly partial) dataset with seed data. */
 export function withSeedDefaults(data: Partial<PersistedDataset> | null): PersistedDataset {
   const pick = <T>(value: T[] | undefined, fallback: T[]) => (value && value.length > 0 ? value : fallback);
+  const seed = getSeedDataset();
   return {
-    contracts: pick(data?.contracts, initialContracts),
-    documents: pick(data?.documents, initialDocuments),
-    partners: pick(data?.partners, initialPartners),
+    contracts: pick(data?.contracts, seed.contracts),
+    documents: pick(data?.documents, seed.documents),
+    partners: pick(data?.partners, seed.partners),
     categories: { ...JSON.parse(JSON.stringify(initialCategories)), ...(data?.categories || {}) },
     settings: { ...defaultSettings, ...(data?.settings || {}) },
     notifications: data?.notifications || [],
-    users: pick(data?.users, defaultUsers),
+    users: pick(data?.users, (seed.users ?? defaultUsers).map((u) => ({ ...u }))),
     audit_logs: data?.audit_logs || [],
     currencies: pick(data?.currencies, defaultCurrencies),
   };

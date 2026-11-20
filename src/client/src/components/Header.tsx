@@ -23,6 +23,7 @@ import { useLanguage } from '../context/LanguageContext.tsx';
 import { LANGUAGE_NAMES } from '../i18n/index.ts';
 import { api } from '../services/api.ts';
 import { formatNotificationTime } from '../utils/dateTime.ts';
+import { ChangePasswordView } from './ChangePasswordView.tsx';
 
 export type ViewMode = 'split' | 'contract_table' | 'doc_table' | 'partners' | 'settings';
 
@@ -51,6 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
@@ -511,12 +513,18 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Admin profile and Logout action */}
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
-            <div className="header-user-badge" title={tf('loggedInAs', { name: user.name, username: user.username })}>
+            <button
+              type="button"
+              className="header-user-badge"
+              style={{ cursor: 'pointer', border: 'none' }}
+              onClick={() => setIsPasswordOpen(true)}
+              title={`${tf('loggedInAs', { name: user.name, username: user.username })} · ${t.cpwTitle}`}
+            >
               <div className="header-user-avatar">
                 <ShieldCheck size={13} />
               </div>
               <span className="header-label">{user.username}</span>
-            </div>
+            </button>
             <button
               type="button"
               className="btn-logout"
@@ -529,6 +537,20 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
       </div>
+      {isPasswordOpen && (
+        <div className="modal-backdrop" onClick={() => setIsPasswordOpen(false)}>
+          <div
+            className="modal-content"
+            role="dialog"
+            aria-label={t.cpwTitle}
+            style={{ maxWidth: 420, width: '100%', padding: 24 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: 16, margin: '0 0 16px' }}>{t.cpwTitle}</h2>
+            <ChangePasswordView onDone={() => setIsPasswordOpen(false)} />
+          </div>
+        </div>
+      )}
     </header>
   );
 };

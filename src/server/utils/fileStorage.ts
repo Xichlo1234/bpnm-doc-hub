@@ -139,32 +139,40 @@ export function validateUpload(file: { name?: string; size: number }) {
   }
 }
 
-export async function saveUploadedFile(
-  file: File,
-  env?: any
-): Promise<{
+export interface SavedUpload {
   file_key: string;
   file_name: string;
   file_size: number;
   file_type: string;
-}> {
+  sha256: string;
+}
+
+async function sha256Hex(data: Uint8Array<ArrayBuffer>): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function saveUploadedFile(file: File, env?: any): Promise<SavedUpload> {
   validateUpload(file);
   const originalName = file.name || 'document';
   const ext = path.extname(originalName).toLowerCase();
   const baseName = path.basename(originalName, ext).replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9-]/g, '_');
-  const storedName = `${Date.now()}_${baseName}${ext || '.bin'}`;
+  // Random suffix: two uploads in the same millisecond with the same name must not overwrite each other
+  const storedName = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}_${baseName}${ext || '.bin'}`;
   const fileKey = `uploads/${storedName}`;
 
   const arrayBuffer = await file.arrayBuffer();
   const uint8 = new Uint8Array(arrayBuffer);
   // Derive the type from the (whitelisted) extension; the client-supplied file.type is untrusted.
   const mimeType = getMimeType(storedName);
+  const sha256 = await sha256Hex(uint8);
 
   if (env?.BUCKET) {
     // Production: Cloudflare R2
     await env.BUCKET.put(fileKey, uint8, {
       httpMetadata: { contentType: mimeType },
-      customMetadata: { filename: encodeURIComponent(originalName) },
+      customMetadata: { filename: encodeURIComponent(originalName), sha256 },
+      sha256,
     });
   } else if (env?.DB) {
     throw new Error('Chưa cấu hình R2 (binding BUCKET) để lưu tệp.');
@@ -179,7 +187,51 @@ export async function saveUploadedFile(
     file_name: originalName,
     file_size: file.size,
     file_type: mimeType,
+    sha256,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Upload registry (migration 0004): who uploaded which key, so a file that is not attached to a
+// record yet is only readable by its uploader (and admins).
+// ---------------------------------------------------------------------------
+
+export interface UploadRow {
+  key: string;
+  uploaded_by: string;
+  original_name: string;
+  size: number;
+  mime_type: string;
+  sha256: string;
+  created_at: string;
+}
+
+export async function registerUpload(db: any, upload: SavedUpload, userId: string): Promise<void> {
+  await db
+    .prepare(
+      'INSERT OR REPLACE INTO file_uploads (key, uploaded_by, original_name, size, mime_type, sha256, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    )
+    .bind(upload.file_key, userId, upload.file_name, upload.file_size, upload.file_type, upload.sha256, new Date().toISOString())
+    .run();
+}
+
+export async function getUploadRow(db: any, key: string): Promise<UploadRow | null> {
+  return (await db.prepare('SELECT * FROM file_uploads WHERE key = ?').bind(key).first()) ?? null;
+}
+
+/** Removes a stored object (used to roll back an upload whose record could not be saved). */
+export async function deleteStoredFile(key: string, env?: any): Promise<void> {
+  if (!isSafeFileKey(key) || !key.startsWith('uploads/')) return;
+  if (env?.BUCKET) {
+    await env.BUCKET.delete(key);
+    return;
+  }
+  try {
+    const localPath = path.join(DATA_DIR, key);
+    if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+  } catch (_err) {
+    // fs is unavailable on Workers
+  }
 }
 
 /**

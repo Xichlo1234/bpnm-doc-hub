@@ -48,6 +48,10 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   PASSWORD_NEEDS_LETTERS_AND_DIGITS: 'srvPasswordNeedsLettersAndDigits',
   REVISION_CONFLICT: 'srvRevisionConflict',
   VALIDATION_FAILED: 'srvValidationFailed',
+  UPLOAD_FORBIDDEN: 'srvUploadForbidden',
+  FILE_ATTACH_FORBIDDEN: 'srvFileAttachForbidden',
+  DOCUMENT_FORBIDDEN: 'srvDocumentForbidden',
+  NOTIFICATION_NOT_FOUND: 'srvNotificationNotFound',
 };
 
 export interface ServerErrorBody {
