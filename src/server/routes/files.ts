@@ -7,6 +7,7 @@ import {
   isActiveContentType,
   registerUpload,
   deleteStoredFile,
+  getUploadRow,
   UploadValidationError,
 } from '../utils/fileStorage.ts';
 import { store } from '../db/store.ts';
@@ -123,7 +124,9 @@ filesRouter.get('/:key{.+}', async (c) => {
   if (!file) {
     return c.json({ error: 'File not found', code: 'FILE_NOT_FOUND' }, 404);
   }
-  const headers = new Headers(fileResponseHeaders(getMimeType(key), file.filename, file.size));
+  // The original file name as uploaded (local disk storage only knows the stored name)
+  const registered = await getUploadRow(await getDatabase(c.env), key).catch(() => null);
+  const headers = new Headers(fileResponseHeaders(getMimeType(key), registered?.original_name || file.filename, file.size));
   if (file.etag) headers.set('ETag', file.etag);
   return new Response(file.body as any, { headers });
 });

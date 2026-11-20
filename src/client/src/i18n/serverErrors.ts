@@ -69,6 +69,7 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   LINK_TARGET_INVALID: 'srvLinkTargetInvalid',
   IMPORT_HAS_ERRORS: 'srvImportHasErrors',
   IMPORT_CONFIRMATION_REQUIRED: 'srvImportConfirmationRequired',
+  PAYLOAD_TOO_LARGE: 'srvPayloadTooLarge',
 };
 
 export interface ServerErrorBody {

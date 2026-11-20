@@ -1146,4 +1146,5 @@ export const en: Translations = {
   partnersNavTitle: "PARTNERS",
   backToList: "Back to list",
   recordSavedSuccess: "Record saved.",
+  srvPayloadTooLarge: "The request is too large.",
 };

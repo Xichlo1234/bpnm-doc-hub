@@ -65,6 +65,18 @@ SMOKE_BASE=https://quan-ly-cong-van.vcrm.vn node scripts/smoke-test.mjs
 ```
 Không có tài khoản thì chỉ chạy các kiểm tra công khai. Thêm `SMOKE_ADMIN_USER`/`SMOKE_ADMIN_PASS` (và tuỳ chọn `SMOKE_USER`/`SMOKE_USER_PASS` cho tài khoản thường) để kiểm tra các chức năng đọc. Thêm `--write` để thử cả các luồng ghi: script tạo bản ghi gắn nhãn `[SMOKE …]` rồi tự xoá khi xong. GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) chạy typecheck, test, build và đóng gói Worker cho mỗi push/PR.
 
+### Kiểm tra tổng hợp & tài liệu vận hành
+```bash
+npm run check        # typecheck + test + build + wrangler dry-run
+npm run smoke        # smoke test một bản đang chạy (SMOKE_BASE=...)
+npm run dev:demo     # chạy local với dữ liệu giả lập
+```
+- Nhật ký công việc: [docs/WORKLOG.md](docs/WORKLOG.md)
+- Bảo mật & phân quyền: [docs/ops/SECURITY.md](docs/ops/SECURITY.md)
+- Lưu trữ D1/R2: [docs/ops/STORAGE.md](docs/ops/STORAGE.md) · Sao lưu/phục hồi: [docs/ops/BACKUP_RESTORE.md](docs/ops/BACKUP_RESTORE.md)
+- Quy tắc nghiệp vụ: [docs/ops/BUSINESS_RULES.md](docs/ops/BUSINESS_RULES.md)
+- Runbook triển khai: [docs/ops/DEPLOY_RUNBOOK.md](docs/ops/DEPLOY_RUNBOOK.md) · Phụ thuộc: [docs/ops/DEPENDENCIES.md](docs/ops/DEPENDENCIES.md)
+
 ### 4. Đóng gói Production (Build)
 ```bash
 npm run build

@@ -98,6 +98,51 @@ Kiểm thử: typecheck ✔, 270 test ✔ (6 ca oracle cũ của CV đi được
 
 ---
 
+## PR05 — Kiểm thử & chuẩn bị vận hành
+Nhánh `pr05-qa-ops` → `pr04-ui` · (link PR bên dưới)
+
+| Hạng mục | Kết quả |
+|---|---|
+| Typecheck | ✔ |
+| Unit + integration test | ✔ 280 test / 27 file |
+| API permission tests | ✔ quét **mọi route API** lấy từ Hono: ẩn danh → 401; người dùng chỉ đọc không gọi được route ghi nào (không 2xx, không 5xx); route quản trị → 403 (`tests/ops_readiness.test.ts`) |
+| Security regression | ✔ `access_control`, `security`, `ops_readiness`; giới hạn request 12MB (413) |
+| Build | ✔ `vite build` |
+| Wrangler dry-run | ✔ bundle không chứa dữ liệu nghiệp vụ (CI kiểm tra) |
+| Kiểm tra dependencies | ✔ nâng `hono`, `zod` (v4), `vite`; còn `xlsx` (không có bản sửa, chỉ chạy phía client) — `docs/ops/DEPENDENCIES.md`; CI có bước audit |
+| Nhiều người cùng thao tác | ✔ 10 sửa song song khác hồ sơ đều lưu; 6 sửa song song cùng hồ sơ → đúng 1 thành công, 5 nhận 409; 8 CV đi tạo song song → 8 số khác nhau; 2 isolate ghi trùng → guard D1 huỷ bản cũ |
+| Nhập Excel | ✔ xem trước/xác nhận/từ chối file lỗi/nhật ký (`business_logic`) |
+| Upload, sửa, xoá, khôi phục | ✔ vòng đời end-to-end: tiếp nhận + tệp → thay phiên bản → phân công → hoàn thành → lưu trữ → xoá → khôi phục, đủ lịch sử |
+| Múi giờ Việt Nam | ✔ ngày do server đặt theo UTC+7 |
+| Backup & restore | ✔ xuất SQL → phục hồi DB trống → so khớp toàn bộ (`backup_restore`) |
+| Nhiều kích thước màn hình | ✔ ảnh chụp 1440 / 900 / 390px, không lỗi console (`docs/ops/screenshots/`) |
+| Smoke test E2E (server local, dữ liệu giả lập, `--write`) | ✔ 72/72 sau khi sửa |
+
+**Lỗi thật phát hiện và đã sửa trong PR05**
+1. Form sửa gửi lại cả bản ghi (kèm `directive_log`, `allowed_transitions` do server sinh) → bị validation từ chối
+   (400). Đã loại các trường do server quản lý khỏi body + thêm test vòng lặp GET → PATCH.
+2. Hợp đồng tạo qua JSON không có `status` → không thanh lý được. Mặc định `active`; bản ghi cũ thiếu trạng thái coi là hiệu lực.
+3. Tải tệp ở chế độ local trả tên tệp lưu trữ thay vì tên gốc → dùng tên gốc từ `file_uploads`.
+4. Smoke test dùng ngày cố định (đã quá hạn) và chính sách mật khẩu cũ → cập nhật.
+
+Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod`; runbook `docs/ops/DEPLOY_RUNBOOK.md`.
+
+---
+
+## Tổng kết
+
+| PR | Nội dung | Link |
+|---|---|---|
+| PR01 | Bảo mật & phân quyền | https://github.com/Xichlo1234/bpnm-doc-hub/pull/1 |
+| PR02 | Lưu trữ D1/R2 | https://github.com/Xichlo1234/bpnm-doc-hub/pull/2 |
+| PR03 | Logic nghiệp vụ | https://github.com/Xichlo1234/bpnm-doc-hub/pull/3 |
+| PR04 | Giao diện | https://github.com/Xichlo1234/bpnm-doc-hub/pull/4 |
+| PR05 | Kiểm thử & vận hành | (link PR bên dưới) |
+
+Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
+
+---
+
 ## Danh sách chờ chủ dự án quyết định
 
 1. **Lịch sử git** vẫn chứa dữ liệu thật ở commit đầu (repo đã private). Xoá hẳn cần viết lại lịch sử
@@ -107,5 +152,7 @@ Kiểm thử: typecheck ✔, 270 test ✔ (6 ca oracle cũ của CV đi được
 3. **Deploy & migration Production** (0004–0007): chờ phê duyệt.
 4. **Ý nghĩa tỷ giá** trong danh mục tiền tệ: đang hiểu là "1 đơn vị = X đơn vị tiền mặc định". Nếu
    công ty dùng quy ước khác (ví dụ VND/1 USD), cần xác nhận để chỉnh công thức quy đổi.
+6. **Thư viện Excel `xlsx`**: không có bản vá trên npm; đề xuất chuyển SheetJS 0.20 (CDN chính thức) hoặc `exceljs`.
+7. **Tách sâu thêm** `App.tsx`, `DetailPane.tsx`, các bảng dữ liệu và `EditRecordModal.tsx` (chức năng đã ổn, chỉ là dọn mã).
 5. **Quy trình công văn**: đã giữ nguyên các giá trị trạng thái đang dùng ("Đã gửi" = phát hành,
    "Đã ký - chờ gửi" = đã ký) và thêm "Đã phân công", "Lưu trữ". Nếu muốn đổi tên hiển thị/giá trị lưu, cần quyết định.
