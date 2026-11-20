@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { store } from '../db/store.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
 import { canReadDocument } from '../utils/access.ts';
@@ -6,15 +6,29 @@ import { readRecordRequest, storeAttachment, applyCloudLink } from '../utils/rec
 import { syncPrimaryAttachment } from '../utils/attachments.ts';
 import { getDatabase } from '../db/database.ts';
 import { documentInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
+import { importPreviewHandler, importCommitHandler } from './imports.ts';
+import { allocateDocumentNumber, peekNextSequence } from '../utils/numbering.ts';
+import { prepareNewDocument, documentNumberTaken, appendDirectiveLog, checkPostIssueAdjustment, type RuleError } from '../utils/documentRules.ts';
+import { workflowKind, stageOf, stageByCode, allowedTransitions, stagesFor, parseAutoNumber, vietnamToday } from '../utils/workflow.ts';
 
 export const documentsRouter = new Hono();
+
+/** Adds the workflow steps available from the document's current status (for the UI). */
+function withTransitions<T extends { doc_type?: string | null; status?: string | null }>(doc: T): T & { allowed_transitions: string[] } {
+  const kind = workflowKind(doc.doc_type);
+  return { ...doc, allowed_transitions: kind ? allowedTransitions(kind, doc.status) : [] };
+}
+
+const ruleResponse = (c: Context, e: RuleError) => c.json({ error: e.error, code: e.code, params: e.params }, e.status);
+const numberTaken = (c: Context, number: string) =>
+  c.json({ error: `Số văn bản "${number}" đã được sử dụng.`, code: 'DOCUMENT_NUMBER_TAKEN', params: { number } }, 409);
 
 // GET /api/documents?type=incoming|outgoing|decision|internal|all
 documentsRouter.get('/', (c) => {
   const type = c.req.query('type');
   const user = getAuthUser(c);
   const docs = store.getDocuments(type).filter((d) => canReadDocument(user, d));
-  return c.json(docs);
+  return c.json(docs.map(withTransitions));
 });
 
 // GET /api/documents/categories
@@ -22,18 +36,30 @@ documentsRouter.get('/categories', (c) => {
   return c.json(store.getCategories());
 });
 
+// GET /api/documents/workflow — stages and allowed moves, for the UI
+documentsRouter.get('/workflow', (c) => {
+  return c.json({
+    incoming: stagesFor('incoming'),
+    outgoing: stagesFor('outgoing'),
+  });
+});
+
 // GET /api/documents/next-number?type=incoming|outgoing&category=CV&department=HCNS
-documentsRouter.get('/next-number', (c) => {
+// A suggestion only: the number is reserved atomically when the document is saved.
+documentsRouter.get('/next-number', async (c) => {
   const type = (c.req.query('type') as 'incoming' | 'outgoing') || 'incoming';
   const category = c.req.query('category') || 'CV';
   const department = c.req.query('department') || 'HCNS';
-  const nextNum = store.getNextDocumentNumber(type, category, department);
-  return c.json({ nextNumber: nextNum });
+  const suggestion = store.getNextDocumentNumber(type, category, department);
+  const parsed = parseAutoNumber(type, suggestion);
+  if (!parsed) return c.json({ nextNumber: suggestion });
+  const seq = await peekNextSequence(await getDatabase(c.env), parsed.sequenceKey, parsed.seq);
+  return c.json({ nextNumber: parsed.rebuild(seq) });
 });
 
 // GET /api/documents/:id
 documentsRouter.get('/:id', (c) => {
-  const id = c.req.param('id');
+  const id = c.req.param('id') || '';
   const doc = store.getDocument(id);
   if (!doc) {
     return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
@@ -41,47 +67,12 @@ documentsRouter.get('/:id', (c) => {
   if (!canReadDocument(getAuthUser(c), doc)) {
     return c.json({ error: 'Văn bản mật: Bạn không có quyền xem hồ sơ này.', code: 'DOCUMENT_FORBIDDEN' }, 403);
   }
-  return c.json(doc);
+  return c.json(withTransitions(doc));
 });
 
-// POST /api/documents/bulk-import (Import / Bulk Update Documents from Excel/CSV - Admin Only)
-documentsRouter.post('/bulk-import', requireAdmin, async (c) => {
-  const body = await c.req.json().catch(() => ({}));
-  const rawList = Array.isArray(body) ? body : body.documents;
-  if (!Array.isArray(rawList) || rawList.length === 0) {
-    return c.json({ error: 'Danh sách văn bản không hợp lệ hoặc rỗng', code: 'DOCUMENT_LIST_INVALID' }, 400);
-  }
-  // Rows re-imported from an export carry legacy link values unchanged; match rows like the store does
-  const byNumber = new Map(store.getDocuments().map((r) => [String(r.document_number).trim().toLowerCase(), r]));
-  const rows = rawList.map((row: any) =>
-    withoutUnchangedLinks(row, (row?.id && store.getDocument(row.id)) || byNumber.get(String(row?.document_number ?? '').trim().toLowerCase()) || null)
-  );
-  const parsed = parseInput(c, documentInput.bulk, rows);
-  if (!parsed.ok) return parsed.response;
-  const docsList = parsed.data;
-
-  const currentUser = getAuthUser(c)!;
-  const result = store.bulkUpsertDocuments(docsList);
-  for (const ch of result.changes) {
-    store.recordHistory({ record_type: 'document', record_id: ch.id, action: 'import', user: currentUser, before: ch.before, after: ch.after });
-  }
-
-  store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
-    action: 'import',
-    entity_type: 'document',
-    details: `Nhập file Excel văn bản: Thêm mới ${result.added}, Cập nhật ${result.updated}`,
-  });
-  await store.persistAsync();
-
-  const { changes, ...counts } = result;
-  return c.json({
-    success: true,
-    message: `Đã cập nhật ${result.updated} văn bản và thêm mới ${result.added} văn bản thành công. Tổng số: ${result.total}`,
-    ...counts,
-  });
-});
+// Excel import: preview first, then commit (Admin Only)
+documentsRouter.post('/import/preview', requireAdmin, importPreviewHandler('document'));
+documentsRouter.post('/bulk-import', requireAdmin, importCommitHandler('document'));
 
 // POST /api/documents (Admin Only)
 documentsRouter.post('/', requireAdmin, async (c) => {
@@ -96,16 +87,31 @@ documentsRouter.post('/', requireAdmin, async (c) => {
   if (!body.document_number || !body.title) {
     return c.json({ error: 'Missing required fields (document_number, title)', code: 'DOCUMENT_FIELDS_REQUIRED' }, 400);
   }
-  if (!body.issue_date) {
-    body.issue_date = new Date().toISOString().substring(0, 10);
-  }
+  if (!body.issue_date) body.issue_date = vietnamToday();
+  const ruleError = prepareNewDocument(body);
+  if (ruleError) return ruleResponse(c, ruleError);
+
+  const db = await getDatabase(c.env);
+  const requestedNumber = String(body.document_number).trim();
+  // Auto-format numbers are reserved atomically; a number taken meanwhile is replaced by the next free one
+  const allocation = await allocateDocumentNumber(
+    db,
+    body.doc_type,
+    requestedNumber,
+    store.getDocuments().filter((d) => d.doc_type === body.doc_type).map((d) => d.document_number)
+  );
+  body.document_number = allocation.number;
+  if (documentNumberTaken(body.document_number, body.doc_type)) return numberTaken(c, body.document_number);
 
   const currentUser = getAuthUser(c)!;
+  const log = appendDirectiveLog(null, body, currentUser);
+  if (log) body.directive_log = log;
+
   const attachment = request.file ? await storeAttachment(c, request.file, currentUser.id) : null;
   if (attachment) Object.assign(body, attachment.fields);
 
   const newDoc = store.createDocument(body);
-  await syncPrimaryAttachment(await getDatabase(c.env), 'document', null, newDoc, currentUser.id);
+  await syncPrimaryAttachment(db, 'document', null, newDoc, currentUser.id);
   store.recordHistory({ record_type: 'document', record_id: newDoc.id, action: 'create', user: currentUser, before: null, after: newDoc });
   store.recordAuditLog({
     user_id: currentUser.id,
@@ -124,71 +130,131 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     await attachment?.rollback();
     throw err;
   }
-  return c.json(newDoc, 201);
+  return c.json(
+    { ...withTransitions(newDoc), ...(allocation.reassigned ? { number_reassigned: true, requested_number: requestedNumber } : {}) },
+    201
+  );
 });
 
-// PUT /api/documents/:id (Admin Only)
-documentsRouter.put('/:id', requireAdmin, async (c) => {
+// PUT/PATCH /api/documents/:id (Admin Only)
+async function updateDocumentHandler(c: Context) {
   const id = c.req.param('id') || '';
   const rawBody = await c.req.json().catch(() => null);
   const current = store.getDocument(id);
   const parsed = parseInput(c, documentInput.update, withoutUnchangedLinks(rawBody, current));
   if (!parsed.ok) return parsed.response;
-  const { expected_revision, ...changes } = parsed.data as Record<string, any>;
+  const { expected_revision, adjustment_reason, ...changes } = parsed.data as Record<string, any>;
   const conflict = revisionConflict(c, current, expected_revision);
   if (conflict) return conflict;
-  const currentUser = getAuthUser(c)!;
-  const updated = store.updateDocument(id, changes);
-  if (!updated) {
+  if (!current) {
     return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
   }
-  await syncPrimaryAttachment(await getDatabase(c.env), 'document', current, updated, currentUser.id);
-  store.recordHistory({ record_type: 'document', record_id: id, action: 'update', user: currentUser, before: current, after: updated });
+  const currentUser = getAuthUser(c)!;
+  const docType = changes.doc_type ?? current.doc_type;
 
+  if (changes.document_number !== undefined && documentNumberTaken(changes.document_number, docType, id)) {
+    return numberTaken(c, changes.document_number);
+  }
+  const kind = workflowKind(docType);
+  if (kind && changes.status !== undefined && changes.status !== current.status) {
+    changes.status = stageOf(kind, changes.status).status; // aliases → canonical value
+  }
+  if (kind === 'incoming' && changes.status === 'Hoàn thành' && !current.completed_date && !changes.completed_date) {
+    changes.completed_date = vietnamToday();
+  }
+  const adjustment = checkPostIssueAdjustment(current, changes, adjustment_reason, currentUser);
+  if (adjustment.error) return ruleResponse(c, adjustment.error);
+  if (adjustment.log) changes.adjustments = adjustment.log;
+  const log = appendDirectiveLog(current, changes, currentUser);
+  if (log) changes.directive_log = log;
+
+  const updated = store.updateDocument(id, changes)!;
+  await syncPrimaryAttachment(await getDatabase(c.env), 'document', current, updated, currentUser.id);
+  store.recordHistory({
+    record_type: 'document',
+    record_id: id,
+    action: adjustment.log ? 'adjust_after_issue' : 'update',
+    user: currentUser,
+    before: current,
+    after: updated,
+  });
   store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
+    user_id: currentUser.id,
+    username: currentUser.username,
     action: 'update',
     entity_type: 'document',
     entity_id: id,
     entity_title: updated.document_number,
-    details: `Cập nhật văn bản ${updated.document_number}`,
+    details: adjustment.log
+      ? `Điều chỉnh văn bản đã phát hành ${updated.document_number}: ${adjustment_reason}`
+      : `Cập nhật văn bản ${updated.document_number}`,
   });
 
   await store.persistAsync();
-  return c.json(updated);
-});
+  return c.json(withTransitions(updated));
+}
+documentsRouter.put('/:id', requireAdmin, updateDocumentHandler);
+documentsRouter.patch('/:id', requireAdmin, updateDocumentHandler);
 
-// PATCH /api/documents/:id (Admin Only)
-documentsRouter.patch('/:id', requireAdmin, async (c) => {
+// POST /api/documents/:id/transition (Admin Only)
+// Body: { to: stage code, note?, handler?, due_date?, directive?, signer? }
+documentsRouter.post('/:id/transition', requireAdmin, async (c) => {
   const id = c.req.param('id') || '';
-  const rawBody = await c.req.json().catch(() => null);
   const current = store.getDocument(id);
-  const parsed = parseInput(c, documentInput.update, withoutUnchangedLinks(rawBody, current));
-  if (!parsed.ok) return parsed.response;
-  const { expected_revision, ...changes } = parsed.data as Record<string, any>;
-  const conflict = revisionConflict(c, current, expected_revision);
-  if (conflict) return conflict;
-  const currentUser = getAuthUser(c)!;
-  const updated = store.updateDocument(id, changes);
-  if (!updated) {
-    return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
+  if (!current) return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
+  const kind = workflowKind(current.doc_type);
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const target = kind ? stageByCode(kind, String(body.to || '')) : null;
+  if (!kind || !target || !allowedTransitions(kind, current.status).includes(target.code)) {
+    return c.json(
+      {
+        error: 'Không thể chuyển sang bước này từ trạng thái hiện tại.',
+        code: 'TRANSITION_NOT_ALLOWED',
+        params: { from: stageOf(kind || 'incoming', current.status).code, to: String(body.to || '') },
+      },
+      400
+    );
   }
-  await syncPrimaryAttachment(await getDatabase(c.env), 'document', current, updated, currentUser.id);
-  store.recordHistory({ record_type: 'document', record_id: id, action: 'update', user: currentUser, before: current, after: updated });
+  const str = (v: unknown, max = 2000) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
+  const changes: Record<string, any> = { status: target.status };
+  const handler = str(body.handler, 200);
+  const due = str(body.due_date, 10);
+  const directive = str(body.directive);
+  const signer = str(body.signer, 200);
+  if (due && !/^\d{4}-\d{2}-\d{2}$/.test(due)) {
+    return c.json({ error: 'Hạn xử lý không hợp lệ (YYYY-MM-DD).', code: 'VALIDATION_FAILED', params: { fields: 'due_date' } }, 400);
+  }
+  if (handler !== undefined) changes.handler = handler;
+  if (due !== undefined) changes.due_date = due;
+  if (directive !== undefined) changes.directive = directive;
+  if (signer !== undefined) changes.signer = signer;
 
+  const missing = (field: string) =>
+    c.json({ error: `Cần nhập ${field} cho bước này.`, code: 'TRANSITION_FIELD_REQUIRED', params: { fields: field } }, 400);
+  if (target.code === 'assigned' && !(changes.handler || current.handler)) return missing('handler');
+  if (target.code === 'signed' && !(changes.signer || current.signer)) return missing('signer');
+  if (target.code === 'completed' && !current.completed_date) changes.completed_date = vietnamToday();
+  if (target.code === 'issued') {
+    if (!current.issue_date) changes.issue_date = vietnamToday();
+    changes.issued_at = new Date().toISOString();
+  }
+
+  const user = getAuthUser(c)!;
+  const log = appendDirectiveLog(current, changes, user, str(body.note, 1000) || `→ ${target.status}`);
+  if (log) changes.directive_log = log;
+  const updated = store.updateDocument(id, changes)!;
+  store.recordHistory({ record_type: 'document', record_id: id, action: 'update', user, before: current, after: updated });
   store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
-    action: 'update',
+    user_id: user.id,
+    username: user.username,
+    action: 'status_change',
     entity_type: 'document',
     entity_id: id,
     entity_title: updated.document_number,
-    details: `Chỉnh sửa văn bản ${updated.document_number}`,
+    details: `${updated.document_number}: ${current.status || '-'} → ${target.status}`,
   });
-
   await store.persistAsync();
-  return c.json(updated);
+  return c.json({ ...updated, allowed_transitions: allowedTransitions(kind, updated.status) });
 });
 
 // DELETE /api/documents/:id (Admin Only) — moves the document to the trash (restorable)

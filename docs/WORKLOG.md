@@ -55,10 +55,33 @@ Kiểm thử: typecheck ✔, 255 test ✔, build ✔, wrangler dry-run ✔.
 
 ---
 
+## PR03 — Logic nghiệp vụ
+Nhánh `pr03-business-logic` → `pr02-storage` · (link PR bên dưới)
+
+| Hạng mục | Đã làm | Tệp chính |
+|---|---|---|
+| Công văn đến | Tách số đến / số cơ quan gửi; quy trình Tiếp nhận → Phân công → Xử lý → Hoàn thành → Lưu trữ; lịch sử chỉ đạo `directive_log` | `utils/workflow.ts`, `utils/documentRules.ts`, `routes/documents.ts` (`/transition`), `WorkflowPanel.tsx` |
+| Công văn đi | Dự thảo → Trình ký → Đã ký → Phát hành → Lưu trữ; mặc định Dự thảo; điều chỉnh sau phát hành cần lý do + được ghi lại | như trên, `EditRecordModal.tsx` |
+| Chống trùng số | Bảng `number_sequences` cấp số nguyên tử; số tay trùng → 409; báo khi số bị cấp lại | `utils/numbering.ts`, `migrations/0007` |
+| Hợp đồng | Kiểm tra mốc thời gian; chống trùng số; chấm dứt (lý do) / thanh lý (ngày); phụ lục & gia hạn; liên kết hồ sơ | `utils/contractRules.ts`, `routes/contracts.ts`, `ContractLifecyclePanel.tsx` |
+| Đa tiền tệ | Thống kê theo từng loại tiền; tổng quy đổi chỉ khi đủ tỷ giá | `contractValueTotals` |
+| Nhập Excel | Xem trước ở server (trùng, mới/cập nhật + trường thay đổi, lỗi); bắt xác nhận cập nhật; từ chối file có lỗi; nhật ký `import_batches` | `utils/importer.ts`, `routes/imports.ts`, `ExcelManagerModal.tsx` |
+| Chỉnh sửa đồng thời | Revision kiểm tra ngay trong câu lệnh ghi D1 (`write_guard`) → 409; UI tải lại / hợp nhất / giữ bản của tôi | `db/repository.ts`, `db/store.ts`, `EditRecordModal.tsx` |
+| Múi giờ VN | Ngày do server đặt theo UTC+7 | `vietnamToday` |
+| Test | `tests/business_logic.test.ts` (18 test) | |
+
+Tài liệu: `docs/ops/BUSINESS_RULES.md`. Kiểm thử: typecheck ✔, 273 test ✔, build ✔, wrangler dry-run ✔.
+
+---
+
 ## Danh sách chờ chủ dự án quyết định
 
 1. **Lịch sử git** vẫn chứa dữ liệu thật ở commit đầu (repo đã private). Xoá hẳn cần viết lại lịch sử
    (force-push) — chưa làm.
 2. **Quy tắc văn bản Mật**: hiện tại chỉ admin hoặc tài khoản được cấp cờ mới xem được. Nếu muốn
    người xử lý được giao cũng xem được văn bản Mật đó, cần xác nhận.
-3. **Deploy & migration Production** (0004, 0005, 0006): chờ phê duyệt.
+3. **Deploy & migration Production** (0004–0007): chờ phê duyệt.
+4. **Ý nghĩa tỷ giá** trong danh mục tiền tệ: đang hiểu là "1 đơn vị = X đơn vị tiền mặc định". Nếu
+   công ty dùng quy ước khác (ví dụ VND/1 USD), cần xác nhận để chỉnh công thức quy đổi.
+5. **Quy trình công văn**: đã giữ nguyên các giá trị trạng thái đang dùng ("Đã gửi" = phát hành,
+   "Đã ký - chờ gửi" = đã ký) và thêm "Đã phân công", "Lưu trữ". Nếu muốn đổi tên hiển thị/giá trị lưu, cần quyết định.

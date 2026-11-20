@@ -173,6 +173,29 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
     setErrorMessage('');
   };
 
+  // Apply the fields this user changed (compared with what the form was opened with) on top of the
+  // latest saved version; fields both people changed are listed so the user can check them.
+  const mergeWithLatest = () => {
+    if (!conflictRecord || !item) return;
+    const original: Record<string, any> = item.data as any;
+    const mine: Record<string, any> = item.kind === 'contract' ? contractData : docData;
+    const merged: Record<string, any> = { ...conflictRecord };
+    const overlapping: string[] = [];
+    const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    for (const key of Object.keys(mine)) {
+      if (['revision', 'updated_at', 'created_at', 'urgency', 'deadline_status', 'allowed_transitions'].includes(key)) continue;
+      if (!same(mine[key], original[key])) {
+        if (!same(conflictRecord[key], original[key]) && !same(conflictRecord[key], mine[key])) overlapping.push(key);
+        merged[key] = mine[key];
+      }
+    }
+    if (item.kind === 'contract') setContractData(merged as any);
+    else setDocData(merged as any);
+    setBaseRevision(conflictRecord.revision ?? 0);
+    setConflictRecord(null);
+    setErrorMessage(overlapping.length > 0 ? tf('conflictMerged', { fields: overlapping.join(', ') }) : t.conflictMergedClean);
+  };
+
   // Keep the user's edits and accept overwriting the newer version on the next save
   const overwriteWithMine = () => {
     if (!conflictRecord) return;
@@ -216,10 +239,15 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await api.updateDocument(item.data.id, {
-        ...docData,
-        expected_revision: baseRevision,
-      });
+      try {
+        await api.updateDocument(item.data.id, { ...docData, expected_revision: baseRevision });
+      } catch (err: any) {
+        // Issued outgoing documents need a reason for the change (logged as an adjustment)
+        if (err?.code !== 'ADJUSTMENT_REASON_REQUIRED') throw err;
+        const reason = window.prompt(t.adjReasonPrompt);
+        if (!reason) throw err;
+        await api.updateDocument(item.data.id, { ...docData, expected_revision: baseRevision, adjustment_reason: reason } as any);
+      }
       onSaved();
       onClose();
     } catch (err: any) {
@@ -288,6 +316,9 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
               <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 <button type="button" className="btn btn-secondary" onClick={loadLatestVersion}>
                   {t.conflictLoadLatest}
+                </button>
+                <button type="button" className="btn btn-primary" onClick={mergeWithLatest}>
+                  {t.conflictMerge}
                 </button>
                 <button type="button" className="btn" onClick={overwriteWithMine}>
                   {t.conflictKeepMine}

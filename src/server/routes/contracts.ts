@@ -2,12 +2,15 @@ import { Hono, type Context, type Next } from 'hono';
 import { store } from '../db/store.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
 import { getDatabase } from '../db/database.ts';
-import { canReadContract } from '../utils/access.ts';
+import { canReadContract, canReadDocument } from '../utils/access.ts';
 import { canAttachFile } from '../utils/fileAccess.ts';
 import { readRecordRequest, storeAttachment, applyCloudLink } from '../utils/recordRequest.ts';
-import { syncPrimaryAttachment } from '../utils/attachments.ts';
+import { syncPrimaryAttachment, canWriteRecord } from '../utils/attachments.ts';
 import { contractInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
-import { isLaborContract, canAccessLaborContracts } from '../types.ts';
+import { isLaborContract, canAccessLaborContracts, type ContractRecord } from '../types.ts';
+import { importPreviewHandler, importCommitHandler } from './imports.ts';
+import { contractNumberTaken, checkContractDates, type ContractRuleError, type Appendix } from '../utils/contractRules.ts';
+import { vietnamToday } from '../utils/workflow.ts';
 
 export const contractsRouter = new Hono();
 
@@ -19,8 +22,27 @@ async function requireAdminOrLaborAccess(c: Context, next: Next) {
   if (user.role !== 'admin' && !canAccessLaborContracts(user)) {
     return c.json({ error: 'Truy cập bị từ chối: Bạn không có quyền thực hiện thao tác này.', code: 'FORBIDDEN' }, 403);
   }
-  c.set('user', user);
   await next();
+}
+
+const ruleResponse = (c: Context, e: ContractRuleError) => c.json({ error: e.error, code: e.code, params: e.params }, e.status);
+const notFound = (c: Context) => c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
+const numberTaken = (c: Context, number: string) =>
+  c.json({ error: `Số hợp đồng "${number}" đã tồn tại.`, code: 'CONTRACT_NUMBER_TAKEN', params: { number } }, 409);
+const str = (v: unknown, max = 2000) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+const isDay = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+function audit(c: Context, contract: ContractRecord, action: 'create' | 'update' | 'delete' | 'status_change', details: string) {
+  const user = getAuthUser(c)!;
+  store.recordAuditLog({
+    user_id: user.id,
+    username: user.username,
+    action,
+    entity_type: 'contract',
+    entity_id: contract.id,
+    entity_title: contract.contract_number,
+    details,
+  });
 }
 
 // GET /api/contracts?urgency=all|urgent|warning|expiring_soon|active|expired|liquidated
@@ -33,56 +55,17 @@ contractsRouter.get('/', (c) => {
 
 // GET /api/contracts/:id
 contractsRouter.get('/:id', (c) => {
-  const id = c.req.param('id');
-  const contract = store.getContract(id);
-  if (!contract) {
-    return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
-  }
-  const currentUser = getAuthUser(c);
-  if (!canReadContract(currentUser, contract)) {
+  const contract = store.getContract(c.req.param('id') || '');
+  if (!contract) return notFound(c);
+  if (!canReadContract(getAuthUser(c), contract)) {
     return c.json({ error: 'Hợp đồng lao động bảo mật: Bạn không có quyền xem hồ sơ này.', code: 'LABOR_CONTRACT_FORBIDDEN' }, 403);
   }
   return c.json(contract);
 });
 
-// POST /api/contracts/bulk-import (Import / Bulk Update Contracts from Excel/CSV - Admin Only)
-contractsRouter.post('/bulk-import', requireAdmin, async (c) => {
-  const body = await c.req.json().catch(() => ({}));
-  const rawList = Array.isArray(body) ? body : body.contracts;
-  if (!Array.isArray(rawList) || rawList.length === 0) {
-    return c.json({ error: 'Danh sách hợp đồng không hợp lệ hoặc rỗng', code: 'CONTRACT_LIST_INVALID' }, 400);
-  }
-  // Rows re-imported from an export carry legacy link values unchanged; match rows like the store does
-  const byNumber = new Map(store.getContracts().map((r) => [String(r.contract_number).trim().toLowerCase(), r]));
-  const rows = rawList.map((row: any) =>
-    withoutUnchangedLinks(row, (row?.id && store.getContract(row.id)) || byNumber.get(String(row?.contract_number ?? '').trim().toLowerCase()) || null)
-  );
-  const parsed = parseInput(c, contractInput.bulk, rows);
-  if (!parsed.ok) return parsed.response;
-  const contractsList = parsed.data;
-
-  const currentUser = getAuthUser(c)!;
-  const result = store.bulkUpsertContracts(contractsList);
-  for (const ch of result.changes) {
-    store.recordHistory({ record_type: 'contract', record_id: ch.id, action: 'import', user: currentUser, before: ch.before, after: ch.after });
-  }
-
-  store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
-    action: 'import',
-    entity_type: 'contract',
-    details: `Nhập file Excel hợp đồng: Thêm mới ${result.added}, Cập nhật ${result.updated}`,
-  });
-  await store.persistAsync();
-
-  const { changes, ...counts } = result;
-  return c.json({
-    success: true,
-    message: `Đã cập nhật ${result.updated} hợp đồng và thêm mới ${result.added} hợp đồng thành công. Tổng số: ${result.total}`,
-    ...counts,
-  });
-});
+// Excel import: preview first, then commit (Admin Only)
+contractsRouter.post('/import/preview', requireAdmin, importPreviewHandler('contract'));
+contractsRouter.post('/bulk-import', requireAdmin, importCommitHandler('contract'));
 
 // POST /api/contracts (Admin or Labor-Contract Authorized User)
 contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
@@ -103,30 +86,25 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
   if (!body.contract_number || !body.title || !body.party_a || !body.party_b || !body.signed_date || !body.start_date) {
     return c.json({ error: 'Missing required contract fields', code: 'CONTRACT_FIELDS_REQUIRED' }, 400);
   }
+  const dateError = checkContractDates(body);
+  if (dateError) return ruleResponse(c, dateError);
+  if (contractNumberTaken(body.contract_number)) return numberTaken(c, body.contract_number);
 
   const currentUser = getAuthUser(c)!;
   if (currentUser.role !== 'admin' && !isLaborContract(body)) {
     return c.json({ error: 'Bạn chỉ được phân quyền quản lý mục Hợp đồng Lao động.', code: 'LABOR_ONLY_MANAGE' }, 403);
   }
-  if (!(await canAttachFile(await getDatabase(c.env), currentUser, body.file_key))) {
+  const db = await getDatabase(c.env);
+  if (!(await canAttachFile(db, currentUser, body.file_key))) {
     return c.json({ error: 'Bạn không có quyền gắn tệp này vào hồ sơ.', code: 'FILE_ATTACH_FORBIDDEN' }, 403);
   }
 
   const attachment = request.file ? await storeAttachment(c, request.file, currentUser.id) : null;
   if (attachment) Object.assign(body, attachment.fields);
   const newContract = store.createContract(body);
-  await syncPrimaryAttachment(await getDatabase(c.env), 'contract', null, newContract, currentUser.id);
+  await syncPrimaryAttachment(db, 'contract', null, newContract, currentUser.id);
   store.recordHistory({ record_type: 'contract', record_id: newContract.id, action: 'create', user: currentUser, before: null, after: newContract });
-
-  store.recordAuditLog({
-    user_id: currentUser.id,
-    username: currentUser.username,
-    action: 'create',
-    entity_type: 'contract',
-    entity_id: newContract.id,
-    entity_title: newContract.contract_number,
-    details: `Tạo hợp đồng ${newContract.contract_number} - ${newContract.title}`,
-  });
+  audit(c, newContract, 'create', `Tạo hợp đồng ${newContract.contract_number} - ${newContract.title}`);
 
   try {
     await store.persistAsync();
@@ -137,101 +115,153 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
   return c.json(newContract, 201);
 });
 
-// PUT /api/contracts/:id (Admin Only)
-contractsRouter.put('/:id', requireAdmin, async (c) => {
-  const id = c.req.param('id') || '';
-  const rawBody = await c.req.json().catch(() => null);
-  const current = store.getContract(id);
-  const parsed = parseInput(c, contractInput.update, withoutUnchangedLinks(rawBody, current));
-  if (!parsed.ok) return parsed.response;
-  const { expected_revision, ...changes } = parsed.data as Record<string, any>;
-  const conflict = revisionConflict(c, current, expected_revision);
-  if (conflict) return conflict;
-  const currentUser = getAuthUser(c)!;
-  const updated = store.updateContract(id, changes);
-  if (!updated) {
-    return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
-  }
-  await syncPrimaryAttachment(await getDatabase(c.env), 'contract', current, updated, currentUser.id);
-  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user: currentUser, before: current, after: updated });
-
-  store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
-    action: 'update',
-    entity_type: 'contract',
-    entity_id: id,
-    entity_title: updated.contract_number,
-    details: `Cập nhật hợp đồng ${updated.contract_number}`,
-  });
-
-  await store.persistAsync();
-  return c.json(updated);
-});
-
-// PATCH /api/contracts/:id (Admin or Labor-Contract Authorized User)
-contractsRouter.patch('/:id', requireAdminOrLaborAccess, async (c) => {
+// PUT /api/contracts/:id (Admin Only) and PATCH (Admin, or labor managers for labor contracts)
+async function updateContractHandler(c: Context) {
   const id = c.req.param('id') || '';
   const existing = store.getContract(id);
-  if (!existing) {
-    return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
-  }
-  const currentUser = getAuthUser(c);
   const rawBody = await c.req.json().catch(() => null);
   const parsed = parseInput(c, contractInput.update, withoutUnchangedLinks(rawBody, existing));
   if (!parsed.ok) return parsed.response;
   const { expected_revision, ...body } = parsed.data as Record<string, any>;
   const conflict = revisionConflict(c, existing, expected_revision);
   if (conflict) return conflict;
+  if (!existing) return notFound(c);
+
+  const currentUser = getAuthUser(c)!;
   // Non-admins may only edit labor contracts, and may not turn them into (or out of) another type
-  if (currentUser?.role !== 'admin' && !(isLaborContract(existing) && isLaborContract({ ...existing, ...body }))) {
+  if (currentUser.role !== 'admin' && !(isLaborContract(existing) && isLaborContract({ ...existing, ...body }))) {
     return c.json({ error: 'Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.', code: 'LABOR_ONLY_EDIT' }, 403);
   }
   if (body.file_key !== undefined && !(await canAttachFile(await getDatabase(c.env), currentUser, body.file_key, existing.file_key))) {
     return c.json({ error: 'Bạn không có quyền gắn tệp này vào hồ sơ.', code: 'FILE_ATTACH_FORBIDDEN' }, 403);
   }
-  const updated = store.updateContract(id, body);
-  if (!updated) {
-    return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
-  }
-  await syncPrimaryAttachment(await getDatabase(c.env), 'contract', existing, updated, currentUser!.id);
-  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user: currentUser!, before: existing, after: updated });
+  if (body.contract_number !== undefined && contractNumberTaken(body.contract_number, id)) return numberTaken(c, body.contract_number);
+  const dateError = checkContractDates({ ...existing, ...body });
+  if (dateError) return ruleResponse(c, dateError);
 
-  store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
-    action: 'update',
-    entity_type: 'contract',
-    entity_id: id,
-    entity_title: updated.contract_number,
-    details: `Chỉnh sửa hợp đồng ${updated.contract_number}`,
-  });
-
+  const updated = store.updateContract(id, body)!;
+  await syncPrimaryAttachment(await getDatabase(c.env), 'contract', existing, updated, currentUser.id);
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user: currentUser, before: existing, after: updated });
+  audit(c, updated, 'update', `Cập nhật hợp đồng ${updated.contract_number}`);
   await store.persistAsync();
   return c.json(updated);
+}
+contractsRouter.put('/:id', requireAdmin, updateContractHandler);
+contractsRouter.patch('/:id', requireAdminOrLaborAccess, updateContractHandler);
+
+// Ending a contract: liquidation (thanh lý) or termination (chấm dứt), with date and reason.
+async function endContract(c: Context, kind: 'liquidated' | 'terminated') {
+  const id = c.req.param('id') || '';
+  const before = store.getContract(id);
+  if (!before) return notFound(c);
+  if (before.status !== 'active') {
+    return c.json({ error: 'Hợp đồng đã thanh lý hoặc chấm dứt.', code: 'CONTRACT_ALREADY_ENDED' }, 400);
+  }
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const date = body.date ?? vietnamToday();
+  const reason = str(body.reason);
+  if (!isDay(date)) return c.json({ error: 'Ngày không hợp lệ (YYYY-MM-DD).', code: 'VALIDATION_FAILED', params: { fields: 'date' } }, 400);
+  if (kind === 'terminated' && !reason) {
+    return c.json({ error: 'Cần nhập lý do chấm dứt hợp đồng.', code: 'TERMINATION_REASON_REQUIRED' }, 400);
+  }
+  const changes: Record<string, any> =
+    kind === 'liquidated'
+      ? { status: 'liquidated', status_raw: 'Thanh lý', liquidation_date: date, liquidation_note: reason }
+      : { status: 'terminated', status_raw: 'Chấm dứt', termination_date: date, termination_reason: reason };
+  const dateError = checkContractDates({ ...before, ...changes });
+  if (dateError) return ruleResponse(c, dateError);
+
+  const user = getAuthUser(c)!;
+  const updated = store.updateContract(id, changes)!;
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user, before, after: updated });
+  audit(
+    c,
+    updated,
+    'status_change',
+    kind === 'liquidated' ? `Thanh lý hợp đồng ${updated.contract_number} (${date})` : `Chấm dứt hợp đồng ${updated.contract_number} (${date}): ${reason}`
+  );
+  await store.persistAsync();
+  return c.json(updated);
+}
+contractsRouter.patch('/:id/liquidate', requireAdmin, (c) => endContract(c, 'liquidated'));
+contractsRouter.post('/:id/terminate', requireAdmin, (c) => endContract(c, 'terminated'));
+
+// POST /api/contracts/:id/appendices — phụ lục; with new_end_date it is a renewal (gia hạn)
+contractsRouter.post('/:id/appendices', requireAdminOrLaborAccess, async (c) => {
+  const id = c.req.param('id') || '';
+  const contract = store.getContract(id);
+  const user = getAuthUser(c)!;
+  if (!contract) return notFound(c);
+  if (!canWriteRecord(user, 'contract', contract)) {
+    return c.json({ error: 'Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.', code: 'LABOR_ONLY_EDIT' }, 403);
+  }
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const appendixNumber = str(body.appendix_number, 100);
+  const title = str(body.title, 500);
+  const signedDate = body.signed_date;
+  const newEnd = body.new_end_date ?? null;
+  const newValue = body.new_value === undefined || body.new_value === null || body.new_value === '' ? null : Number(body.new_value);
+  const invalid = (fields: string, error: string) => c.json({ error, code: 'APPENDIX_INVALID', params: { fields } }, 400);
+  if (!appendixNumber || !title) return invalid('appendix_number, title', 'Cần nhập số và tên phụ lục.');
+  if (!isDay(signedDate)) return invalid('signed_date', 'Ngày ký phụ lục không hợp lệ (YYYY-MM-DD).');
+  if (contract.signed_date && signedDate < String(contract.signed_date).slice(0, 10)) {
+    return invalid('signed_date', 'Phụ lục không thể ký trước hợp đồng.');
+  }
+  if (newEnd !== null && (!isDay(newEnd) || (contract.end_date && newEnd <= String(contract.end_date).slice(0, 10)))) {
+    return invalid('new_end_date', 'Ngày gia hạn phải sau ngày kết thúc hiện tại.');
+  }
+  if (newValue !== null && (!Number.isFinite(newValue) || newValue < 0)) return invalid('new_value', 'Giá trị không hợp lệ.');
+  const list = ((contract as any).appendices as Appendix[]) || [];
+  if (list.some((a) => a.appendix_number.toLowerCase() === appendixNumber.toLowerCase())) {
+    return c.json({ error: `Số phụ lục "${appendixNumber}" đã tồn tại.`, code: 'APPENDIX_NUMBER_TAKEN', params: { number: appendixNumber } }, 409);
+  }
+  const appendix: Appendix = {
+    id: `apx_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+    appendix_number: appendixNumber,
+    title,
+    signed_date: signedDate,
+    new_end_date: newEnd,
+    new_value: newValue,
+    summary: str(body.summary),
+    previous_end_date: contract.end_date ?? null,
+    previous_value: contract.value ?? null,
+    created_at: new Date().toISOString(),
+    created_by: user.id,
+  };
+  const changes: Record<string, any> = { appendices: [...list, appendix] };
+  if (newEnd) changes.end_date = newEnd;
+  if (newValue !== null) changes.value = newValue;
+  const updated = store.updateContract(id, changes)!;
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user, before: contract, after: updated });
+  audit(c, updated, 'update', `Thêm phụ lục ${appendixNumber}${newEnd ? ` (gia hạn đến ${newEnd})` : ''} cho hợp đồng ${updated.contract_number}`);
+  await store.persistAsync();
+  return c.json({ appendix, contract: updated }, 201);
 });
 
-// PATCH /api/contracts/:id/liquidate (Admin Only)
-contractsRouter.patch('/:id/liquidate', requireAdmin, async (c) => {
+// PUT /api/contracts/:id/links — related records: [{ type: 'document'|'contract', id }]
+contractsRouter.put('/:id/links', requireAdminOrLaborAccess, async (c) => {
   const id = c.req.param('id') || '';
-  const currentUser = getAuthUser(c)!;
-  const before = store.getContract(id);
-  const updated = before ? store.liquidateContract(id) : null;
-  if (!updated) {
-    return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
+  const contract = store.getContract(id);
+  const user = getAuthUser(c)!;
+  if (!contract) return notFound(c);
+  if (!canWriteRecord(user, 'contract', contract)) {
+    return c.json({ error: 'Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.', code: 'LABOR_ONLY_EDIT' }, 403);
   }
-  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user: currentUser, before, after: updated });
-
-  store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
-    action: 'status_change',
-    entity_type: 'contract',
-    entity_id: id,
-    entity_title: updated.contract_number,
-    details: `Thanh lý hợp đồng ${updated.contract_number}`,
-  });
-
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const raw = Array.isArray(body.links) ? body.links.slice(0, 50) : null;
+  if (!raw) return c.json({ error: 'Danh sách liên kết không hợp lệ.', code: 'VALIDATION_FAILED', params: { fields: 'links' } }, 400);
+  const links: Array<{ type: 'document' | 'contract'; id: string }> = [];
+  for (const l of raw) {
+    const type = l?.type;
+    const target = type === 'document' ? store.getDocument(String(l.id)) : type === 'contract' ? store.getContract(String(l.id)) : null;
+    const readable = type === 'document' ? canReadDocument(user, target as any) : canReadContract(user, target as any);
+    if (!target || !readable || (type === 'contract' && target.id === id)) {
+      return c.json({ error: 'Hồ sơ liên kết không tồn tại hoặc không có quyền.', code: 'LINK_TARGET_INVALID', params: { id: String(l?.id ?? '') } }, 400);
+    }
+    if (!links.some((x) => x.type === type && x.id === target.id)) links.push({ type, id: target.id });
+  }
+  const updated = store.updateContract(id, { linked_records: links } as any)!;
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user, before: contract, after: updated });
   await store.persistAsync();
   return c.json(updated);
 });
@@ -242,20 +272,9 @@ contractsRouter.delete('/:id', requireAdmin, async (c) => {
   const currentUser = getAuthUser(c)!;
   const contract = store.getContract(id);
   const trashed = contract ? store.trashRecord('contract', id, currentUser.id) : null;
-  if (!contract || !trashed) {
-    return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
-  }
+  if (!contract || !trashed) return notFound(c);
   store.recordHistory({ record_type: 'contract', record_id: id, action: 'delete', user: currentUser, before: { deleted: false }, after: { deleted: true } });
-  store.recordAuditLog({
-    user_id: currentUser.id,
-    username: currentUser.username,
-    action: 'delete',
-    entity_type: 'contract',
-    entity_id: id,
-    entity_title: contract.contract_number,
-    details: `Chuyển hợp đồng ${contract.contract_number} vào thùng rác`,
-  });
-
+  audit(c, contract, 'delete', `Chuyển hợp đồng ${contract.contract_number} vào thùng rác`);
   await store.persistAsync();
   return c.json({ success: true, trashed: true });
 });

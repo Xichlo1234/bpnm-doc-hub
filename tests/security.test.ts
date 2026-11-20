@@ -368,7 +368,7 @@ describe('Optimistic concurrency', () => {
     await app.request('/api/contracts/bulk-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contracts: [{ id: c.id, contract_number: c.contract_number, notes: 'import' }] }),
+      body: JSON.stringify({ contracts: [{ id: c.id, contract_number: c.contract_number, notes: 'import' }], confirm_updates: true }),
     });
     expect(store.getContract(c.id)!.revision).toBe((c.revision ?? 0) + 1);
   });

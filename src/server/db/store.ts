@@ -31,6 +31,9 @@ import {
   deleteStatements,
   configStatement,
   historyStatement,
+  revisionGuardStatements,
+  isGuardViolation,
+  RevisionConflictError,
   type HistoryEntry,
   CONFIG_KEYS,
   AUDIT_CACHE_SIZE,
@@ -49,6 +52,7 @@ import {
   type TableSpec,
 } from './tables.ts';
 import initialCategories from './categories.json';
+import { contractValueTotals } from '../utils/contractRules.ts';
 
 // Vietnamese string normalizer for fast, diacritic-insensitive search
 export function normalizeVietnamese(str: string): string {
@@ -63,6 +67,7 @@ export function normalizeVietnamese(str: string): string {
 
 export type LegacySource = 'd1' | 'json';
 export type TrashRecordType = 'document' | 'contract' | 'partner';
+const REVISIONED_TABLES = new Set(['documents', 'contracts']);
 
 // Fields that change on every save and say nothing about what the user edited
 const HISTORY_IGNORED_FIELDS = new Set(['updated_at', 'revision', 'deadline_status', 'urgency', 'created_at']);
@@ -128,6 +133,8 @@ export class MemoryStore {
   private version = 0;
   // Fingerprints of what the database holds, per table and record id
   private snapshots = new Map<string, Map<string, string>>();
+  // Revision of each document/contract as last read from or written to the database
+  private baseRevisions = new Map<string, Map<string, number>>();
   private configSnapshot: Partial<Record<ConfigKey, string>> = {};
   private persistedAuditIds = new Set<string>();
   // Serializes sync/flush so a reload never interleaves with a commit within one isolate
@@ -222,10 +229,14 @@ export class MemoryStore {
     this.pendingHistory = [];
 
     this.snapshots.clear();
+    this.baseRevisions.clear();
     for (const [spec, records] of this.cachedTables()) {
       const snap = new Map<string, string>();
       for (const record of records) snap.set(record.id, rowFingerprint(spec, record));
       this.snapshots.set(spec.name, snap);
+      if (REVISIONED_TABLES.has(spec.name)) {
+        this.baseRevisions.set(spec.name, new Map(records.map((r) => [r.id, Number(r.revision ?? 0)])));
+      }
     }
     // Config rows that don't exist yet are treated as changed so defaults get persisted
     this.configSnapshot = {};
@@ -277,8 +288,21 @@ export class MemoryStore {
       }
       const removed = [...snap.keys()].filter((id) => !fingerprints.has(id));
       if (changed.length === 0 && removed.length === 0) continue;
+      if (REVISIONED_TABLES.has(spec.name) && changed.length > 0) {
+        // Checked inside the same transaction as the write: a row someone else saved meanwhile aborts it
+        const base = this.baseRevisions.get(spec.name) ?? new Map<string, number>();
+        statements.push(...revisionGuardStatements(db, spec, changed.map((r) => [r.id, base.has(r.id) ? base.get(r.id)! : null])));
+      }
       statements.push(...upsertStatements(db, spec, changed), ...deleteStatements(db, spec, removed));
-      pendingSnapshots.push(() => this.snapshots.set(spec.name, fingerprints));
+      pendingSnapshots.push(() => {
+        this.snapshots.set(spec.name, fingerprints);
+        if (REVISIONED_TABLES.has(spec.name)) {
+          const base = this.baseRevisions.get(spec.name) ?? new Map<string, number>();
+          for (const r of changed) base.set(r.id, Number(r.revision ?? 0));
+          for (const id of removed) base.delete(id);
+          this.baseRevisions.set(spec.name, base);
+        }
+      });
     }
 
     for (const key of CONFIG_KEYS) {
@@ -312,6 +336,7 @@ export class MemoryStore {
     } catch (err) {
       // The cache now holds changes the database rejected; discard them on the next request
       this.stale = true;
+      if (isGuardViolation(err)) throw new RevisionConflictError();
       throw err;
     }
   }
@@ -1071,9 +1096,8 @@ export class MemoryStore {
     const laborLiquidatedCount = laborContracts.filter(c => c.status === 'liquidated').length;
     const laborIndefiniteCount = laborContracts.filter(c => c.urgency?.level === 'indefinite').length;
 
-    const totalContractValue = contracts
-      .filter(c => c.status === 'active')
-      .reduce((sum, c) => sum + (c.value || 0), 0);
+    // Values in different currencies are never added up as-is (see contractValueTotals)
+    const valueTotals = contractValueTotals(contracts);
 
     const docs = this.getDocuments();
     const incomingDocs = docs.filter(d => d.doc_type === 'incoming');
@@ -1124,7 +1148,10 @@ export class MemoryStore {
       laborActiveCount,
       laborLiquidatedCount,
       laborIndefiniteCount,
-      totalContractValue,
+      totalContractValue: valueTotals.totalContractValue,
+      valueByCurrency: valueTotals.valueByCurrency,
+      reportCurrency: valueTotals.reportCurrency,
+      missingExchangeRates: valueTotals.missingExchangeRates,
     };
   }
 

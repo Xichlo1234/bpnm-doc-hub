@@ -2,6 +2,24 @@ import type { DocumentRecord, ContractRecord, PartnerRecord, AttachmentRecord } 
 import { tr, trServerError } from '../i18n/index.ts';
 
 const API_BASE = '/api';
+
+export interface ImportPreviewRow {
+  index: number;
+  key: string;
+  action: 'create' | 'update' | 'unchanged' | 'duplicate_in_file' | 'error';
+  id?: string;
+  changes?: Record<string, [unknown, unknown]>;
+  errors?: string[];
+}
+export interface ImportPreview {
+  rows: ImportPreviewRow[];
+  summary: { total: number; create: number; update: number; unchanged: number; duplicate_in_file: number; error: number };
+}
+export interface ImportCommitOptions {
+  /** The user reviewed the preview and accepts updating existing records */
+  confirmUpdates?: boolean;
+  fileName?: string;
+}
 export const TOKEN_KEY = 'sgii_auth_token';
 
 let inMemoryToken: string | null = null;
@@ -287,11 +305,28 @@ export const api = {
     return res.ok;
   },
 
-  async bulkImportContracts(contracts: Array<Partial<ContractRecord>>): Promise<{ success: boolean; message: string; added: number; updated: number; total: number }> {
+  /** Server-side dry run of an import: validation, duplicates, new vs. updated rows with field changes. */
+  async previewImport(type: 'contract' | 'document', rows: any[]): Promise<ImportPreview> {
+    const res = await customFetch(`${API_BASE}/${type}s/import/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows }),
+    });
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as any;
+      throw new Error(trServerError(err, tr(type === 'contract' ? 'errImportContracts' : 'errImportDocuments')));
+    }
+    return res.json();
+  },
+
+  async bulkImportContracts(
+    contracts: Array<Partial<ContractRecord>>,
+    options: ImportCommitOptions = {}
+  ): Promise<{ success: boolean; message: string; added: number; updated: number; total: number }> {
     const res = await customFetch(`${API_BASE}/contracts/bulk-import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contracts }),
+      body: JSON.stringify({ contracts, confirm_updates: options.confirmUpdates === true, file_name: options.fileName }),
     });
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as any;
@@ -597,11 +632,11 @@ export const api = {
   },
 
   // Document bulk-import
-  async bulkImportDocuments(documents: any[]): Promise<any> {
+  async bulkImportDocuments(documents: any[], options: ImportCommitOptions = {}): Promise<any> {
     const res = await customFetch(`${API_BASE}/documents/bulk-import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documents }),
+      body: JSON.stringify({ documents, confirm_updates: options.confirmUpdates === true, file_name: options.fileName }),
     });
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as any;
@@ -655,6 +690,40 @@ export const api = {
   },
 
   // Audit Logs API
+  // Workflow (incoming / outgoing documents)
+  async transitionDocument(id: string, payload: { to: string; handler?: string; due_date?: string; directive?: string; signer?: string; note?: string }): Promise<any> {
+    const res = await customFetch(`${API_BASE}/documents/${encodeURIComponent(id)}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('errUpdateDocument')));
+    return res.json();
+  },
+
+  async terminateContract(id: string, payload: { date?: string; reason: string }): Promise<any> {
+    const res = await customFetch(`${API_BASE}/contracts/${encodeURIComponent(id)}/terminate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('errUpdateContract')));
+    return res.json();
+  },
+
+  async addContractAppendix(
+    id: string,
+    payload: { appendix_number: string; title: string; signed_date: string; new_end_date?: string | null; new_value?: number | null; summary?: string }
+  ): Promise<{ appendix: any; contract: any }> {
+    const res = await customFetch(`${API_BASE}/contracts/${encodeURIComponent(id)}/appendices`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('errUpdateContract')));
+    return res.json();
+  },
+
   // Attachments (several files per record, with versions)
   async getAttachments(type: 'document' | 'contract', id: string, includeVersions = false): Promise<AttachmentRecord[]> {
     const res = await customFetch(`${API_BASE}/attachments/${type}/${encodeURIComponent(id)}${includeVersions ? '?versions=1' : ''}`);

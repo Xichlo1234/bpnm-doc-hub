@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import type { ContractRecord } from '../../../server/types.ts';
 import { UrgencyBadge } from './UrgencyBadge.tsx';
-import { api } from '../services/api.ts';
+import { api, type ImportCommitOptions } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { ExcelManagerModal } from './ExcelManagerModal.tsx';
@@ -253,8 +253,8 @@ export const ContractTableView: React.FC<ContractTableViewProps> = ({
     );
   };
 
-  const handleBulkImportConfirm = async (parsedData: any[]) => {
-    const res = await api.bulkImportContracts(parsedData);
+  const handleBulkImportConfirm = async (parsedData: any[], options?: ImportCommitOptions) => {
+    const res = await api.bulkImportContracts(parsedData, options);
     return res;
   };
 

@@ -55,6 +55,20 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   RECORD_NOT_FOUND: 'srvRecordNotFound',
   ATTACHMENT_NOT_FOUND: 'srvAttachmentNotFound',
   TRASH_ITEM_NOT_FOUND: 'srvTrashItemNotFound',
+  DOCUMENT_NUMBER_TAKEN: 'srvDocumentNumberTaken',
+  INCOMING_NUMBER_SAME_AS_ORIGINAL: 'srvIncomingNumberSameAsOriginal',
+  ADJUSTMENT_REASON_REQUIRED: 'srvAdjustmentReasonRequired',
+  TRANSITION_NOT_ALLOWED: 'srvTransitionNotAllowed',
+  TRANSITION_FIELD_REQUIRED: 'srvTransitionFieldRequired',
+  CONTRACT_NUMBER_TAKEN: 'srvContractNumberTaken',
+  CONTRACT_DATES_INVALID: 'srvContractDatesInvalid',
+  CONTRACT_ALREADY_ENDED: 'srvContractAlreadyEnded',
+  TERMINATION_REASON_REQUIRED: 'srvTerminationReasonRequired',
+  APPENDIX_INVALID: 'srvAppendixInvalid',
+  APPENDIX_NUMBER_TAKEN: 'srvAppendixNumberTaken',
+  LINK_TARGET_INVALID: 'srvLinkTargetInvalid',
+  IMPORT_HAS_ERRORS: 'srvImportHasErrors',
+  IMPORT_CONFIRMATION_REQUIRED: 'srvImportConfirmationRequired',
 };
 
 export interface ServerErrorBody {
