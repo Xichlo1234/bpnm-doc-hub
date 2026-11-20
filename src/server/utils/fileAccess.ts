@@ -3,11 +3,14 @@ import type { SqlDatabase } from '../db/database.ts';
 import { canReadContract, canReadDocument, isAdmin, type AccessSubject } from './access.ts';
 import { getUploadRow } from './fileStorage.ts';
 
-/** Records (documents and contracts) whose attachment is `key`. */
+/** Live records (documents and contracts) whose primary file or attachment (any version) is `key`. */
 export function recordsReferencingFile(key: string) {
+  const viaAttachments = store.getAllAttachments().filter((a) => a.file_key === key && !a.deleted_at);
+  const docIds = new Set(viaAttachments.filter((a) => a.record_type === 'document').map((a) => a.record_id));
+  const contractIds = new Set(viaAttachments.filter((a) => a.record_type === 'contract').map((a) => a.record_id));
   return {
-    documents: store.getDocuments().filter((d) => d.file_key === key),
-    contracts: store.getContracts().filter((c) => c.file_key === key),
+    documents: store.getDocuments().filter((d) => d.file_key === key || docIds.has(d.id)),
+    contracts: store.getContracts().filter((c) => c.file_key === key || contractIds.has(c.id)),
   };
 }
 

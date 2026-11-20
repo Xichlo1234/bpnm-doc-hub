@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import type { UnifiedItem } from './ItemList.tsx';
 import { DocumentViewer, GoogleDriveIcon } from './DocumentViewer.tsx';
+import { AttachmentsPanel } from './AttachmentsPanel.tsx';
+import { HistoryPanel } from './HistoryPanel.tsx';
 import { api } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -573,6 +575,13 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 onTriggerUpload={() => fileInputRef.current?.click()}
                 onOpenDriveSync={() => setIsDriveModalOpen(true)}
               />
+              <AttachmentsPanel
+                recordType="contract"
+                recordId={c.id}
+                canEdit={isAdmin || (Boolean(user?.can_access_labor_contracts) && c.contract_type === 'labor')}
+                onRecordChanged={(rec) => rec && onItemUpdated?.({ kind: 'contract', data: rec })}
+              />
+              <HistoryPanel recordType="contract" recordId={c.id} refreshKey={`${c.revision}:${c.updated_at}`} />
             </>
           );
         })()
@@ -924,6 +933,13 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 onTriggerUpload={() => fileInputRef.current?.click()}
                 onOpenDriveSync={() => setIsDriveModalOpen(true)}
               />
+              <AttachmentsPanel
+                recordType="document"
+                recordId={d.id}
+                canEdit={isAdmin}
+                onRecordChanged={(rec) => rec && onItemUpdated?.({ kind: 'document', data: rec })}
+              />
+              <HistoryPanel recordType="document" recordId={d.id} refreshKey={`${d.revision}:${d.updated_at}`} />
             </>
           );
         })()

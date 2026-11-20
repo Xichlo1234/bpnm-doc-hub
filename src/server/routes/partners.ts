@@ -97,8 +97,8 @@ partnersRouter.delete('/:id', requireAdmin, async (c) => {
     return c.json({ error: 'Partner not found', code: 'PARTNER_NOT_FOUND' }, 404);
   }
 
-  const currentUser = getAuthUser(c);
-  const success = store.deletePartner(id);
+  const currentUser = getAuthUser(c)!;
+  const success = Boolean(store.trashRecord('partner', id, currentUser.id));
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -107,7 +107,7 @@ partnersRouter.delete('/:id', requireAdmin, async (c) => {
     entity_type: 'partner',
     entity_id: id,
     entity_title: partner.name_vn,
-    details: `Xóa đối tác: ${partner.code} - ${partner.name_vn}`,
+    details: `Chuyển đối tác vào thùng rác: ${partner.code} - ${partner.name_vn}`,
   });
 
   await store.persistAsync();

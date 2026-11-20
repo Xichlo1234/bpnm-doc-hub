@@ -37,6 +37,9 @@ export interface DocumentRecord {
   updated_at: string;
   // Incremented on every save; used for optimistic concurrency (409 on stale edits)
   revision?: number;
+  // Soft delete: set while the record is in the trash
+  deleted_at?: string | null;
+  deleted_by?: string | null;
   deadline_status?: {
     level: string;
     label: string;
@@ -100,6 +103,8 @@ export interface ContractRecord {
   updated_at: string;
   // Incremented on every save; used for optimistic concurrency (409 on stale edits)
   revision?: number;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
   urgency?: UrgencyInfo;
 }
 
@@ -120,6 +125,31 @@ export interface PartnerRecord {
   total_contracts?: number;
   active_contracts?: number;
   is_locked?: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+}
+
+export type AttachmentRecordType = 'document' | 'contract';
+
+/** One stored version of a file attached to a document or contract (migration 0006). */
+export interface AttachmentRecord {
+  id: string;
+  /** Shared by every version of the same logical attachment */
+  series_id: string;
+  record_type: AttachmentRecordType;
+  record_id: string;
+  file_key: string;
+  original_name: string;
+  size: number;
+  mime_type: string;
+  sha256: string;
+  version: number;
+  is_current: boolean;
+  note?: string | null;
+  uploaded_by: string;
+  uploaded_at: string;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface ContractAppendix {

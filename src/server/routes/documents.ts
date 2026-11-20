@@ -3,6 +3,8 @@ import { store } from '../db/store.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
 import { canReadDocument } from '../utils/access.ts';
 import { readRecordRequest, storeAttachment, applyCloudLink } from '../utils/recordRequest.ts';
+import { syncPrimaryAttachment } from '../utils/attachments.ts';
+import { getDatabase } from '../db/database.ts';
 import { documentInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
 
 export const documentsRouter = new Hono();
@@ -58,9 +60,11 @@ documentsRouter.post('/bulk-import', requireAdmin, async (c) => {
   if (!parsed.ok) return parsed.response;
   const docsList = parsed.data;
 
-  const currentUser = getAuthUser(c);
+  const currentUser = getAuthUser(c)!;
   const result = store.bulkUpsertDocuments(docsList);
-  await store.persistAsync();
+  for (const ch of result.changes) {
+    store.recordHistory({ record_type: 'document', record_id: ch.id, action: 'import', user: currentUser, before: ch.before, after: ch.after });
+  }
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -69,11 +73,13 @@ documentsRouter.post('/bulk-import', requireAdmin, async (c) => {
     entity_type: 'document',
     details: `Nhập file Excel văn bản: Thêm mới ${result.added}, Cập nhật ${result.updated}`,
   });
+  await store.persistAsync();
 
+  const { changes, ...counts } = result;
   return c.json({
     success: true,
     message: `Đã cập nhật ${result.updated} văn bản và thêm mới ${result.added} văn bản thành công. Tổng số: ${result.total}`,
-    ...result,
+    ...counts,
   });
 });
 
@@ -99,6 +105,8 @@ documentsRouter.post('/', requireAdmin, async (c) => {
   if (attachment) Object.assign(body, attachment.fields);
 
   const newDoc = store.createDocument(body);
+  await syncPrimaryAttachment(await getDatabase(c.env), 'document', null, newDoc, currentUser.id);
+  store.recordHistory({ record_type: 'document', record_id: newDoc.id, action: 'create', user: currentUser, before: null, after: newDoc });
   store.recordAuditLog({
     user_id: currentUser.id,
     username: currentUser.username,
@@ -129,11 +137,13 @@ documentsRouter.put('/:id', requireAdmin, async (c) => {
   const { expected_revision, ...changes } = parsed.data as Record<string, any>;
   const conflict = revisionConflict(c, current, expected_revision);
   if (conflict) return conflict;
-  const currentUser = getAuthUser(c);
+  const currentUser = getAuthUser(c)!;
   const updated = store.updateDocument(id, changes);
   if (!updated) {
     return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
   }
+  await syncPrimaryAttachment(await getDatabase(c.env), 'document', current, updated, currentUser.id);
+  store.recordHistory({ record_type: 'document', record_id: id, action: 'update', user: currentUser, before: current, after: updated });
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -159,11 +169,13 @@ documentsRouter.patch('/:id', requireAdmin, async (c) => {
   const { expected_revision, ...changes } = parsed.data as Record<string, any>;
   const conflict = revisionConflict(c, current, expected_revision);
   if (conflict) return conflict;
-  const currentUser = getAuthUser(c);
+  const currentUser = getAuthUser(c)!;
   const updated = store.updateDocument(id, changes);
   if (!updated) {
     return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
   }
+  await syncPrimaryAttachment(await getDatabase(c.env), 'document', current, updated, currentUser.id);
+  store.recordHistory({ record_type: 'document', record_id: id, action: 'update', user: currentUser, before: current, after: updated });
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -179,26 +191,26 @@ documentsRouter.patch('/:id', requireAdmin, async (c) => {
   return c.json(updated);
 });
 
-// DELETE /api/documents/:id (Admin Only)
+// DELETE /api/documents/:id (Admin Only) — moves the document to the trash (restorable)
 documentsRouter.delete('/:id', requireAdmin, async (c) => {
   const id = c.req.param('id') || '';
+  const currentUser = getAuthUser(c)!;
   const doc = store.getDocument(id);
-  const currentUser = getAuthUser(c);
-  const success = store.deleteDocument(id);
-  if (!success) {
+  const trashed = doc ? store.trashRecord('document', id, currentUser.id) : null;
+  if (!doc || !trashed) {
     return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
   }
-
+  store.recordHistory({ record_type: 'document', record_id: id, action: 'delete', user: currentUser, before: { deleted: false }, after: { deleted: true } });
   store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
+    user_id: currentUser.id,
+    username: currentUser.username,
     action: 'delete',
     entity_type: 'document',
     entity_id: id,
-    entity_title: doc?.document_number || id,
-    details: `Xóa văn bản ${doc?.document_number || id}`,
+    entity_title: doc.document_number,
+    details: `Chuyển văn bản ${doc.document_number} vào thùng rác`,
   });
 
   await store.persistAsync();
-  return c.json({ success: true });
+  return c.json({ success: true, trashed: true });
 });

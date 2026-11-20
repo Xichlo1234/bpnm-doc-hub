@@ -5,6 +5,7 @@ import { getDatabase } from '../db/database.ts';
 import { canReadContract } from '../utils/access.ts';
 import { canAttachFile } from '../utils/fileAccess.ts';
 import { readRecordRequest, storeAttachment, applyCloudLink } from '../utils/recordRequest.ts';
+import { syncPrimaryAttachment } from '../utils/attachments.ts';
 import { contractInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
 import { isLaborContract, canAccessLaborContracts } from '../types.ts';
 
@@ -60,9 +61,11 @@ contractsRouter.post('/bulk-import', requireAdmin, async (c) => {
   if (!parsed.ok) return parsed.response;
   const contractsList = parsed.data;
 
-  const currentUser = getAuthUser(c);
+  const currentUser = getAuthUser(c)!;
   const result = store.bulkUpsertContracts(contractsList);
-  await store.persistAsync();
+  for (const ch of result.changes) {
+    store.recordHistory({ record_type: 'contract', record_id: ch.id, action: 'import', user: currentUser, before: ch.before, after: ch.after });
+  }
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -71,11 +74,13 @@ contractsRouter.post('/bulk-import', requireAdmin, async (c) => {
     entity_type: 'contract',
     details: `Nhập file Excel hợp đồng: Thêm mới ${result.added}, Cập nhật ${result.updated}`,
   });
+  await store.persistAsync();
 
+  const { changes, ...counts } = result;
   return c.json({
     success: true,
     message: `Đã cập nhật ${result.updated} hợp đồng và thêm mới ${result.added} hợp đồng thành công. Tổng số: ${result.total}`,
-    ...result,
+    ...counts,
   });
 });
 
@@ -110,6 +115,8 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
   const attachment = request.file ? await storeAttachment(c, request.file, currentUser.id) : null;
   if (attachment) Object.assign(body, attachment.fields);
   const newContract = store.createContract(body);
+  await syncPrimaryAttachment(await getDatabase(c.env), 'contract', null, newContract, currentUser.id);
+  store.recordHistory({ record_type: 'contract', record_id: newContract.id, action: 'create', user: currentUser, before: null, after: newContract });
 
   store.recordAuditLog({
     user_id: currentUser.id,
@@ -140,11 +147,13 @@ contractsRouter.put('/:id', requireAdmin, async (c) => {
   const { expected_revision, ...changes } = parsed.data as Record<string, any>;
   const conflict = revisionConflict(c, current, expected_revision);
   if (conflict) return conflict;
-  const currentUser = getAuthUser(c);
+  const currentUser = getAuthUser(c)!;
   const updated = store.updateContract(id, changes);
   if (!updated) {
     return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
   }
+  await syncPrimaryAttachment(await getDatabase(c.env), 'contract', current, updated, currentUser.id);
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user: currentUser, before: current, after: updated });
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -185,6 +194,8 @@ contractsRouter.patch('/:id', requireAdminOrLaborAccess, async (c) => {
   if (!updated) {
     return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
   }
+  await syncPrimaryAttachment(await getDatabase(c.env), 'contract', existing, updated, currentUser!.id);
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user: currentUser!, before: existing, after: updated });
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -203,11 +214,13 @@ contractsRouter.patch('/:id', requireAdminOrLaborAccess, async (c) => {
 // PATCH /api/contracts/:id/liquidate (Admin Only)
 contractsRouter.patch('/:id/liquidate', requireAdmin, async (c) => {
   const id = c.req.param('id') || '';
-  const currentUser = getAuthUser(c);
-  const updated = store.liquidateContract(id);
+  const currentUser = getAuthUser(c)!;
+  const before = store.getContract(id);
+  const updated = before ? store.liquidateContract(id) : null;
   if (!updated) {
     return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
   }
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'update', user: currentUser, before, after: updated });
 
   store.recordAuditLog({
     user_id: currentUser?.id || 'admin',
@@ -223,26 +236,26 @@ contractsRouter.patch('/:id/liquidate', requireAdmin, async (c) => {
   return c.json(updated);
 });
 
-// DELETE /api/contracts/:id (Admin Only)
+// DELETE /api/contracts/:id (Admin Only) — moves the contract to the trash (restorable)
 contractsRouter.delete('/:id', requireAdmin, async (c) => {
   const id = c.req.param('id') || '';
+  const currentUser = getAuthUser(c)!;
   const contract = store.getContract(id);
-  const currentUser = getAuthUser(c);
-  const success = store.deleteContract(id);
-  if (!success) {
+  const trashed = contract ? store.trashRecord('contract', id, currentUser.id) : null;
+  if (!contract || !trashed) {
     return c.json({ error: 'Contract not found', code: 'CONTRACT_NOT_FOUND' }, 404);
   }
-
+  store.recordHistory({ record_type: 'contract', record_id: id, action: 'delete', user: currentUser, before: { deleted: false }, after: { deleted: true } });
   store.recordAuditLog({
-    user_id: currentUser?.id || 'admin',
-    username: currentUser?.username || 'admin',
+    user_id: currentUser.id,
+    username: currentUser.username,
     action: 'delete',
     entity_type: 'contract',
     entity_id: id,
-    entity_title: contract?.contract_number || id,
-    details: `Xóa hợp đồng ${contract?.contract_number || id}`,
+    entity_title: contract.contract_number,
+    details: `Chuyển hợp đồng ${contract.contract_number} vào thùng rác`,
   });
 
   await store.persistAsync();
-  return c.json({ success: true });
+  return c.json({ success: true, trashed: true });
 });

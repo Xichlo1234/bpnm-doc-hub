@@ -29,7 +29,11 @@ export async function storeAttachment(
   c: Context,
   file: File,
   userId: string
-): Promise<{ fields: Pick<SavedUpload, 'file_key' | 'file_name' | 'file_size' | 'file_type'>; rollback: () => Promise<void> }> {
+): Promise<{
+  fields: Pick<SavedUpload, 'file_key' | 'file_name' | 'file_size' | 'file_type'>;
+  sha256: string;
+  rollback: () => Promise<void>;
+}> {
   const uploaded = await saveUploadedFile(file, c.env);
   const rollback = () => deleteStoredFile(uploaded.file_key, c.env).catch(() => {});
   try {
@@ -40,6 +44,7 @@ export async function storeAttachment(
   }
   return {
     fields: { file_key: uploaded.file_key, file_name: uploaded.file_name, file_size: uploaded.file_size, file_type: uploaded.file_type },
+    sha256: uploaded.sha256,
     rollback,
   };
 }

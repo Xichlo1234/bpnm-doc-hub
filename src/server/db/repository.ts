@@ -6,6 +6,7 @@ import {
   usersTable,
   notificationsTable,
   auditLogsTable,
+  attachmentsTable,
   fromRow,
   toRow,
   bulkUpsertSql,
@@ -28,6 +29,7 @@ export interface LoadedDataset {
   users: any[];
   notifications: any[];
   auditLogs: any[];
+  attachments: any[];
   config: Partial<Record<ConfigKey, any>>;
 }
 
@@ -63,11 +65,14 @@ export async function loadDataset(db: SqlDatabase): Promise<LoadedDataset> {
       db.prepare('SELECT * FROM notifications ORDER BY created_at DESC'),
       db.prepare(`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ${AUDIT_CACHE_SIZE}`),
       db.prepare('SELECT key, value FROM app_config'),
+      db.prepare('SELECT * FROM attachments'),
     ]);
   } catch (err) {
     throw new DatabaseNotMigratedError(err);
   }
-  const [version, documents, contracts, partners, users, notifications, auditLogs, config] = results.map((r) => r.results);
+  const [version, documents, contracts, partners, users, notifications, auditLogs, config, attachments] = results.map(
+    (r) => r.results
+  );
   const parsedConfig: Partial<Record<ConfigKey, any>> = {};
   for (const row of config) {
     try {
@@ -84,8 +89,37 @@ export async function loadDataset(db: SqlDatabase): Promise<LoadedDataset> {
     users: users.map((r) => fromRow(usersTable, r)),
     notifications: notifications.map((r) => fromRow(notificationsTable, r)),
     auditLogs: auditLogs.map((r) => fromRow(auditLogsTable, r)),
+    attachments: attachments.map((r) => fromRow(attachmentsTable, r)),
     config: parsedConfig,
   };
+}
+
+export interface HistoryEntry {
+  id: string;
+  record_type: string;
+  record_id: string;
+  revision: number | null;
+  action: string;
+  changed_by: string;
+  changed_by_name: string | null;
+  changed_at: string;
+  changes: Record<string, [unknown, unknown]> | null;
+}
+
+export function historyStatement(db: SqlDatabase, h: HistoryEntry): SqlStatement {
+  return db
+    .prepare(
+      'INSERT INTO record_history (id, record_type, record_id, revision, action, changed_by, changed_by_name, changed_at, changes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    )
+    .bind(h.id, h.record_type, h.record_id, h.revision, h.action, h.changed_by, h.changed_by_name, h.changed_at, h.changes ? JSON.stringify(h.changes) : null);
+}
+
+export async function queryHistory(db: SqlDatabase, recordType: string, recordId: string): Promise<HistoryEntry[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM record_history WHERE record_type = ? AND record_id = ? ORDER BY changed_at DESC, id DESC LIMIT 500')
+    .bind(recordType, recordId)
+    .all<any>();
+  return results.map((r) => ({ ...r, changes: r.changes ? JSON.parse(r.changes) : null }));
 }
 
 export async function queryAuditLogs(db: SqlDatabase, limit: number): Promise<any[]> {

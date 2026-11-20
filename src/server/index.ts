@@ -10,6 +10,10 @@ import { authRouter, authenticate } from './routes/auth.ts';
 import { notificationsRouter } from './routes/notifications.ts';
 import { usersRouter } from './routes/users.ts';
 import { auditRouter } from './routes/audit.ts';
+import { attachmentsRouter } from './routes/attachments.ts';
+import { trashRouter } from './routes/trash.ts';
+import { historyRouter } from './routes/history.ts';
+import { adminRouter } from './routes/admin.ts';
 import { store } from './db/store.ts';
 import { getDatabase } from './db/database.ts';
 import { DatabaseNotMigratedError } from './db/repository.ts';
@@ -93,6 +97,10 @@ app.route('/api/notifications', notificationsRouter);
 app.route('/api/search', searchRouter);
 app.route('/api/stats', statsRouter);
 app.route('/api/files', filesRouter);
+app.route('/api/attachments', attachmentsRouter);
+app.route('/api/trash', trashRouter);
+app.route('/api/history', historyRouter);
+app.route('/api/admin', adminRouter);
 
 app.onError((err, c) => {
   if (err instanceof UploadValidationError) {
