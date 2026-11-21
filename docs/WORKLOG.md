@@ -150,7 +150,7 @@ Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhá
 | 1 | Dữ liệu thật trong lịch sử git | **A** — viết lại lịch sử để xoá hẳn | Chờ: thực hiện **sau khi** PR01–PR05 được duyệt và merge (viết lại lịch sử làm đổi mã commit của mọi nhánh/PR đang review) |
 | 2 | Quyền xem văn bản Mật | **A** — chỉ admin và người được cấp quyền | Đã đúng như mã hiện tại (PR01) |
 | 3 | Ý nghĩa tỷ giá | **A** — "1 đơn vị = X đơn vị tiền mặc định" | Đã đúng như mã hiện tại (PR03) |
-| 4 | Thư viện Excel | **A** — SheetJS 0.20 từ CDN chính thức | Chờ: môi trường làm việc không được phép tải gói từ `cdn.sheetjs.com`. Cách làm: `npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`, rồi `npm run check` (API `read`/`write`/`utils` tương thích bản 0.18 đang dùng) |
+| 4 | Thư viện Excel | **A** — SheetJS 0.20 từ CDN chính thức | **Xong**: `xlsx` 0.20.3; `npm audit --omit=dev` = 0 lỗ hổng; CI siết mức audit lên high; `npm run check` đạt (280 test) |
 | 5 | Migration & deploy Production | Cần **ChatGPT phê duyệt** | Chưa thực hiện. Sau khi được duyệt, làm theo `docs/ops/DEPLOY_RUNBOOK.md` |
 
 ## Danh sách kiểm tra cho người review (ChatGPT)
@@ -174,7 +174,6 @@ Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhá
 3. **Deploy & migration Production** (0004–0007): chờ phê duyệt.
 4. **Ý nghĩa tỷ giá** trong danh mục tiền tệ: đang hiểu là "1 đơn vị = X đơn vị tiền mặc định". Nếu
    công ty dùng quy ước khác (ví dụ VND/1 USD), cần xác nhận để chỉnh công thức quy đổi.
-6. **Thư viện Excel `xlsx`**: không có bản vá trên npm; đề xuất chuyển SheetJS 0.20 (CDN chính thức) hoặc `exceljs`.
 7. **Tách sâu thêm** `App.tsx`, `DetailPane.tsx`, các bảng dữ liệu và `EditRecordModal.tsx` (chức năng đã ổn, chỉ là dọn mã).
 5. **Quy trình công văn**: đã giữ nguyên các giá trị trạng thái đang dùng ("Đã gửi" = phát hành,
    "Đã ký - chờ gửi" = đã ký) và thêm "Đã phân công", "Lưu trữ". Nếu muốn đổi tên hiển thị/giá trị lưu, cần quyết định.

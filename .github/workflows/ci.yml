@@ -28,12 +28,9 @@ jobs:
 
       - run: npm ci
 
-      # Runtime dependencies only; xlsx has no upstream fix (see docs/ops/DEPENDENCIES.md), so the
-      # gate is "no critical", and the full report is printed for review.
+      # Runtime dependencies only: fails on any high or critical advisory (see docs/ops/DEPENDENCIES.md)
       - name: Dependency audit (production)
-        run: |
-          npm audit --omit=dev || true
-          npm run audit:prod
+        run: npm run audit:prod
 
       - name: Typecheck
         run: npx tsc --noEmit -p .
