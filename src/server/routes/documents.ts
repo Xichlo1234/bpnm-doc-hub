@@ -121,6 +121,11 @@ documentsRouter.post('/', requireAdmin, async (c) => {
 
   const attachment = request.file ? await storeAttachment(c, request.file, currentUser.id) : null;
   if (attachment) Object.assign(body, attachment.fields);
+  // A concurrent request may have taken the number while the file was being stored
+  if (documentNumberTaken(body.document_number, body.doc_type)) {
+    await attachment?.rollback();
+    return numberTaken(c, body.document_number);
+  }
 
   const newDoc = store.createDocument(body);
   await syncPrimaryAttachment(db, 'document', null, newDoc, currentUser.id);

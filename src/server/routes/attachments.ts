@@ -78,6 +78,16 @@ attachmentsRouter.post('/:type/:id', async (c) => {
 
   const stored = await storeAttachment(c, file as File, user.id);
   const sha256 = stored.sha256;
+  // The upload awaited: another request may have changed the record or this attachment meanwhile.
+  // Check again against the live cache and change it without awaiting in between; otherwise the
+  // fresh (never attached, unique) object is removed again.
+  const latest = getRecord(type, record.id);
+  const recheck = latest ? revisionConflict(c, latest, form.get('expected_revision')) : notFound(c);
+  const latestReplaced = replaced ? store.getAttachment(replaced.id) : null;
+  if (recheck || (replaced && (!latestReplaced || latestReplaced.deleted_at || !latestReplaced.is_current))) {
+    await stored.rollback();
+    return recheck ?? c.json({ error: 'Hồ sơ đã được người khác cập nhật trong lúc bạn chỉnh sửa.', code: 'REVISION_CONFLICT' }, 409);
+  }
   const att = store.addAttachment({
     record_type: type,
     record_id: record.id,
