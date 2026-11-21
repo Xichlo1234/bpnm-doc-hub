@@ -135,6 +135,28 @@ describe('D2 — a concurrent account change never lets the earlier verification
     expect(store.getUser('user_viewer')!.password).toMatch(/^pbkdf2\$/);
   });
 
+  it('same isolate: a reset or lock landing during password verification refuses the earlier verification', async () => {
+    const security = await import('../src/server/utils/security.ts');
+    for (const change of [
+      async () => { store.updateUser('user_viewer', { password: await hashPassword('Changed2026') }); },
+      async () => { store.updateUser('user_viewer', { status: 'locked' }); },
+    ]) {
+      store.reset();
+      store.updateUser('user_viewer', { password: await hashPassword('Current2026'), must_change_password: false });
+      await store.flush(await getDatabase());
+      const verify = security.verifyPassword;
+      vi.spyOn(security, 'verifyPassword').mockImplementationOnce(async (...args: any[]) => {
+        const r = await (verify as any)(...args);
+        await change(); // another request in this isolate commits while this login awaits
+        return r;
+      });
+      const res = await login('user', 'Current2026');
+      expect(res.status).not.toBe(200);
+      expect((await json(res)).token).toBeUndefined();
+      vi.restoreAllMocks();
+    }
+  });
+
   it('keeps forcing a change of published default passwords', async () => {
     store.updateUser('user_viewer', { password: 'User@123456', must_change_password: false });
     await store.flush(await getDatabase());

@@ -265,6 +265,10 @@ authRouter.post('/login', async (c) => {
   // the reloaded row — the password is verified again against the *new* hash, the status re-checked —
   // and no token is ever issued from the earlier verification.
   let accountId: string | null = null;
+  const stillTheVerifiedAccount = (verified: { id: string; password?: string | null; revision?: number | null }) => {
+    const now = store.getUser(verified.id);
+    return Boolean(now && now.status !== 'locked' && now.password === verified.password && (now.revision ?? 0) === (verified.revision ?? 0));
+  };
   for (let attempt = 0; attempt < 2; attempt++) {
     const account = store.getUserByUsername(trimmedUser);
     // Unknown usernames still pay for a PBKDF2 run so response time does not reveal which exist
@@ -278,19 +282,24 @@ authRouter.post('/login', async (c) => {
     }
     const usesDefaultPassword = KNOWN_DEFAULT_PASSWORDS.has(password);
     if (!needsRehash && !(usesDefaultPassword && !account.must_change_password)) {
+      // verifyPassword awaited: another request in this isolate may have reset the password or locked
+      // the account meanwhile. Only the row as it is now may produce a token.
+      if (!stillTheVerifiedAccount(account)) continue;
       accountId = account.id;
       break;
     }
     const newHash = needsRehash ? await hashPassword(password) : null;
     // The cache may have moved during the awaits above: re-check, then update without awaiting
     const current = store.getUser(account.id);
-    if (!current || current.password !== account.password || (current.revision ?? 0) !== (account.revision ?? 0)) continue;
+    if (!stillTheVerifiedAccount(account)) continue;
     try {
       store.updateUser(account.id, {
         ...(newHash ? { password: newHash } : {}),
         ...(usesDefaultPassword ? { must_change_password: true } : {}),
       });
       await store.persistAsync();
+      const written = store.getUser(account.id);
+      if (!written || written.status === 'locked' || written.password !== (newHash ?? account.password)) continue;
       accountId = account.id;
       break;
     } catch (err) {
