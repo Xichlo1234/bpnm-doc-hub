@@ -18,6 +18,8 @@ import {
   Clock,
   UserCheck,
   Languages,
+  ChevronDown,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -58,6 +60,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
     try {
@@ -78,6 +82,9 @@ export const Header: React.FC<HeaderProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (notifDropdownRef.current && !notifDropdownRef.current.contains(e.target as Node)) {
         setIsNotifOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -132,101 +139,19 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Header Actions */}
       <div className="header-actions">
         {/* View mode: cards | document register | contract table. Partners and settings live in the sidebar. */}
-        <div className="view-switch" role="group" aria-label={t.cardView}>
-          {(
-            [
-              ['split', Columns, t.cardView, undefined],
-              ['doc_table', BookOpen, t.docTable, 'var(--accent-primary)'],
-              ['contract_table', Table2, t.contractTable, '#107C41'],
-            ] as const
-          ).map(([mode, Icon, label, color]) => (
-            <button
-              key={mode}
-              type="button"
-              className={viewMode === mode ? 'view-switch-btn active' : 'view-switch-btn'}
-              aria-pressed={viewMode === mode}
-              onClick={() => onToggleViewMode(mode)}
-              title={label}
-            >
-              <Icon size={13} color={color} />
-              <span className="header-label header-label-view">{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Language Switch Toggle: 🇻🇳 VN | 🇬🇧 EN | 🇰🇭 KM */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: 'var(--bg-input)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            padding: '2px',
-            marginRight: 6,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setLanguage('vi')}
-            style={{
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 7px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: language === 'vi' ? 'var(--accent-primary)' : 'transparent',
-              color: language === 'vi' ? '#ffffff' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-            }}
-            title={LANGUAGE_NAMES.vi}
+        <label className="view-select-wrap" title={t.viewModeLabel}>
+          <span className="sr-only">{t.viewModeLabel}</span>
+          <select
+            className="view-select"
+            aria-label={t.viewModeLabel}
+            value={viewMode === 'split' || viewMode === 'doc_table' || viewMode === 'contract_table' ? viewMode : 'split'}
+            onChange={(e) => onToggleViewMode(e.target.value as ViewMode)}
           >
-            🇻🇳 VN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage('en')}
-            style={{
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 7px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: language === 'en' ? 'var(--accent-primary)' : 'transparent',
-              color: language === 'en' ? '#ffffff' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-            }}
-            title={LANGUAGE_NAMES.en}
-          >
-            🇬🇧 EN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage('km')}
-            style={{
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 7px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: language === 'km' ? 'var(--accent-primary)' : 'transparent',
-              color: language === 'km' ? '#ffffff' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-            }}
-            title={LANGUAGE_NAMES.km}
-          >
-            🇰🇭 KM
-          </button>
-        </div>
+            <option value="split">{t.cardView}</option>
+            <option value="doc_table">{t.docTable}</option>
+            <option value="contract_table">{t.contractTable}</option>
+          </select>
+        </label>
 
         {/* Notification Bell with Badge & Dropdown */}
         <div style={{ position: 'relative' }} ref={notifDropdownRef}>
@@ -405,14 +330,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <button
-          className="btn-icon"
-          onClick={onToggleTheme}
-          title={theme === 'dark' ? t.lightTheme : t.darkTheme}
-        >
-          {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-        </button>
-
         {(user?.role === 'admin' || user?.can_access_labor_contracts) && (
           <button className="btn-primary" onClick={onOpenCreate}>
             <Plus size={16} strokeWidth={2.5} />
@@ -420,30 +337,66 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Admin profile and Logout action */}
+        {/* Account menu: language, theme, password, sign-out */}
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
+          <div className="user-menu" ref={userMenuRef}>
             <button
               type="button"
               className="header-user-badge"
-              style={{ cursor: 'pointer', border: 'none' }}
-              onClick={() => setIsPasswordOpen(true)}
-              title={`${tf('loggedInAs', { name: user.name, username: user.username })} · ${t.cpwTitle}`}
+              aria-haspopup="menu"
+              aria-expanded={isUserMenuOpen}
+              onClick={() => setIsUserMenuOpen((v) => !v)}
+              title={tf('loggedInAs', { name: user.name, username: user.username })}
             >
               <div className="header-user-avatar">
                 <ShieldCheck size={13} />
               </div>
               <span className="header-label">{user.username}</span>
+              <ChevronDown size={13} aria-hidden="true" />
             </button>
-            <button
-              type="button"
-              className="btn-logout"
-              onClick={logout}
-              title={t.logout}
-            >
-              <LogOut size={13} />
-              <span className="header-label">{t.logout}</span>
-            </button>
+            {isUserMenuOpen && (
+              <div className="user-menu-panel" role="menu" aria-label={t.userMenuLabel}>
+                <div className="user-menu-who">{tf('loggedInAs', { name: user.name, username: user.username })}</div>
+                <div className="user-menu-label">
+                  <Languages size={13} />
+                  {t.languageLabel}
+                </div>
+                <div className="user-menu-langs" role="group" aria-label={t.languageLabel}>
+                  {(['vi', 'en', 'km'] as const).map((code) => (
+                    <button
+                      key={code}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={language === code}
+                      className={language === code ? 'active' : ''}
+                      onClick={() => setLanguage(code)}
+                    >
+                      {LANGUAGE_NAMES[code]}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" role="menuitem" className="user-menu-item" onClick={onToggleTheme}>
+                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                  {theme === 'dark' ? t.lightTheme : t.darkTheme}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="user-menu-item"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    setIsPasswordOpen(true);
+                  }}
+                >
+                  <KeyRound size={14} />
+                  {t.cpwTitle}
+                </button>
+                <button type="button" role="menuitem" className="user-menu-item danger" onClick={logout}>
+                  <LogOut size={14} />
+                  {t.logout}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

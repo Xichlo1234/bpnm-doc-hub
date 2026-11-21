@@ -1154,4 +1154,13 @@ export const en: Translations = {
   srvMaintenance: "The system is under maintenance. Please try again later.",
   srvLoginRetry: "The account was just updated. Please sign in again.",
   srvPartnerCodeTakenConcurrent: "This partner code is already used by another partner.",
+  navTopOverview: "Overview",
+  navTopDocuments: "Documents",
+  navTopContracts: "Contracts",
+  navTopPartners: "Partners",
+  navTopArchive: "Archive",
+  navTopAdmin: "Administration",
+  viewModeLabel: "View",
+  userMenuLabel: "Account",
+  languageLabel: "Language",
 };

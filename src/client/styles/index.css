@@ -2280,3 +2280,210 @@ button.quick-dropzone {
     scrollbar-width: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Compact navigation: six top-level entries, two of them expandable    */
+/* ------------------------------------------------------------------ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (min-width: 1025px) {
+  .sidebar-pane {
+    width: 236px;
+    min-width: 236px;
+  }
+}
+.sidebar-nav.sidebar-nav-compact {
+  gap: 2px;
+}
+.nav-top {
+  width: 100%;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.nav-top .nav-item-left {
+  gap: 11px;
+}
+.nav-section-toggle.active-section {
+  color: var(--accent-primary);
+}
+.nav-chevron {
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+.nav-section.open .nav-chevron {
+  transform: rotate(180deg);
+}
+.nav-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 8px 12px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-subtle);
+}
+.nav-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 6px;
+}
+.nav-subgroup-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 10px 3px;
+}
+.nav-subgroup-title.labor {
+  color: #f59e0b;
+}
+.nav-item.nav-subitem {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+/* Header: view mode as one select, account actions in a menu */
+.view-select-wrap {
+  display: flex;
+  align-items: center;
+}
+.view-select {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.view-select:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.user-menu {
+  position: relative;
+  margin-left: 4px;
+}
+.user-menu .header-user-badge {
+  cursor: pointer;
+}
+.user-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  max-width: calc(100vw - 24px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.2));
+  padding: 8px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+}
+.user-menu-who {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+.user-menu-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 8px;
+}
+.user-menu-langs {
+  display: flex;
+  gap: 4px;
+  padding: 0 8px 6px;
+}
+.user-menu-langs button {
+  flex: 1;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 5px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.user-menu-langs button.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.user-menu-item:hover,
+.user-menu-langs button:hover {
+  background: var(--bg-hover);
+}
+.user-menu-langs button.active:hover {
+  background: var(--accent-primary);
+}
+.user-menu-item.danger {
+  color: #ef4444;
+}
+.user-menu-item:focus-visible,
+.user-menu-langs button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+@media (max-width: 720px) {
+  /* The compact header fits without side-scrolling, so its menus are not clipped */
+  .top-header .header-actions {
+    overflow: visible;
+    justify-content: flex-end;
+  }
+  .view-select {
+    max-width: 104px;
+    height: 32px;
+    padding: 0 20px 0 8px;
+    font-size: 11px;
+  }
+  .user-menu .header-user-badge {
+    padding: 4px 6px;
+  }
+  .user-menu-panel {
+    position: fixed;
+    top: 58px;
+    right: 8px;
+  }
+}

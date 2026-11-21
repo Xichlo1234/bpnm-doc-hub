@@ -1154,4 +1154,13 @@ export const km: Translations = {
   srvMaintenance: "ប្រព័ន្ធកំពុងថែទាំ។ សូមព្យាយាមម្តងទៀតពេលក្រោយ។",
   srvLoginRetry: "គណនីទើបតែត្រូវបានធ្វើបច្ចុប្បន្នភាព។ សូមចូលម្តងទៀត។",
   srvPartnerCodeTakenConcurrent: "កូដដៃគូនេះត្រូវបានប្រើដោយដៃគូផ្សេង។",
+  navTopOverview: "ទិដ្ឋភាពទូទៅ",
+  navTopDocuments: "ឯកសារ",
+  navTopContracts: "កិច្ចសន្យា",
+  navTopPartners: "ដៃគូ",
+  navTopArchive: "បណ្ណសារ",
+  navTopAdmin: "ការគ្រប់គ្រង",
+  viewModeLabel: "របៀបមើល",
+  userMenuLabel: "គណនី",
+  languageLabel: "ភាសា",
 };
