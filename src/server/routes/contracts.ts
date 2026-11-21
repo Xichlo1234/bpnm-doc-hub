@@ -115,7 +115,7 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
   try {
     await store.persistAsync();
   } catch (err) {
-    await attachment?.rollback();
+    await attachment?.rollback(err);
     throw err;
   }
   return c.json(newContract, 201);

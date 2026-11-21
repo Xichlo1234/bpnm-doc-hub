@@ -16,7 +16,7 @@ import { trashRouter } from './routes/trash.ts';
 import { historyRouter } from './routes/history.ts';
 import { adminRouter } from './routes/admin.ts';
 import { importsRouter } from './routes/imports.ts';
-import { store } from './db/store.ts';
+import { runRequest, CommitOutcomeUnknownError, WriteFencedError } from './db/store.ts';
 import { getDatabase } from './db/database.ts';
 import { DatabaseNotMigratedError, RevisionConflictError, NumberConflictError, FileRetiredError, UsernameTakenError, PartnerCodeTakenError } from './db/repository.ts';
 import { UploadValidationError } from './utils/fileStorage.ts';
@@ -57,11 +57,13 @@ app.use('/api/*', async (c, next) => {
     c.header('Pragma', 'no-cache');
   }
 
+  // The health check answers without the database (also on a schema that is not migrated yet)
+  if (c.req.path === '/api/health') return next();
+
   const env = c.env as any;
   const db = await getDatabase(env);
-  await store.sync(db, env?.DB ? 'd1' : 'json');
-  await next();
-  await store.flush(db);
+  const writes = !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method);
+  await runRequest(db, env?.DB ? 'd1' : 'json', writes, () => next(), () => !c.error && c.res.status < 400);
 });
 
 // Browser hardening for every response. The CSP allows only same-origin scripts; inline styles are
@@ -130,6 +132,14 @@ app.route('/api/imports', importsRouter);
 app.onError((err, c) => {
   if (err instanceof UploadValidationError) {
     return c.json({ error: err.message, code: err.code, params: err.params }, 400);
+  }
+  if (err instanceof WriteFencedError) {
+    return c.json({ error: 'Hệ thống đang bảo trì. Vui lòng thử lại sau.', code: 'MAINTENANCE' }, 503);
+  }
+  if (err instanceof CommitOutcomeUnknownError) {
+    // Do not claim success or failure: the write may have landed. The client reloads and checks.
+    console.error(err);
+    return c.json({ error: 'Không xác nhận được việc lưu dữ liệu. Vui lòng tải lại trang để kiểm tra trước khi thử lại.', code: 'COMMIT_UNKNOWN' }, 503);
   }
   if (err instanceof PartnerCodeTakenError) {
     return c.json({ error: 'Mã đối tác đã được dùng cho đối tác khác.', code: 'PARTNER_CODE_TAKEN', params: { code: '' } }, 409);

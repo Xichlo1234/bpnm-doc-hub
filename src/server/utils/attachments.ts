@@ -42,11 +42,21 @@ async function attachmentFieldsForKey(db: SqlDatabase, key: string, record: AnyR
  * Records created before migration 0006 hold their file only in file_key. The first time such a
  * record's attachments are touched, that file gets an attachment row so it shows up as version 1.
  */
+/** Stable id of the version-1 row of a pre-0006 record's file (the same before and after it is stored). */
+export const legacyAttachmentId = (type: AttachmentRecordType, recordId: string) => `att_legacy_${type}_${recordId}`;
+
 export async function ensureLegacyAttachment(db: SqlDatabase, type: AttachmentRecordType, record: AnyRecord): Promise<AttachmentRecord | null> {
   if (!isStoredKey(record.file_key)) return null;
   const existing = store.getAttachments(type, record.id, { includeVersions: true }).find((a) => a.file_key === record.file_key);
   if (existing) return existing;
-  return store.addAttachment({ record_type: type, record_id: record.id, ...(await attachmentFieldsForKey(db, record.file_key, record, 'legacy')) });
+  return store.addAttachment({ id: legacyAttachmentId(type, record.id), record_type: type, record_id: record.id, ...(await attachmentFieldsForKey(db, record.file_key, record, 'legacy')) });
+}
+
+/** What ensureLegacyAttachment would store, without changing anything (for read-only requests). */
+export async function legacyAttachmentView(db: SqlDatabase, type: AttachmentRecordType, record: AnyRecord): Promise<AttachmentRecord | null> {
+  if (!isStoredKey(record.file_key)) return null;
+  const id = legacyAttachmentId(type, record.id);
+  return { id, series_id: id, version: 1, is_current: true, uploaded_at: record.created_at, revision: 0, record_type: type, record_id: record.id, ...(await attachmentFieldsForKey(db, record.file_key, record, 'legacy')) } as AttachmentRecord;
 }
 
 /**

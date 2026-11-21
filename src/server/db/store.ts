@@ -20,6 +20,8 @@ import {
   readLegacyD1Dataset,
   withSeedDefaults,
 } from './persistence.ts';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { partnerCodeKey } from '../../shared/partnerCodeKey.mjs';
 import type { SqlDatabase, SqlStatement } from './database.ts';
 import {
   loadDataset,
@@ -84,6 +86,20 @@ export function normalizeVietnamese(str: string): string {
 }
 
 export type LegacySource = 'd1' | 'json';
+
+/** One import row as decided by the preview (see utils/importer.ts rowsToCommit). */
+export interface ImportWrite {
+  action: 'create' | 'update';
+  id?: string;
+  data: Record<string, any>;
+}
+
+/** Accepts the preview's decision, or a bare record: with a live id it updates, otherwise it creates. */
+function asImportWrite(raw: ImportWrite | Record<string, any>): ImportWrite {
+  if (raw && (raw as any).action && (raw as any).data) return raw as ImportWrite;
+  const { id, ...data } = raw as Record<string, any>;
+  return id ? { action: 'update', id, data } : { action: 'create', data };
+}
 export type TrashRecordType = 'document' | 'contract' | 'partner';
 // Every row of these tables carries a revision checked inside the write batch (documents and
 // contracts since 0003; partners, users and attachment versions since 0009)
@@ -172,7 +188,11 @@ export class MemoryStore {
 
   private db: SqlDatabase | null = null;
   private loaded = false;
+  // The last commit was REJECTED (or its outcome is unknown): the cache holds changes D1 does not
   private stale = false;
+  // The last commit SUCCEEDED but another worker committed in between: our rows are in D1, theirs are
+  // missing from this cache. Reload before the next request; never report this as a failure.
+  private reloadNeeded = false;
   private version = 0;
   // Fingerprints of what the database holds, per table and record id
   private snapshots = new Map<string, Map<string, string>>();
@@ -198,6 +218,39 @@ export class MemoryStore {
     this.pendingStatements = [];
     // The reset dataset replaces whatever a failed commit left behind
     this.stale = false;
+    this.fillPartnerKeys();
+  }
+
+  /**
+   * partners.code_key (migration 0011) for every partner that lacks it or whose code changed. A key held
+   * by another active partner (historical duplicate, reported by the preflight) is left NULL so the
+   * record stays editable; such pairs are never "resolved" automatically. Returns true if anything changed.
+   */
+  private fillPartnerKeys(): boolean {
+    let changed = false;
+    const holders = new Map<string, string>();
+    const all = [...this.partners.values()].sort((a: any, b: any) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || a.id.localeCompare(b.id));
+    for (const p of all) if (!p.deleted_at && p.code_key && p.code_key === partnerCodeKey(p.code)) holders.set(p.code_key, p.id);
+    for (const p of all) {
+      const key = partnerCodeKey(p.code);
+      if ((p.code_key ?? null) === key && (!key || p.deleted_at || holders.get(key) === p.id)) continue;
+      const free = key && (p.deleted_at || !holders.has(key) || holders.get(key) === p.id);
+      const next = free ? key : null;
+      if ((p.code_key ?? null) !== next) {
+        this.partners.set(p.id, { ...p, code_key: next });
+        changed = true;
+      }
+      if (next && !p.deleted_at) holders.set(next, p.id);
+    }
+    return changed;
+  }
+
+  /** code_key for one partner being written, by the same rule as fillPartnerKeys. */
+  private keyFor(p: PartnerRecord): string | null {
+    const key = partnerCodeKey(p.code);
+    if (!key || p.deleted_at) return key;
+    const holder = [...this.partners.values()].find((o) => o.id !== p.id && !o.deleted_at && o.code_key === key);
+    return holder ? null : key;
   }
 
   private applyDataset(data: Omit<PersistedDataset, 'audit_logs'>) {
@@ -251,18 +304,34 @@ export class MemoryStore {
         }
         await this.reload(db);
         await this.ensureNumberRegistry(db);
+        await this.backfillPartnerKeys(db);
         return;
       }
       if (this.stale) {
         await this.reload(db);
+        await this.backfillPartnerKeys(db);
         return;
       }
       // Changes made outside a request (tests, scripts) are written before checking for others'
       await this.flushUnlocked(db);
-      if ((await readVersion(db)) !== this.version) {
+      if (this.reloadNeeded || (await readVersion(db)) !== this.version) {
         await this.reload(db);
+        await this.backfillPartnerKeys(db);
       }
     });
+  }
+
+  /** Writes missing partners.code_key values (rows written before 0011 or by an older build). */
+  private async backfillPartnerKeys(db: SqlDatabase) {
+    if (!this.fillPartnerKeys()) return;
+    try {
+      await this.flushUnlocked(db);
+    } catch (err) {
+      // Another worker wrote the same rows meanwhile: reload next time and try again; never fail the request
+      console.warn('partner code_key backfill deferred', err);
+      this.stale = false;
+      this.reloadNeeded = true;
+    }
   }
 
   /** One-time registration of existing numbers after migration 0008 (see backfillNumberRegistry). */
@@ -332,6 +401,7 @@ export class MemoryStore {
     this.version = data.version;
     this.loaded = true;
     this.stale = false;
+    this.reloadNeeded = false;
   }
 
   private cachedTables(): Array<[TableSpec, Array<Record<string, any>>]> {
@@ -457,22 +527,112 @@ export class MemoryStore {
 
     if (statements.length === 0) return;
 
+    let outcome: { version: number; concurrentWrite: boolean };
     try {
-      const { version, concurrentWrite } = await commitChanges(db, statements, this.version);
-      pendingSnapshots.forEach((apply) => apply());
-      this.version = version;
-      // Someone else committed in between: our cache misses their rows, reload on next request
-      if (concurrentWrite) this.stale = true;
+      outcome = await commitChanges(db, statements, this.version);
     } catch (err) {
-      // The cache now holds changes the database rejected; discard them on the next request
+      // Rejected (guard / unique index) or unknown (timeout, network): the cache holds changes the
+      // database may not have. Discard them; the caller must not report success.
       this.stale = true;
+      if (/WRITE_FENCE/.test(String((err as Error)?.message || err))) throw new WriteFencedError();
       if (isNumberGuardViolation(err)) throw new NumberConflictError();
       if (isFileGuardViolation(err)) throw new FileRetiredError();
       if (isUsernameUniqueViolation(err)) throw new UsernameTakenError();
       if (isPartnerCodeUniqueViolation(err)) throw new PartnerCodeTakenError();
       if (isGuardViolation(err)) throw new RevisionConflictError();
-      throw err;
+      throw new CommitOutcomeUnknownError(err);
     }
+    // Committed. Bookkeeping only from here on: nothing below may turn this into a failure.
+    pendingSnapshots.forEach((apply) => apply());
+    this.version = outcome.version;
+    if (outcome.concurrentWrite) this.reloadNeeded = true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Request isolation. A request that may write works on a private fork of the committed cache
+  // (see runRequest below). Other requests never see its uncommitted changes, and no other request's
+  // flush can commit them. The fork replaces the shared cache only after its own commit succeeded.
+  // ---------------------------------------------------------------------------
+
+  /** A private, deep copy of this cache (data and commit bookkeeping). */
+  public fork(): MemoryStore {
+    const f = new MemoryStore();
+    const clone = <T>(v: T): T => structuredClone(v);
+    f.documents = clone(this.documents);
+    f.contracts = clone(this.contracts);
+    f.partners = clone(this.partners);
+    f.categories = clone(this.categories);
+    f.settings = clone(this.settings);
+    f.notifications = clone(this.notifications);
+    f.users = clone(this.users);
+    f.auditLogs = [...this.auditLogs]; // append-only, entries are never changed
+    f.currencies = clone(this.currencies);
+    f.attachments = clone(this.attachments);
+    f.pendingHistory = [...this.pendingHistory];
+    f.pendingStatements = [...this.pendingStatements];
+    f.db = this.db;
+    f.loaded = this.loaded;
+    f.stale = this.stale;
+    f.reloadNeeded = this.reloadNeeded;
+    f.version = this.version;
+    f.snapshots = clone(this.snapshots);
+    f.baseRevisions = clone(this.baseRevisions);
+    f.baseNumbers = clone(this.baseNumbers);
+    f.configSnapshot = { ...this.configSnapshot };
+    f.configRaw = { ...this.configRaw };
+    f.numberOwners = new Map(this.numberOwners);
+    f.persistedAuditIds = new Set(this.persistedAuditIds);
+    return f;
+  }
+
+  /** Takes over a fork's state after it committed everything it changed. */
+  public adopt(f: MemoryStore) {
+    this.documents = f.documents;
+    this.contracts = f.contracts;
+    this.partners = f.partners;
+    this.categories = f.categories;
+    this.settings = f.settings;
+    this.notifications = f.notifications;
+    this.users = f.users;
+    this.auditLogs = f.auditLogs;
+    this.currencies = f.currencies;
+    this.attachments = f.attachments;
+    this.pendingHistory = f.pendingHistory;
+    this.pendingStatements = f.pendingStatements;
+    this.loaded = f.loaded;
+    this.stale = f.stale;
+    this.reloadNeeded = f.reloadNeeded;
+    this.version = f.version;
+    this.snapshots = f.snapshots;
+    this.baseRevisions = f.baseRevisions;
+    this.baseNumbers = f.baseNumbers;
+    this.configSnapshot = f.configSnapshot;
+    this.configRaw = f.configRaw;
+    this.numberOwners = f.numberOwners;
+    this.persistedAuditIds = f.persistedAuditIds;
+  }
+
+  /** Forces a reload from D1 at the next sync (state unknown after a discarded fork). */
+  public invalidate() {
+    this.reloadNeeded = true;
+  }
+
+  /** True when the cache holds changes not yet committed (rows, config, audit, history, statements). */
+  public hasPendingChanges(): boolean {
+    if (!this.loaded) return false;
+    if (this.pendingHistory.length || this.pendingStatements.length) return true;
+    if (this.auditLogs.some((l) => !this.persistedAuditIds.has(l.id))) return true;
+    for (const key of CONFIG_KEYS) if (this.configSnapshot[key] !== JSON.stringify(this.configValue(key))) return true;
+    for (const [spec, records] of this.cachedTables()) {
+      const snap = this.snapshots.get(spec.name) ?? new Map<string, string>();
+      if (snap.size !== records.length) return true;
+      for (const r of records) if (snap.get(r.id) !== rowFingerprint(spec, r)) return true;
+    }
+    return false;
+  }
+
+  public get isStale() {
+    return this.stale;
   }
 
   /**
@@ -548,10 +708,10 @@ export class MemoryStore {
 
   /** Kept for route handlers: persists this request's changes before the response is built. */
   public async persistAsync() {
-    await this.flush();
-    // Another request's failed commit discards the cache (stale): this request's changes were not
-    // written either, so it must not report success
+    // A commit of this cache that was rejected earlier left changes D1 does not have: never report success
     if (this.stale) throw new RevisionConflictError();
+    await this.flush();
+    // A commit that succeeded while another worker also wrote is a SUCCESS (reloadNeeded only)
   }
 
   // Document operations
@@ -663,27 +823,25 @@ export class MemoryStore {
     return deleted;
   }
 
-  public bulkUpsertDocuments(docsList: Array<Partial<DocumentRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: DocumentRecord | null; after: DocumentRecord }> } {
+  /**
+   * Writes import rows. The caller (preview) decided per row: `update` (a live record's id) or `create`.
+   * Rows are never matched by number here, so preview and commit cannot disagree; a given id that is
+   * not a live record is never written. Columns beyond the known fields are kept on create and update.
+   */
+  public bulkUpsertDocuments(docsList: Array<ImportWrite | Partial<DocumentRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: DocumentRecord | null; after: DocumentRecord }> } {
     let added = 0;
     let updated = 0;
     const changes: Array<{ id: string; before: DocumentRecord | null; after: DocumentRecord }> = [];
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-    for (const item of docsList) {
-      if (!item.document_number && !item.id) continue;
-
+    for (const raw of docsList) {
+      const { action, id: targetId, data } = asImportWrite(raw);
+      const item = data as Partial<DocumentRecord>;
       let existing: DocumentRecord | undefined;
-      if (item.id && this.documents.has(item.id)) {
-        existing = this.documents.get(item.id);
-      } else if (item.document_number) {
-        // Same register only: incoming and outgoing documents may share a number
-        existing = Array.from(this.documents.values()).find(
-          (d) =>
-            !d.deleted_at &&
-            (d.doc_type || 'incoming') === (item.doc_type || 'incoming') &&
-            normalizeNumber(d.document_number) === normalizeNumber(item.document_number)
-        );
-      }
+      if (action === 'update') {
+        existing = targetId ? this.documents.get(targetId) : undefined;
+        if (!existing || existing.deleted_at) throw new RevisionConflictError();
+      } else if (!item.document_number) continue;
 
       if (existing) {
         const merged: DocumentRecord = withStorageLocation({
@@ -698,8 +856,10 @@ export class MemoryStore {
         changes.push({ id: existing.id, before: existing, after: merged });
         updated++;
       } else {
-        const id = item.id || ('doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6));
+        let id = 'doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+        while (this.documents.has(id)) id = 'doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
         const newRecord: DocumentRecord = {
+          ...(item as any),
           id,
           document_number: item.document_number || `CV-${vietnamToday().slice(0, 4)}-${String(this.documents.size + 1).padStart(4, '0')}`,
           title: item.title || 'Văn bản mới',
@@ -729,6 +889,8 @@ export class MemoryStore {
           updated_at: now,
           revision: 1,
         };
+        delete (newRecord as any).deleted_at;
+        delete (newRecord as any).deleted_by;
         newRecord.deadline_status = calculateDocumentDeadline(newRecord);
         this.documents.set(id, newRecord);
         changes.push({ id, before: null, after: newRecord });
@@ -848,24 +1010,20 @@ export class MemoryStore {
     return deleted;
   }
 
-  public bulkUpsertContracts(contractsList: Array<Partial<ContractRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: ContractRecord | null; after: ContractRecord }> } {
+  public bulkUpsertContracts(contractsList: Array<ImportWrite | Partial<ContractRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: ContractRecord | null; after: ContractRecord }> } {
     let added = 0;
     let updated = 0;
     const changes: Array<{ id: string; before: ContractRecord | null; after: ContractRecord }> = [];
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-    for (const item of contractsList) {
-      if (!item.contract_number && !item.id) continue;
-
-      // Find existing contract by id or contract_number
+    for (const raw of contractsList) {
+      const { action, id: targetId, data } = asImportWrite(raw);
+      const item = data as Partial<ContractRecord>;
       let existing: ContractRecord | undefined;
-      if (item.id && this.contracts.has(item.id)) {
-        existing = this.contracts.get(item.id);
-      } else if (item.contract_number) {
-        existing = Array.from(this.contracts.values()).find(
-          c => !c.deleted_at && c.contract_number.trim().toLowerCase() === item.contract_number!.trim().toLowerCase()
-        );
-      }
+      if (action === 'update') {
+        existing = targetId ? this.contracts.get(targetId) : undefined;
+        if (!existing || existing.deleted_at) throw new RevisionConflictError();
+      } else if (!item.contract_number) continue;
 
       if (existing) {
         // Update existing contract
@@ -882,9 +1040,9 @@ export class MemoryStore {
         updated++;
       } else {
         // Create new contract
-        const id = item.id || ('con-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6));
+        let id = 'con-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+        while (this.contracts.has(id)) id = 'con-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
         const newRecord: ContractRecord = {
-          id,
           contract_number: item.contract_number || `HĐ-${vietnamToday().slice(0, 4)}-${String(this.contracts.size + 1).padStart(4, '0')}`,
           title: item.title || 'Hợp đồng mới',
           contract_type: item.contract_type || 'service',
@@ -911,8 +1069,11 @@ export class MemoryStore {
           created_at: now,
           updated_at: now,
           ...item,
+          id,
           revision: 1,
         };
+        delete (newRecord as any).deleted_at;
+        delete (newRecord as any).deleted_by;
         newRecord.urgency = calculateUrgency(newRecord.end_date, newRecord.status);
         this.contracts.set(id, newRecord);
         changes.push({ id, before: null, after: newRecord });
@@ -945,6 +1106,7 @@ export class MemoryStore {
     const rec = map.get(id);
     if (!rec || !rec.deleted_at) return null;
     const updated = { ...rec, deleted_at: null, deleted_by: null, revision: (rec.revision ?? 0) + 1 };
+    if (type === 'partner') updated.code_key = partnerCodeKey(updated.code); // a clash fails in D1 (409)
     map.set(id, updated);
     return updated;
   }
@@ -1036,10 +1198,10 @@ export class MemoryStore {
   }
 
   /** Adds a file to a record; with `replaces` it becomes the next version of that attachment. */
-  public addAttachment(input: Omit<AttachmentRecord, 'id' | 'series_id' | 'version' | 'is_current' | 'uploaded_at'> & { replaces?: string | null }): AttachmentRecord {
-    const { replaces, ...fields } = input;
+  public addAttachment(input: Omit<AttachmentRecord, 'id' | 'series_id' | 'version' | 'is_current' | 'uploaded_at'> & { replaces?: string | null; id?: string }): AttachmentRecord {
+    const { replaces, id: fixedId, ...fields } = input;
     const previous = replaces ? this.attachments.get(replaces) : undefined;
-    const id = `att_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = fixedId || `att_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
     let version = 1;
     let seriesId = id;
     if (previous) {
@@ -1089,6 +1251,7 @@ export class MemoryStore {
       is_locked: partner.is_locked ?? false,
       revision: 1,
     };
+    newPartner.code_key = this.keyFor(newPartner);
     this.partners.set(id, newPartner);
     return newPartner;
   }
@@ -1097,6 +1260,7 @@ export class MemoryStore {
     const p = this.partners.get(id);
     if (!p) return null;
     const updated: PartnerRecord = { ...p, ...partial, revision: (p.revision ?? 0) + 1 };
+    updated.code_key = this.keyFor(updated);
     this.partners.set(id, updated);
     return updated;
   }
@@ -1501,4 +1665,97 @@ export class MemoryStore {
   }
 }
 
-export const store = new MemoryStore();
+/** D1 refused the write because the maintenance write fence is installed (definite: nothing was written). */
+export class WriteFencedError extends Error {
+  constructor() {
+    super('Writes are fenced for maintenance');
+    this.name = 'WriteFencedError';
+  }
+}
+
+/** The commit's outcome is unknown (timeout, network): the write may or may not be in D1. */
+export class CommitOutcomeUnknownError extends Error {
+  constructor(public cause: unknown) {
+    super(`D1 commit outcome unknown: ${String((cause as Error)?.message || cause)}`);
+    this.name = 'CommitOutcomeUnknownError';
+  }
+}
+
+/** The isolate's committed cache. Read-only requests read it; writing requests fork it. */
+export const sharedStore = new MemoryStore();
+const requestScope = new AsyncLocalStorage<MemoryStore>();
+let writeQueue: Promise<unknown> = Promise.resolve();
+const READ_ONLY_CHECK = typeof process !== 'undefined' && Boolean(process.env?.VITEST);
+
+/**
+ * Runs one API request against the cache.
+ * - Read-only requests use the committed shared cache directly.
+ * - Writing requests run one at a time per isolate, each on a private fork. At the end the fork's
+ *   changes are committed in one D1 batch; only then does the fork become the shared cache. A request
+ *   that fails (or answers 4xx/5xx) never leaks a half-applied change into the shared cache.
+ */
+export async function runRequest<T>(
+  db: SqlDatabase,
+  legacySource: LegacySource,
+  writes: boolean,
+  handler: () => Promise<T>,
+  shouldCommit: () => boolean
+): Promise<T> {
+  if (!writes) {
+    await sharedStore.sync(db, legacySource);
+    const result = await requestScope.run(sharedStore, handler);
+    // Read-only requests must not change the cache (a change here would be committed by someone else)
+    if (READ_ONLY_CHECK && sharedStore.hasPendingChanges()) throw new Error('A read-only request changed the shared cache');
+    return result;
+  }
+  const run = writeQueue.then(async () => {
+    await sharedStore.sync(db, legacySource);
+    const draft = sharedStore.fork();
+    let result: T;
+    try {
+      result = await requestScope.run(draft, handler);
+      if (shouldCommit() && !draft.isStale) await requestScope.run(draft, () => draft.flush(db));
+    } catch (err) {
+      // Committed part (if any) is in D1; the rest is discarded. Reload rather than guess.
+      sharedStore.invalidate();
+      throw err;
+    }
+    if (draft.isStale || draft.hasPendingChanges()) sharedStore.invalidate();
+    else sharedStore.adopt(draft);
+    return result;
+  });
+  writeQueue = run.catch(() => {});
+  return run;
+}
+
+/** The cache of the current request (its fork when writing), or the shared cache outside requests. */
+export function currentStore(): MemoryStore {
+  return requestScope.getStore() ?? sharedStore;
+}
+
+// `store` keeps its familiar API: every call goes to the cache of the request that is running *at call
+// time* (its fork when writing). Test spies installed on `store` (own properties of the shared
+// instance) apply to whichever cache the request uses.
+const callWrappers = new Map<PropertyKey, (...args: any[]) => any>();
+export const store: MemoryStore = new Proxy(sharedStore, {
+  get(target, prop) {
+    const own = Object.prototype.hasOwnProperty.call(target, prop) ? (target as any)[prop] : undefined;
+    const proto = (MemoryStore.prototype as any)[prop];
+    if (typeof own === 'function' || (typeof proto === 'function' && prop !== 'constructor')) {
+      if (typeof own === 'function') return (...args: any[]) => own.apply(currentStore(), args);
+      let w = callWrappers.get(prop);
+      if (!w) {
+        w = (...args: any[]) => proto.apply(currentStore(), args);
+        callWrappers.set(prop, w);
+      }
+      return w;
+    }
+    const cur: any = currentStore();
+    const value = cur[prop];
+    return typeof value === 'function' ? value.bind(cur) : value;
+  },
+  set(_target, prop, value) {
+    (currentStore() as any)[prop] = value;
+    return true;
+  },
+});

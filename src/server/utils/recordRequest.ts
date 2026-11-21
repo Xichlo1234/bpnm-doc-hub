@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { saveUploadedFile, registerUpload, discardUpload, validateUpload, type SavedUpload } from './fileStorage.ts';
 import { getDatabase } from '../db/database.ts';
+import { CommitOutcomeUnknownError } from '../db/store.ts';
 
 /**
  * Reads a create-record request that is either JSON or multipart (fields + optional `file`).
@@ -32,11 +33,18 @@ export async function storeAttachment(
 ): Promise<{
   fields: Pick<SavedUpload, 'file_key' | 'file_name' | 'file_size' | 'file_type'>;
   sha256: string;
-  rollback: () => Promise<void>;
+  /** Removes the upload after its record was NOT saved. Pass the commit error: an unknown outcome keeps the file. */
+  rollback: (cause?: unknown) => Promise<void>;
 }> {
   const uploaded = await saveUploadedFile(file, c.env);
   const db = await getDatabase(c.env);
-  const rollback = () => discardUpload(db, uploaded.file_key, c.env);
+  const rollback = async (cause?: unknown) => {
+    if (cause instanceof CommitOutcomeUnknownError) {
+      console.warn('Upload kept: the commit outcome is unknown', uploaded.file_key);
+      return;
+    }
+    await discardUpload(db, uploaded.file_key, c.env);
+  };
   try {
     await registerUpload(db, uploaded, userId);
   } catch (err) {

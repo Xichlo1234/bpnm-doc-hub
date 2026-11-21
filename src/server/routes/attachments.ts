@@ -10,6 +10,7 @@ import {
   canReadRecord,
   canWriteRecord,
   ensureLegacyAttachment,
+  legacyAttachmentView,
   setPrimaryFile,
 } from '../utils/attachments.ts';
 import type { AttachmentRecordType } from '../types.ts';
@@ -39,9 +40,11 @@ attachmentsRouter.get('/:type/:id', async (c) => {
   if (!canReadRecord(getAuthUser(c), type, record)) return forbidden(c);
   const includeVersions = c.req.query('versions') === '1';
   // Records from before multi-file support show their single file as version 1
+  // (shown, not stored: a read-only request changes nothing; the row is stored on the first file change)
   const hasRows = store.getAttachments(type, record.id, { includeVersions: true, includeDeleted: true }).length > 0;
   if (!hasRows && record.file_key) {
-    await ensureLegacyAttachment(await getDatabase(c.env), type, record);
+    const legacy = await legacyAttachmentView(await getDatabase(c.env), type, record);
+    return c.json({ attachments: legacy ? [legacy] : [] });
   }
   return c.json({ attachments: store.getAttachments(type, record.id, { includeVersions }) });
 });
@@ -129,7 +132,7 @@ attachmentsRouter.post('/:type/:id', async (c) => {
   try {
     await store.persistAsync();
   } catch (err) {
-    await stored.rollback();
+    await stored.rollback(err);
     throw err;
   }
   return c.json({ attachment: att, record: updated ?? getRecord(type, record.id) }, 201);

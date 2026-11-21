@@ -227,6 +227,28 @@ export async function getUploadRow(db: any, key: string): Promise<UploadRow | nu
  * the file (with its uploader) instead of losing track of it.
  */
 export async function discardUpload(db: any, key: string, env?: any): Promise<void> {
+  // Delete only what D1 *confirms* nobody references. A commit that was reported as failed may still
+  // have landed (retried batch, timeout after commit): then the file is kept. If D1 cannot be asked,
+  // keep the file too — an unattached upload is only visible to its uploader and to the storage check.
+  try {
+    const ref = await db
+      .prepare(
+        `SELECT 1 AS x FROM documents WHERE file_key = ?1
+         UNION ALL SELECT 1 FROM contracts WHERE file_key = ?1
+         UNION ALL SELECT 1 FROM attachments WHERE file_key = ?1
+         UNION ALL SELECT 1 FROM file_uploads WHERE key = ?1 AND attached_at IS NOT NULL
+         LIMIT 1`
+      )
+      .bind(key)
+      .first();
+    if (ref) {
+      console.warn('Rollback skipped: the database references the file', key);
+      return;
+    }
+  } catch (err) {
+    console.warn('Rollback skipped: could not confirm the file is unreferenced', key, err);
+    return;
+  }
   try {
     await deleteStoredFile(key, env);
   } catch (err) {

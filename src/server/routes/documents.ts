@@ -144,7 +144,7 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     await store.persistAsync();
   } catch (err) {
     // The record was not saved: do not keep its file
-    await attachment?.rollback();
+    await attachment?.rollback(err);
     throw err;
   }
   return c.json(
