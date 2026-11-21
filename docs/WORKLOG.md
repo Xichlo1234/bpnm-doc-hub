@@ -140,8 +140,9 @@ Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod
 | PR05 | Kiểm thử & vận hành | https://github.com/Xichlo1234/bpnm-doc-hub/pull/5 |
 | PR06 | Khắc phục sau thẩm định | https://github.com/Xichlo1234/bpnm-doc-hub/pull/6 |
 | PR07 | Gia cố cuối sau thẩm định lần 2 | https://github.com/Xichlo1234/bpnm-doc-hub/pull/7 |
+| PR08 | Khắc phục NO-GO lần 3 (D1–D5) | https://github.com/Xichlo1234/bpnm-doc-hub/pull/8 |
 
-Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 → PR07 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
+Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 → PR07 → PR08 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
 
 ---
 
@@ -220,6 +221,52 @@ bảng `storage_cleanup`, `file_guard`, chỉ mục duy nhất `users(username C
 Không chạy gì trên Production. Ghi chú: các mục "Nên sửa" của báo cáo lần 2 không có trong yêu cầu gửi kèm;
 đã xử lý các điểm suy ra từ C1–C7 (cấu hình đồng thời, trùng tên đăng nhập, khôi phục đối tác trùng mã,
 nút khoá đối tác). Cần bản báo cáo đầy đủ để đối chiếu từng mục.
+
+---
+
+## PR08 — Khắc phục NO-GO lần 3 (D1–D5)
+Nhánh `pr08-final-review-fixes` → `pr07-final-hardening` · mã sửa: commit `3c2f972` · PR: (xem `docs/REVIEW_REQUEST.md`)
+
+| Lỗi | Mã đã sửa | Test (`tests/pr08_hardening.test.ts` trừ khi ghi khác) | Kết quả |
+|---|---|---|---|
+| **D1** Trùng mã đối tác giữa các worker | `migrations/0010` (UNIQUE `upper(trim(code))` cho đối tác chưa xoá); `routes/partners.ts` (`normalizePartnerCode`, kiểm tra tạo/sửa); `routes/trash.ts` (khôi phục); `db/repository.ts` (`PartnerCodeTakenError`); `index.ts` → 409 `PARTNER_CODE_TAKEN`; id đối tác ngẫu nhiên; preflight chặn `duplicate_partner_codes` | › D1: 2 worker tạo/tạo, tạo/khôi phục, khôi phục/khôi phục; API 409; `migrations.test.ts` › 0010 (dữ liệu lịch sử trùng → preflight chặn, migration không sửa dòng nào, sau khi sửa thì áp được) | ✔ |
+| **D2** Đăng nhập cấp token từ lần xác thực trước khi nạp lại | `routes/auth.ts`: vòng lặp tối đa 2 lần; mỗi lần xác thực lại mật khẩu, trạng thái, phiên trên dữ liệu mới; `RevisionConflictError` → `sync` rồi xác thực lại từ đầu; hết lượt → 409 `LOGIN_RETRY`, không token. Giữ nâng cấp hash cũ và bắt buộc đổi mật khẩu mặc định | › D2: đăng nhập vs đặt lại mật khẩu (401, mật khẩu mới dùng được), vs khoá (403), vs thu hồi phiên (token mang `token_version` mới nhất, vẫn nâng cấp hash); mật khẩu mặc định | ✔ |
+| **D3** Đua trong cùng isolate | Kiểm tra lại revision/số **sau mọi `await`** (upload R2, kiểm tra quyền tệp, băm mật khẩu) ngay trước khi sửa MemoryStore: `routes/attachments.ts`, `contracts.ts`, `documents.ts`, `users.ts`; thua → `rollback()` tệp vừa upload + 409; `store.persistAsync` ném `RevisionConflictError` nếu bộ đệm bị huỷ (không báo thành công giả) | › D3: 2 request đồng thời (chèn trễ tại `await`) — tệp đính kèm, sửa hợp đồng lao động, đặt lại mật khẩu, tạo văn bản cùng số kèm tệp → 1 thành công + 1 lỗi 409, không còn tệp/hàng `file_uploads` thừa; lỗi commit sau upload → không lộ tệp, không xoá tệp dùng chung | ✔ |
+| **D4** Nhập Excel nhận sai văn bản | `utils/importer.ts` `matchRow`: theo id hợp lệ (sai sổ → lỗi) hoặc `(doc_type, số chuẩn hoá)`; thiếu `doc_type` mà số có ở nhiều sổ → lỗi rõ; `db/store.ts` `bulkUpsertDocuments` khớp theo cùng quy tắc; kiểm tra số theo sổ số | › D4: cùng số ở sổ đến/đi — xem trước và ghi chỉ cập nhật đúng sổ; dòng mơ hồ → lỗi (xem trước) và 400 (ghi); dòng sổ khác → tạo mới, không gộp; id khác sổ → lỗi | ✔ |
+| **D5** Khoá ghi trước migration | `docs/ops/DEPLOY_RUNBOOK.md` viết lại thành 7 bước (deploy bản mới ở bảo trì → chờ ghi dừng (`data_version` đứng yên) → sao lưu + diễn tập phục hồi → migrate theo thứ tự từ đúng SHA → kiểm tra toàn vẹn → mở ghi → sự cố: giữ bảo trì/sửa tiến); `wrangler.jsonc` `vars.MAINTENANCE_MODE = "0"`; ghi rõ ảnh hưởng tới route/binding/secret/assets | › D5: bảo trì trả 503 **không gọi** `getDatabase`, health vẫn 200; runbook khoá ghi trước lệnh migrate và chỉ mở sau đó; dry-run có/không `--var MAINTENANCE_MODE:1` cùng bộ binding | ✔ |
+| Nên sửa: luồng nghiệp vụ | `utils/documentRules.ts`: đổi người xử lý/người ký/loại văn bản mà không đổi trạng thái vẫn kiểm tra yêu cầu của bước hiện tại và tính hợp lệ của trạng thái với loại mới | › Should-fix: xoá người xử lý ở "Đã phân công" → `TRANSITION_FIELD_REQUIRED`; đổi loại → `STATUS_INVALID` | ✔ |
+| Nên sửa: Excel giữ trường | Xuất → nhập lại không thay đổi gì; cột mở rộng được giữ; dòng thiếu cột không làm rỗng trường khác | › D4 round trip | ✔ |
+| Nên sửa: revision trả về | API sửa tài khoản/đối tác trả revision đã commit (trùng D1) | › Should-fix | ✔ |
+| Nên sửa: tồn đọng `storage_cleanup` | `utils/storageCleanup.ts` `cleanupCounts`, `listCleanup(limit, offset)`; `GET /api/admin/storage-cleanup?status&limit&offset`; POST trả `remaining` | › Should-fix: tổng số + phân trang | ✔ |
+| Nên sửa: preflight sổ số | `scripts/lib/preflight-core.mjs`: số trùng lịch sử → cảnh báo; `registry_conflicts` (số đã đăng ký cho hồ sơ khác, phát sinh sau backfill) → **CHẶN**; `unregistered_numbers` → cảnh báo + reconcile | › Should-fix: lịch sử không chặn, bản cũ ghi trùng sau backfill → chặn | ✔ |
+| Nên sửa: hồi quy | Văn bản Mật, R2, đính kèm, nhật ký, thông báo, sổ số: toàn bộ test cũ vẫn chạy | 358 test | ✔ |
+
+**Lỗi mới phát hiện khi làm PR08 (đã sửa)**
+| Lỗi | Xử lý |
+|---|---|
+| `flush` ghi upsert trước delete → khi một hàng bị xoá và hàng khác lấy lại cùng mã trong một batch, chỉ mục UNIQUE báo lỗi giả | Phát lệnh xoá trước upsert trong batch (`db/store.ts`) |
+| `persistAsync` có thể trả thành công khi bộ đệm đã bị huỷ do xung đột | Ném `RevisionConflictError` nếu `stale` sau `flush` |
+| Id đối tác suy ra từ mã → tạo lại mã đã xoá vĩnh viễn va chạm id cũ | Id ngẫu nhiên `partner-<slug>-<rand>`; test C2 cập nhật kỳ vọng sang `PartnerCodeTakenError` |
+| Một số thao tác (xoá/khôi phục đối tác, gỡ phiên bản tệp) chỉ dựa vào tự nâng revision trong `flush` | Mỗi mutator nâng revision rõ ràng |
+| Smoke/test cũ kỳ vọng 400 khi trùng mã đối tác | Đổi sang 409 (đúng đặc tả mới), không nới kiểm tra |
+
+**Migration 0010** (chỉ thêm, không sửa dòng nào): `CREATE UNIQUE INDEX IF NOT EXISTS idx_partners_code_active ON partners (upper(trim(code))) WHERE deleted_at IS NULL`.
+Tương thích 0001–0003; không sửa 0001–0009. Preflight chặn trước nếu dữ liệu đang có mã trùng; diễn tập trên DB giả lập Production trong `tests/migrations.test.ts`.
+
+**Kiểm thử thực tế (commit `3c2f972`)**
+| Lệnh | Kết quả |
+|---|---|
+| `npm ci` | ✔ |
+| `npm run typecheck` | ✔ |
+| `npm test` | ✔ 358 test / 31 file |
+| `npm run build` | ✔ |
+| `npx wrangler deploy --dry-run --outdir dist/worker` | ✔ (`MAINTENANCE_MODE: "0"`) |
+| `npm run audit:prod` | ✔ 0 lỗ hổng |
+| `npm run check` | ✔ |
+| Smoke E2E `--write` trên server **local** (dữ liệu giả lập) | ✔ 72/72 |
+| Playwright: sửa hồ sơ, chuyển bước, quyền người dùng, khoá đối tác | ✔ không lỗi API |
+
+Không chạy gì trên Production, không merge PR nào.
 
 ---
 
