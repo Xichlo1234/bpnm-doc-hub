@@ -5,15 +5,9 @@ import { app } from '../src/server/index.ts';
 import { store } from '../src/server/db/store.ts';
 import { getDatabase } from '../src/server/db/database.ts';
 import { UPLOADS_DIR } from '../src/server/utils/fileStorage.ts';
-import { tokenFor } from './setup.ts';
+import { tokenFor, fetchAs } from './setup.ts';
 
-const as = async (userId: string, p: string, init: RequestInit = {}) =>
-  app.fetch(
-    new Request(`http://localhost${p}`, {
-      ...init,
-      headers: { ...(init.headers as any), Authorization: `Bearer ${await tokenFor(userId)}` },
-    })
-  );
+const as = (userId: string, p: string, init: RequestInit & { rawRevision?: boolean } = {}) => fetchAs(userId, p, init);
 const admin = (p: string, init?: RequestInit) => as('admin_root', p, init);
 const json = (method: string, body: unknown): RequestInit => ({
   method,

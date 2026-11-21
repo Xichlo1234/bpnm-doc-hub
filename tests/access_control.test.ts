@@ -3,18 +3,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { app } from '../src/server/index.ts';
 import { store } from '../src/server/db/store.ts';
-import { tokenFor } from './setup.ts';
+import { tokenFor, fetchAs } from './setup.ts';
 import { UPLOADS_DIR } from '../src/server/utils/fileStorage.ts';
 import { isConfidentialLevel } from '../src/server/utils/access.ts';
 
 // app.fetch bypasses the helper in setup.ts that injects an admin session into app.request
-const as = async (userId: string, p: string, init: RequestInit = {}) =>
-  app.fetch(
-    new Request(`http://localhost${p}`, {
-      ...init,
-      headers: { ...(init.headers as any), Authorization: `Bearer ${await tokenFor(userId)}` },
-    })
-  );
+const as = (userId: string, p: string, init: RequestInit & { rawRevision?: boolean } = {}) => fetchAs(userId, p, init);
 const json = (method: string, body: unknown): RequestInit => ({
   method,
   headers: { 'Content-Type': 'application/json' },

@@ -18,7 +18,7 @@ import { adminRouter } from './routes/admin.ts';
 import { importsRouter } from './routes/imports.ts';
 import { store } from './db/store.ts';
 import { getDatabase } from './db/database.ts';
-import { DatabaseNotMigratedError, RevisionConflictError } from './db/repository.ts';
+import { DatabaseNotMigratedError, RevisionConflictError, NumberConflictError } from './db/repository.ts';
 import { UploadValidationError } from './utils/fileStorage.ts';
 
 export const app = new Hono();
@@ -119,6 +119,12 @@ app.route('/api/imports', importsRouter);
 app.onError((err, c) => {
   if (err instanceof UploadValidationError) {
     return c.json({ error: err.message, code: err.code, params: err.params }, 400);
+  }
+  if (err instanceof NumberConflictError) {
+    return c.json(
+      { error: 'Số văn bản/hợp đồng đã được sử dụng.', code: 'RECORD_NUMBER_TAKEN', params: { number: err.number || '' } },
+      409
+    );
   }
   if (err instanceof RevisionConflictError) {
     return c.json(

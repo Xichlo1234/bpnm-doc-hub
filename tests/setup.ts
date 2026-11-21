@@ -46,6 +46,74 @@ export async function tokenFor(userId: string): Promise<string> {
   );
 }
 
+/**
+ * Test clients behave like the real UI: a change to a document/contract carries the revision the
+ * client loaded (expected_revision). This helper adds the current stored revision to such requests
+ * when a test does not set one itself. Requests that must omit it (tests of REVISION_REQUIRED) use
+ * app.fetch directly.
+ */
+export function withLoadedRevision(url: string, init: RequestInit = {}): RequestInit {
+  const method = (init.method || 'GET').toUpperCase();
+  if (method === 'GET') return init;
+  const path = url.startsWith('http') ? new URL(url).pathname : url.split('?')[0];
+  let m = /^\/api\/(documents|contracts)\/([^/]+)(?:\/(transition|appendices|links|terminate|liquidate))?$/.exec(path);
+  let type = m?.[1] === 'documents' ? 'document' : m ? 'contract' : null;
+  let id = m ? decodeURIComponent(m[2]) : null;
+  if (m && method === 'DELETE') return init;
+  const att = /^\/api\/attachments\/(document|contract)\/([^/]+)$/.exec(path);
+  if (att) {
+    type = att[1];
+    id = decodeURIComponent(att[2]);
+  }
+  const detach = /^\/api\/attachments\/([^/]+)$/.exec(path);
+  if (detach && method === 'DELETE') {
+    const a = store.getAttachment(decodeURIComponent(detach[1]));
+    if (!a) return init;
+    const rec = a.record_type === 'document' ? store.getDocument(a.record_id) : store.getContract(a.record_id);
+    if (!rec || url.includes('expected_revision=')) return init;
+    return { ...init, __url: `${url}${url.includes('?') ? '&' : '?'}expected_revision=${rec.revision ?? 0}` } as any;
+  }
+  if (path === '/api/files/sync-drive' && typeof init.body === 'string') {
+    const body = JSON.parse(init.body);
+    const rec = body.type === 'document' ? store.getDocument(body.id) : store.getContract(body.id);
+    if (rec && body.expected_revision === undefined) body.expected_revision = rec.revision ?? 0;
+    return { ...init, body: JSON.stringify(body) };
+  }
+  if (!type || !id || ['bulk-import', 'import'].includes(id)) return init;
+  const rec = type === 'document' ? store.getDocument(id) : store.getContract(id);
+  if (!rec) return init;
+  if (init.body instanceof FormData) {
+    if (!init.body.has('expected_revision')) init.body.append('expected_revision', String(rec.revision ?? 0));
+    return init;
+  }
+  if (typeof init.body === 'string' || init.body === undefined) {
+    let body: any = {};
+    try {
+      body = init.body ? JSON.parse(init.body as string) : {};
+    } catch {
+      return init;
+    }
+    if (body && typeof body === 'object' && !Array.isArray(body) && body.expected_revision === undefined) {
+      body.expected_revision = rec.revision ?? 0;
+      const headers = new Headers(init.headers || {});
+      if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+      return { ...init, headers, body: JSON.stringify(body) };
+    }
+  }
+  return init;
+}
+
+/** app.fetch with a signed session for `userId` (or anonymous) and the loaded revision added. */
+export async function fetchAs(userId: string | null, url: string, init: RequestInit & { rawRevision?: boolean } = {}) {
+  const { rawRevision, ...rest } = init;
+  const prepared: any = rawRevision ? rest : withLoadedRevision(url, rest);
+  const finalUrl = prepared.__url || url;
+  delete prepared.__url;
+  const headers = new Headers(prepared.headers || {});
+  if (userId) headers.set('Authorization', `Bearer ${await tokenFor(userId)}`);
+  return app.fetch(new Request(`http://localhost${finalUrl}`, { ...prepared, headers }));
+}
+
 const originalRequest = app.request.bind(app);
 (app as any).request = async (input: any, init: RequestInit = {}, ...rest: any[]) => {
   const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
@@ -54,5 +122,8 @@ const originalRequest = app.request.bind(app);
   if (!headers.has('Authorization') && !pathname.startsWith('/api/auth/')) {
     headers.set('Authorization', `Bearer ${await adminToken()}`);
   }
-  return originalRequest(input, { ...init, headers }, ...rest);
+  const prepared: any = withLoadedRevision(url, { ...init, headers });
+  const finalUrl = prepared.__url;
+  delete prepared.__url;
+  return originalRequest(finalUrl || input, prepared, ...rest);
 };

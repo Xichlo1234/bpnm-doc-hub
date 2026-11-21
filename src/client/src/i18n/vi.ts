@@ -1145,6 +1145,9 @@ export const vi = {
   backToList: "Quay lại danh sách",
   recordSavedSuccess: "Đã lưu hồ sơ thành công.",
   srvPayloadTooLarge: "Dữ liệu gửi lên quá lớn.",
+  srvRevisionRequired: "Thiếu phiên bản hồ sơ. Vui lòng tải lại hồ sơ rồi lưu lại.",
+  srvStatusInvalid: "Trạng thái \"{status}\" không thuộc quy trình.",
+  srvRecordNumberTaken: "Số văn bản/hợp đồng đã được sử dụng. Vui lòng tải lại và chọn số khác.",
 };
 
 export type TranslationKey = keyof typeof vi;

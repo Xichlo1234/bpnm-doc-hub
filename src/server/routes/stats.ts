@@ -1,25 +1,11 @@
 import { Hono } from 'hono';
 import { store } from '../db/store.ts';
 import { getAuthUser } from './auth.ts';
-import { canAccessLaborContracts } from '../types.ts';
 
 export const statsRouter = new Hono();
 
-// GET /api/stats
+// GET /api/stats — computed only over the records this user may read (confidential documents and
+// labor contracts are left out for users without access, so counts never reveal they exist)
 statsRouter.get('/', (c) => {
-  const stats = store.getStats();
-  const currentUser = getAuthUser(c);
-  if (!canAccessLaborContracts(currentUser)) {
-    return c.json({
-      ...stats,
-      totalLaborContracts: 0,
-      laborActiveCount: 0,
-      laborUrgentCount: 0,
-      laborWarningCount: 0,
-      laborExpiredCount: 0,
-      laborLiquidatedCount: 0,
-      laborIndefiniteCount: 0,
-    });
-  }
-  return c.json(stats);
+  return c.json(store.getStats(getAuthUser(c)));
 });

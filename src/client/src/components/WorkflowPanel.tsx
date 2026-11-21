@@ -48,7 +48,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({ doc, canEdit, onUp
     setBusy(true);
     setMessage(null);
     try {
-      const payload: any = { to: target, note: form.note || undefined };
+      const payload: any = { to: target, expected_revision: doc.revision ?? 0, note: form.note || undefined };
       if (target === 'assigned') Object.assign(payload, { handler: form.handler, due_date: form.due_date || undefined, directive: form.directive || undefined });
       if (target === 'signed') payload.signer = form.signer;
       const updated = await api.transitionDocument(doc.id, payload);

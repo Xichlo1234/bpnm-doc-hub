@@ -1,6 +1,16 @@
 import { store } from '../db/store.ts';
+import { normalizeNumber, numberScope } from './numberKeys.ts';
 import type { DocumentRecord } from '../types.ts';
-import { stageOf, workflowKind, isIssued, ISSUED_PROTECTED_FIELDS, vietnamToday } from './workflow.ts';
+import {
+  workflowKind,
+  isIssued,
+  findStage,
+  allowedTransitions,
+  missingForStage,
+  ISSUED_PROTECTED_FIELDS,
+  vietnamToday,
+  type WorkflowKind,
+} from './workflow.ts';
 
 export interface RuleError {
   status: 400 | 409;
@@ -11,11 +21,16 @@ export interface RuleError {
 
 const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
 
-/** Another live document already uses this number (same type: incoming and outgoing registers are separate). */
+/**
+ * Another document of the same register already uses this number — including documents in the trash:
+ * a number is never handed out twice (the database enforces it too, migration 0008).
+ */
 export function documentNumberTaken(number: string, docType: string | null | undefined, excludeId?: string): DocumentRecord | null {
-  const n = norm(number);
+  const n = normalizeNumber(number);
   if (!n) return null;
-  return store.getDocuments().find((d) => d.id !== excludeId && norm(d.document_number) === n && (d.doc_type || null) === (docType || null)) ?? null;
+  const scope = numberScope('document', { doc_type: docType });
+  const all = [...store.getDocuments(), ...store.getTrash().documents];
+  return all.find((d) => d.id !== excludeId && normalizeNumber(d.document_number) === n && numberScope('document', d) === scope) ?? null;
 }
 
 export interface DirectiveLogEntry {
@@ -69,14 +84,95 @@ export function prepareNewDocument(body: Record<string, any>): RuleError | null 
       };
     }
     if (!body.received_date) body.received_date = vietnamToday();
-    body.status = body.status ? stageOf('incoming', body.status).status : body.handler ? 'Đã phân công' : 'Chưa phân công';
+    if (!body.status) body.status = body.handler ? 'Đã phân công' : 'Chưa phân công';
   }
-  if (kind === 'outgoing') {
+  if (kind === 'outgoing' && !body.status) {
     // A new outgoing document is a draft unless the caller says otherwise explicitly
-    body.status = body.status ? stageOf('outgoing', body.status).status : 'Dự thảo';
-    if (isIssued(body) && !body.issue_date) body.issue_date = vietnamToday();
+    body.status = 'Dự thảo';
+  }
+  if (kind) {
+    // An explicit status (e.g. registering an already issued document) must be a real stage and
+    // meet that stage's requirements
+    const stage = findStage(kind, body.status);
+    if (!stage) return statusInvalid(body.status);
+    const missing = missingForStage(stage.code, body);
+    if (missing.length > 0) return fieldsRequired(missing);
+    body.status = stage.status;
+    applyStageSideEffects(stage.code, null, body);
   }
   return null;
+}
+
+function statusInvalid(status: unknown): RuleError {
+  return {
+    status: 400,
+    error: `Trạng thái "${String(status)}" không thuộc quy trình.`,
+    code: 'STATUS_INVALID',
+    params: { status: String(status ?? '') },
+  };
+}
+
+function fieldsRequired(fields: string[]): RuleError {
+  return { status: 400, error: `Cần nhập ${fields.join(', ')} cho bước này.`, code: 'TRANSITION_FIELD_REQUIRED', params: { fields: fields.join(', ') } };
+}
+
+/** Dates and markers a step sets on the record (only when not already set). */
+function applyStageSideEffects(code: string, current: Partial<DocumentRecord> | null, changes: Record<string, any>) {
+  const has = (f: string) => Boolean(changes[f] ?? (current as any)?.[f]);
+  if (code === 'completed' && !has('completed_date')) changes.completed_date = vietnamToday();
+  if (code === 'issued') {
+    if (!has('issue_date')) changes.issue_date = vietnamToday();
+    if (!has('issued_at')) changes.issued_at = new Date().toISOString();
+  }
+}
+
+export interface StatusChangePlan {
+  error?: RuleError;
+  /** true when the status moves (changes.status was canonicalised and side effects applied) */
+  changed: boolean;
+  /** a move outside the normal steps, allowed only with a reason (audited) */
+  override: boolean;
+  from?: string | null;
+  to?: string;
+}
+
+/**
+ * The single rule set for every status change of incoming/outgoing documents (PATCH, PUT and the
+ * /transition endpoint): the target must be a workflow stage, reachable from the current one, and the
+ * resulting record must satisfy the stage's requirements. A move outside the normal steps needs an
+ * explicit override reason; it is recorded in history and the audit log by the caller.
+ */
+export function planStatusChange(current: DocumentRecord, changes: Record<string, any>, overrideReason?: string | null): StatusChangePlan {
+  const kind: WorkflowKind | null = workflowKind(changes.doc_type ?? current.doc_type);
+  if (!kind || changes.status === undefined) return { changed: false, override: false };
+  const target = findStage(kind, changes.status);
+  if (!target) return { error: statusInvalid(changes.status), changed: false, override: false };
+  const kindChanged = workflowKind(current.doc_type) !== kind;
+  const currentStage = kindChanged ? null : findStage(kind, current.status);
+  if (currentStage && currentStage.code === target.code) {
+    changes.status = current.status; // same stage (maybe an alias): no move
+    return { changed: false, override: false };
+  }
+  const merged = { ...current, ...changes };
+  const missing = missingForStage(target.code, merged);
+  if (missing.length > 0) return { error: fieldsRequired(missing), changed: false, override: false };
+  const normal = currentStage !== null && allowedTransitions(kind, current.status).includes(target.code);
+  const reason = String(overrideReason ?? '').trim();
+  if (!normal && !reason) {
+    return {
+      error: {
+        status: 400,
+        error: 'Không thể chuyển sang bước này từ trạng thái hiện tại.',
+        code: 'TRANSITION_NOT_ALLOWED',
+        params: { from: currentStage?.code ?? String(current.status ?? ''), to: target.code },
+      },
+      changed: false,
+      override: false,
+    };
+  }
+  changes.status = target.status;
+  applyStageSideEffects(target.code, current, changes);
+  return { changed: true, override: !normal, from: currentStage?.code ?? (current.status || null), to: target.code };
 }
 
 /**

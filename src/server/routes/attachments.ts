@@ -13,6 +13,7 @@ import {
   setPrimaryFile,
 } from '../utils/attachments.ts';
 import type { AttachmentRecordType } from '../types.ts';
+import { revisionConflict } from '../utils/validation.ts';
 
 export const attachmentsRouter = new Hono();
 
@@ -50,6 +51,8 @@ attachmentsRouter.post('/:type/:id', async (c) => {
   if (!canUploadFiles(user) || !canWriteRecord(user, type, record)) return forbidden(c);
 
   const form = await c.req.formData();
+  const conflict = revisionConflict(c, record, form.get('expected_revision'));
+  if (conflict) return conflict;
   const file = form.get('file');
   if (!file || typeof file !== 'object' || !('name' in file) || (file as File).size === 0) {
     return c.json({ error: 'Vui lòng chọn tệp để tải lên', code: 'FILE_REQUIRED' }, 400);
@@ -124,6 +127,8 @@ attachmentsRouter.delete('/:attId', async (c) => {
   const record = getRecord(att.record_type, att.record_id);
   if (!record) return notFound(c);
   if (!canWriteRecord(user, att.record_type, record)) return forbidden(c);
+  const conflict = revisionConflict(c, record, c.req.query('expected_revision'));
+  if (conflict) return conflict;
 
   const seriesKeys = new Set(
     store.getAttachments(att.record_type, att.record_id, { includeVersions: true }).filter((a) => a.series_id === att.series_id).map((a) => a.file_key)

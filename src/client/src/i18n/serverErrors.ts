@@ -70,6 +70,9 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   IMPORT_HAS_ERRORS: 'srvImportHasErrors',
   IMPORT_CONFIRMATION_REQUIRED: 'srvImportConfirmationRequired',
   PAYLOAD_TOO_LARGE: 'srvPayloadTooLarge',
+  REVISION_REQUIRED: 'srvRevisionRequired',
+  STATUS_INVALID: 'srvStatusInvalid',
+  RECORD_NUMBER_TAKEN: 'srvRecordNumberTaken',
 };
 
 export interface ServerErrorBody {

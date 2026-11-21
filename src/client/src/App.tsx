@@ -252,7 +252,8 @@ const AppContent: React.FC = () => {
 
   const handleLiquidate = async (id: string) => {
     try {
-      const updated = await api.liquidateContract(id);
+      const current = contracts.find((c) => c.id === id);
+      const updated = await api.liquidateContract(id, current?.revision ?? 0);
       setContracts(prev => prev.map(c => (c.id === id ? updated : c)));
       if (selectedItem?.kind === 'contract' && selectedItem.data.id === id) {
         setSelectedItem({ kind: 'contract', data: updated });

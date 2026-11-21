@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import { store } from '../db/store.ts';
 import { getDatabase } from '../db/database.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
-import { previewImport, rowsToCommit, logImportBatch, listImportBatches, type ImportKind } from '../utils/importer.ts';
+import { previewImport, rowsToCommit, importBatchStatement, listImportBatches, type ImportKind } from '../utils/importer.ts';
 
 const LABEL: Record<ImportKind, string> = { document: 'văn bản', contract: 'hợp đồng' };
 
@@ -68,16 +68,19 @@ export function importCommitHandler(kind: ImportKind) {
       entity_type: kind,
       details: `Nhập file Excel ${LABEL[kind]}: Thêm mới ${result.added}, Cập nhật ${result.updated}, Bỏ qua ${skipped}`,
     });
+    // The import log is part of the same transaction: no success without it
+    store.queueStatement((db) =>
+      importBatchStatement(db, {
+        kind,
+        fileName: typeof body?.file_name === 'string' ? body.file_name.slice(0, 300) : null,
+        user,
+        added: result.added,
+        updated: result.updated,
+        skipped,
+        details: { duplicate_in_file: preview.rows.filter((r) => r.action === 'duplicate_in_file').map((r) => r.key) },
+      })
+    );
     await store.persistAsync();
-    await logImportBatch(await getDatabase(c.env), {
-      kind,
-      fileName: typeof body?.file_name === 'string' ? body.file_name.slice(0, 300) : null,
-      user,
-      added: result.added,
-      updated: result.updated,
-      skipped,
-      details: { duplicate_in_file: preview.rows.filter((r) => r.action === 'duplicate_in_file').map((r) => r.key) },
-    }).catch((err) => console.warn('Import log failed', err));
 
     return c.json({
       success: true,

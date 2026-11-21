@@ -3,30 +3,57 @@ import type { SqlDatabase } from '../db/database.ts';
 import { canReadContract, canReadDocument, isAdmin, type AccessSubject } from './access.ts';
 import { getUploadRow } from './fileStorage.ts';
 
-/** Live records (documents and contracts) whose primary file or attachment (any version) is `key`. */
+/**
+ * Where a stored file is (or was) used:
+ *  - live: documents/contracts not in the trash whose primary file or a not-removed attachment
+ *    (any version) is `key`;
+ *  - past: records in the trash, removed attachments, attachments of trashed/purged records.
+ */
+export function fileReferences(key: string) {
+  const liveDocs = new Map(store.getDocuments().map((d) => [d.id, d]));
+  const liveContracts = new Map(store.getContracts().map((c) => [c.id, c]));
+  const documents = [...liveDocs.values()].filter((d) => d.file_key === key);
+  const contracts = [...liveContracts.values()].filter((c) => c.file_key === key);
+  let past = false;
+  for (const a of store.getAllAttachments()) {
+    if (a.file_key !== key) continue;
+    const rec = a.record_type === 'document' ? liveDocs.get(a.record_id) : liveContracts.get(a.record_id);
+    if (!a.deleted_at && rec) {
+      if (a.record_type === 'document' && !documents.includes(rec as any)) documents.push(rec as any);
+      if (a.record_type === 'contract' && !contracts.includes(rec as any)) contracts.push(rec as any);
+    } else {
+      past = true;
+    }
+  }
+  const trash = store.getTrash();
+  if (trash.documents.some((d) => d.file_key === key) || trash.contracts.some((c) => c.file_key === key)) past = true;
+  return { documents, contracts, past };
+}
+
+/** Kept for callers that only need the live records. */
 export function recordsReferencingFile(key: string) {
-  const viaAttachments = store.getAllAttachments().filter((a) => a.file_key === key && !a.deleted_at);
-  const docIds = new Set(viaAttachments.filter((a) => a.record_type === 'document').map((a) => a.record_id));
-  const contractIds = new Set(viaAttachments.filter((a) => a.record_type === 'contract').map((a) => a.record_id));
-  return {
-    documents: store.getDocuments().filter((d) => d.file_key === key || docIds.has(d.id)),
-    contracts: store.getContracts().filter((c) => c.file_key === key || contractIds.has(c.id)),
-  };
+  const { documents, contracts } = fileReferences(key);
+  return { documents, contracts };
 }
 
 /**
- * A file is readable when the user may read a record that references it. A file no record
- * references yet (just uploaded) is readable by its uploader and admins only. Bundled samples are
- * public static assets anyway.
+ * Read access to a stored file:
+ *  1. used by live records → only if the user may read at least one of them;
+ *  2. bundled samples → any signed-in user (they are public static assets anyway);
+ *  3. admins → yes;
+ *  4. used only in the past (record trashed/purged, attachment removed) → admins only, even for
+ *     the uploader: removing a file or a record must not hand access back to whoever uploaded it;
+ *  5. never attached (fresh upload) → only its uploader.
  */
 export async function canReadFile(db: SqlDatabase, user: AccessSubject | null, key: string): Promise<boolean> {
   if (!user) return false;
-  const { documents, contracts } = recordsReferencingFile(key);
-  if (documents.length > 0 || contracts.length > 0) {
-    return documents.some((d) => canReadDocument(user, d)) || contracts.some((c) => canReadContract(user, c));
+  const refs = fileReferences(key);
+  if (refs.documents.length > 0 || refs.contracts.length > 0) {
+    return refs.documents.some((d) => canReadDocument(user, d)) || refs.contracts.some((c) => canReadContract(user, c));
   }
   if (key.startsWith('samples/')) return true;
   if (isAdmin(user)) return true;
+  if (refs.past) return false;
   const upload = await getUploadRow(db, key);
   return Boolean(upload && upload.uploaded_by === user.id);
 }

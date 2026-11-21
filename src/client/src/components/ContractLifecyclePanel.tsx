@@ -29,6 +29,7 @@ export const ContractLifecyclePanel: React.FC<Props> = ({ contract, canEdit, isA
         signed_date: form.signed_date,
         new_end_date: form.new_end_date || null,
         new_value: form.new_value === '' ? null : Number(form.new_value),
+        expected_revision: contract.revision ?? 0,
       });
       setMessage({ ok: true, text: tf('ctAppendixSaved', { number: res.appendix.appendix_number }) });
       setOpen(false);
@@ -43,7 +44,7 @@ export const ContractLifecyclePanel: React.FC<Props> = ({ contract, canEdit, isA
     const reason = window.prompt(t.ctTerminateReason);
     if (!reason) return;
     try {
-      onUpdated(await api.terminateContract(contract.id, { reason, date: today() }));
+      onUpdated(await api.terminateContract(contract.id, { reason, date: today(), expected_revision: contract.revision ?? 0 }));
     } catch (err: any) {
       setMessage({ ok: false, text: err?.message });
     }

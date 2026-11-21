@@ -193,6 +193,7 @@ export const fileInput = {
     id: z.string().min(1).max(200),
     type: z.enum(['contract', 'document']),
     drive_url: httpUrl.optional(),
+    expected_revision: z.number().int().min(0).optional(),
   }),
 };
 
@@ -210,15 +211,24 @@ export function withoutUnchangedLinks(body: unknown, existing: Record<string, an
 }
 
 /**
- * Returns a 409 response when the client edited an older revision than the one stored, so a
- * concurrent save is never silently overwritten. Clients that send no expected_revision opt out.
+ * Optimistic concurrency, required for every change to a document or contract: the client sends the
+ * revision it loaded. Missing → 428 REVISION_REQUIRED; different from the stored one → 409
+ * REVISION_CONFLICT (with the current record). The database write re-checks it atomically
+ * (write_guard in the same D1 batch), so a concurrent save from another isolate is also refused.
  */
-export function revisionConflict(
-  c: Context,
-  existing: { revision?: number } | null,
-  expectedRevision: number | undefined
-): Response | null {
-  if (!existing || expectedRevision === undefined || expectedRevision === (existing.revision ?? 0)) return null;
+export function revisionConflict(c: Context, existing: { revision?: number } | null, expectedRevision: unknown): Response | null {
+  if (!existing) return null;
+  if (expectedRevision === undefined || expectedRevision === null || expectedRevision === '') {
+    return c.json(
+      { error: 'Thiếu phiên bản hồ sơ (expected_revision). Vui lòng tải lại hồ sơ rồi lưu lại.', code: 'REVISION_REQUIRED' },
+      428
+    );
+  }
+  const expected = Number(expectedRevision);
+  if (!Number.isInteger(expected) || expected < 0) {
+    return c.json({ error: 'Phiên bản hồ sơ không hợp lệ.', code: 'VALIDATION_FAILED', params: { fields: 'expected_revision' } }, 400);
+  }
+  if (expected === (existing.revision ?? 0)) return null;
   return c.json(
     {
       error: 'Hồ sơ đã được người khác cập nhật trong lúc bạn chỉnh sửa. Vui lòng mở lại để xem bản mới nhất rồi sửa lại.',

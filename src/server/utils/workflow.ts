@@ -65,14 +65,39 @@ export function stageByCode(kind: WorkflowKind, code: string): WorkflowStage | n
   return stagesFor(kind).find((s) => s.code === code) ?? null;
 }
 
+/**
+ * Strict lookup: the stage of a stored status, the first stage for an empty status, and null for a
+ * value that is not part of the workflow (it is never silently treated as the first stage).
+ */
+export function findStage(kind: WorkflowKind, status?: string | null): WorkflowStage | null {
+  const s = String(status ?? '').trim();
+  if (!s) return stagesFor(kind)[0];
+  return stagesFor(kind).find((st) => st.status === s || st.aliases?.includes(s)) ?? null;
+}
+
+/** Steps reachable from the current status; none from a status outside the workflow. */
 export function allowedTransitions(kind: WorkflowKind, status?: string | null): string[] {
-  return TRANSITIONS[kind][stageOf(kind, status).code] ?? [];
+  const stage = findStage(kind, status);
+  return stage ? TRANSITIONS[kind][stage.code] ?? [] : [];
 }
 
 export function isIssued(doc: { doc_type?: string | null; status?: string | null }): boolean {
   if (doc.doc_type !== 'outgoing') return false;
-  const code = stageOf('outgoing', doc.status).code;
+  const code = findStage('outgoing', doc.status)?.code;
   return code === 'issued' || code === 'archived';
+}
+
+/** Fields a step requires on the resulting record. */
+export const STAGE_REQUIREMENTS: Record<string, string[]> = {
+  assigned: ['handler'],
+  processing: ['handler'],
+  completed: ['handler'],
+  signed: ['signer'],
+  issued: ['signer', 'document_number'],
+};
+
+export function missingForStage(code: string, record: Record<string, any>): string[] {
+  return (STAGE_REQUIREMENTS[code] || []).filter((f) => !String(record[f] ?? '').trim());
 }
 
 /** Fields whose change after issuance is an "adjustment" and needs a reason. */

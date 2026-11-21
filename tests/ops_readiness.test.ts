@@ -1,15 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { app } from '../src/server/index.ts';
 import { store } from '../src/server/db/store.ts';
-import { tokenFor } from './setup.ts';
+import { tokenFor, fetchAs } from './setup.ts';
 
-const as = async (userId: string | null, p: string, init: RequestInit = {}) =>
-  app.fetch(
-    new Request(`http://localhost${p}`, {
-      ...init,
-      headers: { ...(init.headers as any), ...(userId ? { Authorization: `Bearer ${await tokenFor(userId)}` } : {}) },
-    })
-  );
+const as = (userId: string | null, p: string, init: RequestInit & { rawRevision?: boolean } = {}) => fetchAs(userId, p, init);
 const send = (method: string, body: unknown): RequestInit => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const json = async (res: Response) => (await res.json()) as any;
 

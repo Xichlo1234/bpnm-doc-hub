@@ -20,7 +20,9 @@
     "smoke": "node scripts/smoke-test.mjs",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "db:migrate:local": "node scripts/db-migrate.mjs migrate --local",
-    "dev:demo": "SEED_DEMO=1 vite"
+    "dev:demo": "SEED_DEMO=1 vite",
+    "preflight:remote": "node scripts/preflight.mjs --remote",
+    "preflight:local": "node scripts/preflight.mjs --file data/app.db"
   },
   "dependencies": {
     "hono": "^4.13.19",

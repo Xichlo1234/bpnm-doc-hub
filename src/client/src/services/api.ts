@@ -292,11 +292,13 @@ export const api = {
     return res.json();
   },
 
-  async liquidateContract(id: string): Promise<ContractRecord> {
+  async liquidateContract(id: string, expectedRevision: number): Promise<ContractRecord> {
     const res = await customFetch(`${API_BASE}/contracts/${encodeURIComponent(id)}/liquidate`, {
       method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expected_revision: expectedRevision }),
     });
-    if (!res.ok) throw new Error(tr('errLiquidateContract'));
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('errLiquidateContract')));
     return res.json();
   },
 
@@ -365,7 +367,7 @@ export const api = {
   },
 
   // expected_revision: the revision the user started editing; the server answers 409 if it changed since
-  async updateContract(id: string, data: Partial<ContractRecord> & { expected_revision?: number }): Promise<ContractRecord> {
+  async updateContract(id: string, data: Partial<ContractRecord> & { expected_revision: number }): Promise<ContractRecord> {
     const res = await customFetch(`${API_BASE}/contracts/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -379,7 +381,7 @@ export const api = {
     return res.json();
   },
 
-  async updateDocument(id: string, data: Partial<DocumentRecord> & { expected_revision?: number }): Promise<DocumentRecord> {
+  async updateDocument(id: string, data: Partial<DocumentRecord> & { expected_revision: number }): Promise<DocumentRecord> {
     const res = await customFetch(`${API_BASE}/documents/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -564,7 +566,7 @@ export const api = {
   },
 
   // Google Drive Sync
-  async syncGoogleDrive(id: string, type: 'contract' | 'document', drive_url?: string): Promise<{
+  async syncGoogleDrive(id: string, type: 'contract' | 'document', drive_url: string | undefined, expectedRevision: number): Promise<{
     success: boolean;
     record: any;
     google_drive_url: string;
@@ -572,7 +574,7 @@ export const api = {
     const res = await customFetch(`${API_BASE}/files/sync-drive`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, type, drive_url }),
+      body: JSON.stringify({ id, type, drive_url, expected_revision: expectedRevision }),
     });
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as any;
@@ -697,7 +699,10 @@ export const api = {
 
   // Audit Logs API
   // Workflow (incoming / outgoing documents)
-  async transitionDocument(id: string, payload: { to: string; handler?: string; due_date?: string; directive?: string; signer?: string; note?: string }): Promise<any> {
+  async transitionDocument(
+    id: string,
+    payload: { to: string; expected_revision: number; handler?: string; due_date?: string; directive?: string; signer?: string; note?: string }
+  ): Promise<any> {
     const res = await customFetch(`${API_BASE}/documents/${encodeURIComponent(id)}/transition`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -707,7 +712,7 @@ export const api = {
     return res.json();
   },
 
-  async terminateContract(id: string, payload: { date?: string; reason: string }): Promise<any> {
+  async terminateContract(id: string, payload: { date?: string; reason: string; expected_revision: number }): Promise<any> {
     const res = await customFetch(`${API_BASE}/contracts/${encodeURIComponent(id)}/terminate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -719,7 +724,15 @@ export const api = {
 
   async addContractAppendix(
     id: string,
-    payload: { appendix_number: string; title: string; signed_date: string; new_end_date?: string | null; new_value?: number | null; summary?: string }
+    payload: {
+      appendix_number: string;
+      title: string;
+      signed_date: string;
+      new_end_date?: string | null;
+      new_value?: number | null;
+      summary?: string;
+      expected_revision: number;
+    }
   ): Promise<{ appendix: any; contract: any }> {
     const res = await customFetch(`${API_BASE}/contracts/${encodeURIComponent(id)}/appendices`, {
       method: 'POST',
@@ -742,10 +755,11 @@ export const api = {
     type: 'document' | 'contract',
     id: string,
     file: File,
-    options: { replaces?: string; onProgress?: (percent: number) => void } = {}
+    options: { expectedRevision: number; replaces?: string; onProgress?: (percent: number) => void }
   ): Promise<{ attachment: AttachmentRecord; record: any }> {
     const form = new FormData();
     form.append('file', file);
+    form.append('expected_revision', String(options.expectedRevision));
     if (options.replaces) form.append('replaces', options.replaces);
     return customXhrRequest(`${API_BASE}/attachments/${type}/${encodeURIComponent(id)}`, form, {
       defaultErrorMsg: tr('attFailed'),
@@ -755,8 +769,10 @@ export const api = {
     });
   },
 
-  async removeAttachment(attachmentId: string): Promise<{ record: any }> {
-    const res = await customFetch(`${API_BASE}/attachments/${encodeURIComponent(attachmentId)}`, { method: 'DELETE' });
+  async removeAttachment(attachmentId: string, expectedRevision: number): Promise<{ record: any }> {
+    const res = await customFetch(`${API_BASE}/attachments/${encodeURIComponent(attachmentId)}?expected_revision=${expectedRevision}`, {
+      method: 'DELETE',
+    });
     if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('attFailed')));
     return res.json();
   },

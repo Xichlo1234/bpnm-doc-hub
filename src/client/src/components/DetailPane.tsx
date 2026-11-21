@@ -132,6 +132,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
 
       if (item.kind === 'contract') {
         const updated = await api.updateContract(item.data.id, {
+          expected_revision: item.data.revision ?? 0,
           file_key: res.file_key,
           file_name: res.file_name,
           file_size: res.file_size,
@@ -140,6 +141,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
         if (onItemUpdated) onItemUpdated({ kind: 'contract', data: updated });
       } else {
         const updated = await api.updateDocument(item.data.id, {
+          expected_revision: item.data.revision ?? 0,
           file_key: res.file_key,
           file_name: res.file_name,
           file_size: res.file_size,
@@ -171,7 +173,8 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
       const res = await api.syncGoogleDrive(
         item.data.id,
         item.kind,
-        urlToSave || companyDriveFolder
+        urlToSave || companyDriveFolder,
+        item.data.revision ?? 0
       );
 
       if (item.kind === 'contract') {
@@ -196,12 +199,14 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
       setIsSavingDrive(true);
       if (item.kind === 'contract') {
         const updated = await api.updateContract(item.data.id, {
+          expected_revision: item.data.revision ?? 0,
           google_drive_url: null,
           google_drive_synced_at: null,
         });
         if (onItemUpdated) onItemUpdated({ kind: 'contract', data: updated });
       } else {
         const updated = await api.updateDocument(item.data.id, {
+          expected_revision: item.data.revision ?? 0,
           google_drive_url: null,
           google_drive_synced_at: null,
         });
@@ -588,6 +593,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 recordType="contract"
                 recordId={c.id}
                 canEdit={isAdmin || (Boolean(user?.can_access_labor_contracts) && c.contract_type === 'labor')}
+                recordRevision={c.revision ?? 0}
                 onRecordChanged={(rec) => rec && onItemUpdated?.({ kind: 'contract', data: rec })}
               />
               <HistoryPanel recordType="contract" recordId={c.id} refreshKey={`${c.revision}:${c.updated_at}`} />
@@ -947,6 +953,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 recordType="document"
                 recordId={d.id}
                 canEdit={isAdmin}
+                recordRevision={d.revision ?? 0}
                 onRecordChanged={(rec) => rec && onItemUpdated?.({ kind: 'document', data: rec })}
               />
               <HistoryPanel recordType="document" recordId={d.id} refreshKey={`${d.revision}:${d.updated_at}`} />

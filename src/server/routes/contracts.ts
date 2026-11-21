@@ -124,15 +124,16 @@ async function updateContractHandler(c: Context) {
   const parsed = parseInput(c, contractInput.update, withoutUnchangedLinks(rawBody, existing));
   if (!parsed.ok) return parsed.response;
   const { expected_revision, ...body } = parsed.data as Record<string, any>;
-  const conflict = revisionConflict(c, existing, expected_revision);
-  if (conflict) return conflict;
   if (!existing) return notFound(c);
 
   const currentUser = getAuthUser(c)!;
+  // Permission first (never reveal revision state to someone who may not edit), then the revision
   // Non-admins may only edit labor contracts, and may not turn them into (or out of) another type
   if (currentUser.role !== 'admin' && !(isLaborContract(existing) && isLaborContract({ ...existing, ...body }))) {
     return c.json({ error: 'Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.', code: 'LABOR_ONLY_EDIT' }, 403);
   }
+  const conflict = revisionConflict(c, existing, expected_revision);
+  if (conflict) return conflict;
   if (body.file_key !== undefined && !(await canAttachFile(await getDatabase(c.env), currentUser, body.file_key, existing.file_key))) {
     return c.json({ error: 'Bạn không có quyền gắn tệp này vào hồ sơ.', code: 'FILE_ATTACH_FORBIDDEN' }, 403);
   }
@@ -160,6 +161,8 @@ async function endContract(c: Context, kind: 'liquidated' | 'terminated') {
     return c.json({ error: 'Hợp đồng đã thanh lý hoặc chấm dứt.', code: 'CONTRACT_ALREADY_ENDED' }, 400);
   }
   const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const conflict = revisionConflict(c, before, body.expected_revision);
+  if (conflict) return conflict;
   const date = body.date ?? vietnamToday();
   const reason = str(body.reason);
   if (!isDay(date)) return c.json({ error: 'Ngày không hợp lệ (YYYY-MM-DD).', code: 'VALIDATION_FAILED', params: { fields: 'date' } }, 400);
@@ -198,6 +201,8 @@ contractsRouter.post('/:id/appendices', requireAdminOrLaborAccess, async (c) => 
     return c.json({ error: 'Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.', code: 'LABOR_ONLY_EDIT' }, 403);
   }
   const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const conflict = revisionConflict(c, contract, body.expected_revision);
+  if (conflict) return conflict;
   const appendixNumber = str(body.appendix_number, 100);
   const title = str(body.title, 500);
   const signedDate = body.signed_date;
@@ -250,6 +255,8 @@ contractsRouter.put('/:id/links', requireAdminOrLaborAccess, async (c) => {
     return c.json({ error: 'Bạn chỉ được phân quyền chỉnh sửa mục Hợp đồng Lao động.', code: 'LABOR_ONLY_EDIT' }, 403);
   }
   const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const conflict = revisionConflict(c, contract, body.expected_revision);
+  if (conflict) return conflict;
   const raw = Array.isArray(body.links) ? body.links.slice(0, 50) : null;
   if (!raw) return c.json({ error: 'Danh sách liên kết không hợp lệ.', code: 'VALIDATION_FAILED', params: { fields: 'links' } }, 400);
   const links: Array<{ type: 'document' | 'contract'; id: string }> = [];
