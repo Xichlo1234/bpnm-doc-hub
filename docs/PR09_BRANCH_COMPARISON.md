@@ -19,13 +19,12 @@ Hai nhánh **không ghép được với nhau**: cùng sửa `store.ts`, `reposi
 | `npx tsc --noEmit -p .` | ✔ | ✔ |
 | `npx vitest run` | ✔ 388/388 (32 tệp) | ✔ 375/375 (32 tệp) |
 | `npm run build` | ✔ | ✔ |
-| **Khởi động trên workerd** (`npx wrangler dev --local`) | ✔ | **✘ `Incorrect type for map entry 'MAX_REQUEST_BYTES'`** |
+| Khởi động bằng `wrangler dev --local` (wrangler 3.114) | ✔ | ✘ `Incorrect type for map entry 'MAX_REQUEST_BYTES'` |
+| **Chạy trên Cloudflare (staging)** | chưa deploy | ✔ — staging đang chạy đúng `4bc122a` (tệp `assets/index-xFfn6WEy.js` trùng khớp khi build lại) |
 
-Lỗi workerd ở B: `src/server/index.ts` còn `export const MAX_REQUEST_BYTES` và `SECURITY_HEADERS`. Lỗi này có từ PR #1/#5,
-và `wrangler deploy --dry-run` không phát hiện được. A đã bỏ hai export này và có test chặn tái phát.
-**Cần reviewer xác minh:** trang staging `bpnm-doc-hub-staging…workers.dev` đang chạy commit nào. Nếu chạy B mà vẫn trả
-`/api/health` 200, có thể runtime trên Cloudflare chấp nhận các export này. Kết quả trên mới chỉ thấy với wrangler 3.114 cục bộ.
-Dù thế nào cũng nên bỏ hai export đó. Đây là thay đổi một dòng, áp được cho cả hai nhánh.
+**Đính chính:** lỗi ở B chỉ xảy ra với `wrangler dev` cục bộ (wrangler 3.114). Cloudflare thật vẫn chạy được B: đã xác minh
+staging chạy commit `4bc122a` và trả `/api/health` 200. Vì vậy đây **không phải lỗi chặn Production**. Nó chỉ cản việc
+diễn tập cục bộ. Bỏ hai export `MAX_REQUEST_BYTES` và `SECURITY_HEADERS` (sửa một dòng) giúp diễn tập cục bộ chạy được trên cả hai nhánh.
 
 Tái hiện:
 ```bash
@@ -47,7 +46,7 @@ CI=true npx wrangler dev --local --port 8788 --var MAINTENANCE_MODE:1 --var AUTH
 2. Có cần biên nhận commit của B (đối soát chủ động) thay cho "không xác định, giữ tệp" của A không?
 3. Triển khai **tại chỗ có rào chắn** (A) hay **cắt chuyển sang D1/R2 mới** (B)?
 4. Chọn nhánh gốc nào? Nhánh được chọn nên nhận thêm từ nhánh kia những gì? Ví dụ:
-   - B cần: sửa export ở `index.ts`; sửa bộ phân tích Excel phía giao diện; `parseWranglerJson`.
+   - B cần: bỏ export ở `index.ts` (để diễn tập cục bộ chạy được); sửa bộ phân tích Excel phía giao diện; `parseWranglerJson`.
    - A cần: biên nhận commit; `stored_at`.
 
 ## 4. Sau khi chọn

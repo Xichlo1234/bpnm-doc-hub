@@ -289,7 +289,7 @@ Nhánh `pr09-stabilization` → `pr08-final-review-fixes` · https://github.com/
 ### Lỗi mới phát hiện và đã xử lý
 | Lỗi | Phát hiện khi | Xử lý | Test |
 |---|---|---|---|
-| **Worker không khởi động trên workerd**: `src/server/index.ts` có named export không phải handler (`MAX_REQUEST_BYTES` từ PR #5, `SECURITY_HEADERS` từ PR #1). `wrangler deploy --dry-run` không phát hiện | diễn tập `wrangler dev` | Bỏ `export`; entry chỉ xuất `app` + `default` | › Worker entry |
+| `wrangler dev --local` (wrangler 3.114) không khởi động: `src/server/index.ts` có named export không phải handler (`MAX_REQUEST_BYTES`, `SECURITY_HEADERS`). Cloudflare thật vẫn chạy được (đã xác minh trên staging), nên chỉ ảnh hưởng diễn tập cục bộ | diễn tập `wrangler dev` | Bỏ `export`; entry chỉ xuất `app` + `default` | › Worker entry |
 | GET danh sách tệp đính kèm của hồ sơ cũ ghi ngầm một hàng `attachments` | kiểm tra "request đọc không được đổi bộ đệm" | Trả bản xem với id cố định; hàng được tạo ở lần đổi tệp đầu tiên (cùng id) | storage.test |
 | Bản ghi bên ngoài request bị mất khi bộ đệm chung cần nạp lại | thiết kế E2 | `sync` ghi thay đổi bên ngoài trước khi nạp lại (chỉ bỏ khi commit trước đó bị từ chối) | review_fixes |
 | `preflight`/`db-migrate` hỏng khi wrangler in thông báo (proxy) trước JSON | diễn tập staging | `parseWranglerJson` | › Worker entry |
