@@ -1146,4 +1146,5 @@ export const km: Translations = {
   partnersNavTitle: "ដៃគូ",
   backToList: "ត្រឡប់ទៅបញ្ជី",
   recordSavedSuccess: "បានរក្សាទុកកំណត់ត្រា។",
+  srvPayloadTooLarge: "សំណើធំពេក។",
 };

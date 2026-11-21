@@ -28,6 +28,10 @@ jobs:
 
       - run: npm ci
 
+      # Runtime dependencies only: fails on any high or critical advisory (see docs/ops/DEPENDENCIES.md)
+      - name: Dependency audit (production)
+        run: npm run audit:prod
+
       - name: Typecheck
         run: npx tsc --noEmit -p .
 

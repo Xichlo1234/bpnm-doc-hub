@@ -15,15 +15,20 @@
     "deploy": "npm run build && wrangler deploy",
     "db:migrate:remote": "node scripts/db-migrate.mjs migrate --remote",
     "db:status:remote": "node scripts/db-migrate.mjs status --remote",
-    "i18n:export": "node scripts/i18n-export.mjs"
+    "i18n:export": "node scripts/i18n-export.mjs",
+    "check": "npm run typecheck && npm test && vite build && wrangler deploy --dry-run --outdir dist/worker",
+    "smoke": "node scripts/smoke-test.mjs",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "db:migrate:local": "node scripts/db-migrate.mjs migrate --local",
+    "dev:demo": "SEED_DEMO=1 vite"
   },
   "dependencies": {
-    "hono": "^4.6.14",
+    "hono": "^4.13.19",
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "xlsx": "^0.18.5",
-    "zod": "^3.23.8"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241230.0",
@@ -32,7 +37,7 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7",
+    "vite": "^6.4.6",
     "vitest": "^2.1.8",
     "wrangler": "^3.99.0"
   }

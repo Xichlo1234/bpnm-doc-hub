@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { documentsRouter } from './routes/documents.ts';
 import { contractsRouter } from './routes/contracts.ts';
 import { searchRouter } from './routes/search.ts';
@@ -24,6 +25,17 @@ export const app = new Hono();
 
 // No CORS middleware: the SPA is served from the same origin as the API, so cross-origin
 // access is intentionally not allowed.
+
+// Request size cap: uploads are ≤5MB and Excel imports ≤5,000 rows, so 12MB is ample. Bigger bodies are
+// refused before they are read or validated.
+export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
+app.use(
+  '/api/*',
+  bodyLimit({
+    maxSize: MAX_REQUEST_BYTES,
+    onError: (c) => c.json({ error: 'Dữ liệu gửi lên quá lớn.', code: 'PAYLOAD_TOO_LARGE' }, 413),
+  })
+);
 
 // Database middleware: refreshes the in-memory cache before the request (if another isolate wrote)
 // and commits this request's changes after it. See MemoryStore in db/store.ts.

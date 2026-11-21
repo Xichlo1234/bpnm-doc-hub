@@ -82,6 +82,7 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
   if (!parsed.ok) return parsed.response;
   const body: any = parsed.data;
   applyCloudLink(body);
+  if (!body.status) body.status = 'active';
 
   if (!body.contract_number || !body.title || !body.party_a || !body.party_b || !body.signed_date || !body.start_date) {
     return c.json({ error: 'Missing required contract fields', code: 'CONTRACT_FIELDS_REQUIRED' }, 400);
@@ -154,7 +155,8 @@ async function endContract(c: Context, kind: 'liquidated' | 'terminated') {
   const id = c.req.param('id') || '';
   const before = store.getContract(id);
   if (!before) return notFound(c);
-  if (before.status !== 'active') {
+  // Records imported without a status are in force
+  if ((before.status || 'active') !== 'active') {
     return c.json({ error: 'Hợp đồng đã thanh lý hoặc chấm dứt.', code: 'CONTRACT_ALREADY_ENDED' }, 400);
   }
   const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;

@@ -46,7 +46,26 @@ const fileKeyValue = z
   .refine((v) => v === '' || v === '#' || /^(uploads|samples)\/[^/\\]+$/.test(v) || /^https?:\/\//i.test(v), 'không hợp lệ')
   .nullable();
 
-const SERVER_MANAGED_KEYS = ['created_at', 'updated_at', 'urgency', 'deadline_status', 'google_drive_synced_at', 'revision'];
+// Never taken from a request body: timestamps, computed fields, and logs/lists that only dedicated
+// endpoints maintain (forms send whole records back, including these)
+const SERVER_MANAGED_KEYS = [
+  'created_at',
+  'updated_at',
+  'urgency',
+  'deadline_status',
+  'google_drive_synced_at',
+  'revision',
+  'allowed_transitions',
+  'directive_log',
+  'adjustments',
+  'appendices',
+  'linked_records',
+  'issued_at',
+  'deleted_at',
+  'deleted_by',
+  'number_reassigned',
+  'requested_number',
+];
 
 type RecordMode = 'create' | 'update' | 'import';
 
@@ -166,7 +185,7 @@ export const configInput = {
     .partial(), // unknown keys are dropped
   // Category lists hold small user-defined items (strings or flat objects)
   categoryType: z.string().regex(/^[a-z][a-z0-9_]{0,49}$/i, 'loại danh mục không hợp lệ').refine((v) => !['__proto__', 'constructor', 'prototype'].includes(v)),
-  categoryItem: z.union([scalarValue, z.record(scalarValue)]).refine((v) => JSON.stringify(v).length <= 5_000, 'mục danh mục quá lớn'),
+  categoryItem: z.union([scalarValue, z.record(z.string(), scalarValue)]).refine((v) => JSON.stringify(v).length <= 5_000, 'mục danh mục quá lớn'),
 };
 
 export const fileInput = {

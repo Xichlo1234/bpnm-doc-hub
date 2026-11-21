@@ -14,6 +14,8 @@ const ADMIN = { username: process.env.SMOKE_ADMIN_USER, password: process.env.SM
 const USER = { username: process.env.SMOKE_USER, password: process.env.SMOKE_USER_PASS };
 const WRITE = process.argv.includes('--write');
 const TAG = `[SMOKE ${Date.now()}]`;
+// Dates relative to today (Vietnam time) so the script keeps working as time passes
+const daysFromToday = (n) => new Date(Date.now() + 7 * 3600_000 + n * 86400_000).toISOString().slice(0, 10);
 
 const PUBLIC_ONLY = !ADMIN.username || !ADMIN.password;
 if (PUBLIC_ONLY && WRITE) {
@@ -283,7 +285,7 @@ async function writeTests(admin) {
   section('Contracts (write)');
   let contract;
   await check('create economic contract', async () => {
-    const res = await api('/api/contracts', { token: T, method: 'POST', body: { contract_number: `${TAG}-HĐ`, title: `${TAG} Hợp đồng dịch vụ`, contract_type: 'service', party_a: 'SGII', party_b: 'Đối tác Smoke', value: 1500, currency: 'USD', signed_date: '2026-10-27', start_date: '2026-10-27', end_date: '2026-11-01' } });
+    const res = await api('/api/contracts', { token: T, method: 'POST', body: { contract_number: `${TAG}-HĐ`, title: `${TAG} Hợp đồng dịch vụ`, contract_type: 'service', party_a: 'SGII', party_b: 'Đối tác Smoke', value: 1500, currency: 'USD', signed_date: daysFromToday(-5), start_date: daysFromToday(-5), end_date: daysFromToday(5) } });
     expectStatus(res, 201, 'create contract');
     contract = res.data;
     cleanups.push(() => api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: T, method: 'DELETE' }));
@@ -322,9 +324,9 @@ async function writeTests(admin) {
     assert(staff.password === undefined, 'password returned');
   });
   let staffToken;
-  await check('new user can work right away and change password voluntarily', async () => {
+  await check('new user must replace the admin-assigned password first', async () => {
     const s = await login({ username: staffName, password: initialPw });
-    expectStatus(await api('/api/documents', { token: s.token }), 200, 'not blocked');
+    expectStatus(await api('/api/documents', { token: s.token }), 403, 'blocked until changed');
     const ch = await api('/api/auth/change-password', { token: s.token, method: 'POST', body: { current_password: initialPw, new_password: `${initialPw}New1` } });
     expectStatus(ch, 200, 'change');
     staffToken = ch.data.token;
@@ -334,7 +336,7 @@ async function writeTests(admin) {
   let labor;
   await check('admin creates labor contract with attachment', async () => {
     const form = new FormData();
-    for (const [k, v] of Object.entries({ contract_number: `${TAG}-HĐLĐ`, title: `${TAG} HĐLĐ mật`, contract_type: 'labor', contract_category: 'Hợp đồng lao động', party_a: 'SGII', party_b: 'Nhân viên Smoke', value: '1000', signed_date: '2026-10-27', start_date: '2026-10-27' })) form.append(k, v);
+    for (const [k, v] of Object.entries({ contract_number: `${TAG}-HĐLĐ`, title: `${TAG} HĐLĐ mật`, contract_type: 'labor', contract_category: 'Hợp đồng lao động', party_a: 'SGII', party_b: 'Nhân viên Smoke', value: '1000', signed_date: daysFromToday(-5), start_date: daysFromToday(-5) })) form.append(k, v);
     form.append('file', new Blob(['salary 1000'], { type: 'application/pdf' }), 'luong.pdf');
     const res = await api('/api/contracts', { token: T, method: 'POST', body: form });
     expectStatus(res, 201, 'labor create');

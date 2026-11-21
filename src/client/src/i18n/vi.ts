@@ -1144,6 +1144,7 @@ export const vi = {
   partnersNavTitle: "ĐỐI TÁC",
   backToList: "Quay lại danh sách",
   recordSavedSuccess: "Đã lưu hồ sơ thành công.",
+  srvPayloadTooLarge: "Dữ liệu gửi lên quá lớn.",
 };
 
 export type TranslationKey = keyof typeof vi;
