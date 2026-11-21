@@ -11,6 +11,12 @@
       "custom_domain": true
     }
   ],
+  // Plain-text vars are part of every deploy from this file. MAINTENANCE_MODE is "0" here; the
+  // maintenance step of docs/ops/DEPLOY_RUNBOOK.md deploys the same commit with
+  // `--var MAINTENANCE_MODE:1` (routes, bindings, assets and secrets unchanged).
+  "vars": {
+    "MAINTENANCE_MODE": "0"
+  },
   "assets": {
     "directory": "dist/client",
     "binding": "ASSETS",
