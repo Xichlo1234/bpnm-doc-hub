@@ -1,0 +1,257 @@
+.home-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.home-content {
+  max-width: 1320px;
+  box-sizing: border-box;
+  margin-inline: auto;
+  padding: clamp(16px, 3.2vw, 44px);
+  display: grid;
+  gap: clamp(16px, 2.1vw, 28px);
+}
+
+.home-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 248px;
+  display: flex;
+  align-items: center;
+  padding: clamp(24px, 4vw, 52px);
+  border: 1px solid #294b3c;
+  border-radius: 24px;
+  background: #132f25;
+  color: #f6faf4;
+}
+
+.home-hero::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 31%;
+  content: '';
+  background: linear-gradient(90deg, #132f25 0%, rgba(19, 47, 37, .45) 36%, transparent 68%),
+    url('/home-archive.webp') center 56% / cover no-repeat;
+  pointer-events: none;
+}
+
+.home-hero-copy { max-width: min(58%, 610px); }
+
+.home-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-block-end: 12px;
+  color: #c1dbcc;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.home-date svg { flex-shrink: 0; }
+
+.home-hero h1 {
+  margin: 0;
+  font-size: clamp(28px, 4.15vw, 54px);
+  font-weight: 700;
+  letter-spacing: -.045em;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.home-hero p {
+  margin: 10px 0 0;
+  color: #d3e8da;
+  font-size: clamp(14px, 1.4vw, 16px);
+  overflow-wrap: anywhere;
+}
+
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 23px;
+}
+
+.home-page button { font-family: inherit; }
+
+.home-primary,
+.home-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #cfffcd;
+  color: #172c21;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.home-primary:hover { background: #e4fbe2; }
+.home-secondary { background: rgba(19, 47, 37, .72); color: #f6faf4; border-color: #668778; }
+.home-secondary:hover { background: #27483a; }
+
+.home-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(10px, 1.5vw, 18px);
+}
+
+.home-metric,
+.home-panel {
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 17px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.home-metric {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  min-height: 130px;
+  padding: 16px;
+  text-align: start;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.home-metric:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-surface-subtle);
+}
+
+.home-metric strong { font-size: 29px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.home-metric-label { color: var(--text-secondary); font-size: 13px; }
+.home-row-arrow { flex-shrink: 0; color: var(--text-secondary); }
+.home-metric .home-row-arrow { position: absolute; inset: 18px 16px auto auto; }
+
+.home-icon {
+  width: 35px;
+  height: 35px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--accent-light);
+  color: var(--accent-primary);
+}
+
+.home-tone-blue { background: var(--info-bg); color: var(--info-text); }
+.home-tone-red { background: var(--urgent-bg); color: var(--urgent-text); }
+.home-tone-amber { background: var(--warning-bg); color: var(--warning-text); }
+
+.home-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.48fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(12px, 2vw, 24px);
+}
+
+.home-panel-heading {
+  min-height: 57px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.home-panel h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+
+.home-text-action {
+  min-height: 36px;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.home-text-action:hover { text-decoration: underline; }
+.home-list { margin: 0; padding: 4px 8px 7px; list-style: none; }
+.home-list li + li { border-top: 1px solid var(--border-subtle); }
+
+.home-record,
+.home-attention-row {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.home-record:hover,
+.home-attention-row:hover { background: var(--bg-hover); }
+.home-record-meta { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.home-record-meta > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-record-meta > span,
+.home-record time { color: var(--text-secondary); font-size: 11px; }
+.home-record time { flex-shrink: 0; white-space: nowrap; }
+.home-attention-count { margin-inline-start: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.home-attention .home-icon { width: 32px; height: 32px; }
+.home-empty { margin: 0; padding: 20px 16px; color: var(--text-secondary); font-size: 13px; }
+
+.home-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 14px;
+  border: 1px solid var(--urgent-border);
+  border-radius: 10px;
+  background: var(--urgent-bg);
+  color: var(--urgent-text);
+  font-size: 13px;
+}
+
+.home-page button:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+.home-hero button:focus-visible { outline-color: #cfffcd; }
+
+@media (max-width: 800px) {
+  .home-hero { min-height: 210px; }
+  .home-metric { min-height: 112px; padding: 12px; }
+  .home-metric .home-row-arrow { inset: 14px 12px auto auto; }
+}
+
+@media (max-width: 640px) {
+  .home-hero { min-height: 0; border-radius: 17px; }
+  .home-hero::after { inset-inline-start: 14%; opacity: .32; }
+  .home-hero-copy { max-width: 100%; }
+  .home-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-panels { grid-template-columns: minmax(0, 1fr); }
+  .home-record time { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-metric { transition: none; }
+}

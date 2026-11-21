@@ -41,7 +41,9 @@ export function useDocumentTitle(
   const { t } = useLanguage();
 
   useEffect(() => {
-    if (viewMode === 'partners') {
+    if (viewMode === 'home') {
+      document.title = `${t.homeNav} | BPNM Doc Hub`;
+    } else if (viewMode === 'partners') {
       document.title = `${t.pageTitlePartners} | BPNM Doc Hub`;
     } else if (viewMode === 'settings') {
       document.title = `${t.pageTitleSettings} | BPNM Doc Hub`;

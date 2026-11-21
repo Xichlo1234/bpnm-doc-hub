@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { notify, ToastHost } from './context/ToastContext.tsx';
 import { Header, type ViewMode } from './components/Header.tsx';
 import { Sidebar, NAV_GROUPS, type NavFilter } from './components/Sidebar.tsx';
+import { HomeView } from './components/HomeView.tsx';
 import { ItemList, type UnifiedItem } from './components/ItemList.tsx';
 import { DetailPane } from './components/DetailPane.tsx';
 import { ContractStatsBar } from './components/ContractStatsBar.tsx';
@@ -23,6 +24,14 @@ import { LoginView } from './components/LoginView.tsx';
 import { ChangePasswordView } from './components/ChangePasswordView.tsx';
 import { filterItems, filterContracts, findItemByRef } from './utils/itemFilters.ts';
 import { useTheme, useSpotlightShortcut, useDocumentTitle } from './hooks/useAppChrome.ts';
+
+const DOCUMENT_LISTS: Record<DocumentRecord['doc_type'], NavFilter> = {
+  incoming: 'docs_incoming',
+  outgoing: 'docs_outgoing',
+  internal: 'docs_internal',
+  decision: 'docs_internal',
+  other: 'docs_all',
+};
 
 const AppContent: React.FC = () => {
   const { t, tf } = useLanguage();
@@ -62,12 +71,14 @@ const AppContent: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<UnifiedItem | null>(null);
   const [partnerContractSearch, setPartnerContractSearch] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadError, setHasLoadError] = useState(false);
 
   useSpotlightShortcut(() => setIsSpotlightOpen((prev) => !prev));
   useDocumentTitle(viewMode, selectedItem, tableSelectedContract, tableSelectedDocument);
 
   const loadData = async (keepSelection = true) => {
     setIsLoading(true);
+    setHasLoadError(false);
     try {
       const [docsData, contractsData, statsData, partnersData] = await Promise.all([
         api.getDocuments(),
@@ -79,6 +90,7 @@ const AppContent: React.FC = () => {
       setContracts(contractsData);
       setStats(statsData);
       setPartners(partnersData);
+      if (viewMode === 'home') return;
 
       // Handle Initial Deep-Link Selection from URL
       const targetId = initialRouteRef.current.selectedId;
@@ -115,6 +127,7 @@ const AppContent: React.FC = () => {
         }
       }
     } catch (err) {
+      setHasLoadError(true);
       console.error('Failed to load data:', err);
     } finally {
       setIsLoading(false);
@@ -145,6 +158,7 @@ const AppContent: React.FC = () => {
           if (match.kind === 'document' && route.viewMode === 'doc_table') setTableSelectedDocument(match.data);
         }
       } else {
+        setSelectedItem(null);
         if (route.viewMode === 'contract_table') setTableSelectedContract(null);
         if (route.viewMode === 'doc_table') setTableSelectedDocument(null);
       }
@@ -167,54 +181,63 @@ const AppContent: React.FC = () => {
 
   const handleSelectFilter = (filter: NavFilter) => {
     setCurrentFilter(filter);
-    let targetView: ViewMode = viewMode;
+
+    if (filter === 'home') {
+      setViewMode('home');
+      setSelectedItem(null);
+      setTableSelectedContract(null);
+      setTableSelectedDocument(null);
+      syncUrl('/');
+      return;
+    }
+
+    let targetView: ViewMode = viewMode === 'home' ? 'split' : viewMode;
 
     if (filter === 'partners_all') {
       targetView = 'partners';
-      setViewMode('partners');
     } else if (filter === 'settings_all') {
       targetView = 'settings';
-      setViewMode('settings');
     } else if (filter.startsWith('contracts') || filter.startsWith('labor')) {
       setPartnerContractSearch('');
       setTableSelectedContract(null);
       setTableSelectedDocument(null);
       if (viewMode === 'doc_table' || viewMode === 'partners' || viewMode === 'settings') {
         targetView = 'contract_table';
-        setViewMode('contract_table');
       }
     } else if (filter.startsWith('docs')) {
       setTableSelectedDocument(null);
       setTableSelectedContract(null);
       if (viewMode === 'contract_table' || viewMode === 'partners' || viewMode === 'settings') {
         targetView = 'doc_table';
-        setViewMode('doc_table');
       }
     } else if (filter === 'all') {
       if (viewMode === 'partners' || viewMode === 'settings' || viewMode === 'doc_table' || viewMode === 'contract_table') {
         targetView = 'split';
-        setViewMode('split');
       }
     } else if (viewMode === 'partners' || viewMode === 'settings') {
       targetView = 'split';
-      setViewMode('split');
     }
 
-    // Auto-select first relevant item in the newly filtered list so the right pane jumps immediately
+    setViewMode(targetView);
+
+    // A shortcut from home opens the list first. In the workspace, keep the existing preview.
     const { items: filteredForTarget } = filterItems(filter, documents, contracts, t);
-    let targetItem: UnifiedItem | null = filteredForTarget.length > 0 ? filteredForTarget[0] : null;
+    const targetItem = viewMode === 'home' ? null : filteredForTarget[0] ?? null;
     setSelectedItem(targetItem);
 
     const url = buildRouteUrl({
       viewMode: targetView,
       currentFilter: filter,
-      selectedItem: targetView === 'split' ? targetItem : null,
       settingsSubTab,
     });
     syncUrl(url);
   };
 
   const handleToggleViewMode = (mode: ViewMode) => {
+    if (mode === 'home') {
+      handleSelectFilter('home');
+      return;
+    }
     setViewMode(mode);
     if (mode === 'partners') {
       setCurrentFilter('partners_all');
@@ -323,9 +346,7 @@ const AppContent: React.FC = () => {
         ? isLaborContract(item.data)
           ? 'labor_all'
           : 'contracts_all'
-        : item.data.doc_type === 'outgoing'
-        ? 'docs_outgoing'
-        : 'docs_incoming';
+        : DOCUMENT_LISTS[item.data.doc_type] ?? 'docs_all';
     setCurrentFilter(targetFilter);
     setViewMode('split');
     const url = buildRouteUrl({
@@ -389,6 +410,7 @@ const AppContent: React.FC = () => {
         onToggleTheme={toggleTheme}
         viewMode={viewMode}
         onToggleViewMode={handleToggleViewMode}
+        onOpenHome={() => handleSelectFilter('home')}
         onOpenSpotlight={() => setIsSpotlightOpen(true)}
         onOpenNav={() => setIsNavOpen(true)}
         onOpenCreate={() => {
@@ -396,21 +418,24 @@ const AppContent: React.FC = () => {
             openCreateWithTab('labor');
           } else if (currentFilter.startsWith('docs_outgoing')) {
             openCreateWithTab('outgoing');
-          } else if (currentFilter.startsWith('docs')) {
+          } else if (currentFilter === 'home' || currentFilter.startsWith('docs')) {
             openCreateWithTab('incoming');
           } else {
             openCreateWithTab('contract');
           }
         }}
         onSelectDocumentById={(docId) => {
+          const openDocument = (doc: DocumentRecord) => {
+            const item: UnifiedItem = { kind: 'document', data: doc };
+            if (viewMode === 'home') handleSelectItemFromSpotlight(item);
+            else handleSelectItem(item);
+          };
           const doc = documents.find(d => d.id === docId);
           if (doc) {
-            handleSelectItem({ kind: 'document', data: doc });
+            openDocument(doc);
           } else {
             api.getDocument(docId).then(found => {
-              if (found) {
-                handleSelectItem({ kind: 'document', data: found });
-              }
+              if (found) openDocument(found);
             });
           }
         }}
@@ -431,7 +456,7 @@ const AppContent: React.FC = () => {
         {/* Main Content Area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {/* Top Horizontal KPI Stats Bar across the entire workspace width */}
-          {viewMode !== 'partners' && viewMode !== 'settings' && currentFilter !== 'partners_all' && currentFilter !== 'settings_all' && (
+          {viewMode !== 'home' && viewMode !== 'partners' && viewMode !== 'settings' && currentFilter !== 'partners_all' && currentFilter !== 'settings_all' && (
             isContractSection ? (
               <ContractStatsBar
                 stats={stats}
@@ -448,7 +473,21 @@ const AppContent: React.FC = () => {
           )}
 
           {/* Main View Modes */}
-          {viewMode === 'settings' || currentFilter === 'settings_all' ? (
+          {viewMode === 'home' ? (
+            <HomeView
+              name={user?.name || user?.username}
+              documents={documents}
+              contracts={contracts}
+              isLoading={isLoading}
+              hasError={hasLoadError}
+              countFor={countFor}
+              onSelectFilter={handleSelectFilter}
+              onSelectItem={handleSelectItemFromSpotlight}
+              onSearch={() => setIsSpotlightOpen(true)}
+              onRetry={() => loadData(false)}
+              onCreateDocument={user?.role === 'admin' ? () => openCreateWithTab('incoming') : undefined}
+            />
+          ) : viewMode === 'settings' || currentFilter === 'settings_all' ? (
             /* View Mode: Danh Mục Tham Chiếu & Cấu Hình Hệ Thống */
             <CategorySettingsView
               onRefreshGlobal={() => loadData(true)}

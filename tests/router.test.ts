@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { parseCurrentLocation, buildRouteUrl } from '../src/client/src/services/router.ts';
 
 describe('Client Router & URL Management', () => {
-  it('should parse root path as default incoming documents', () => {
+  it('opens the workspace home at root and preserves the all-records route', () => {
     const route = parseCurrentLocation('/');
-    expect(route.viewMode).toBe('split');
-    expect(route.currentFilter).toBe('docs_incoming');
+    expect(route.viewMode).toBe('home');
+    expect(route.currentFilter).toBe('home');
     expect(route.selectedId).toBeNull();
+    expect(buildRouteUrl({ viewMode: 'home', currentFilter: 'home' })).toBe('/');
+    expect(buildRouteUrl({ viewMode: 'split', currentFilter: 'all' })).toBe('/all');
+    expect(parseCurrentLocation('/all').currentFilter).toBe('all');
   });
 
   it('should parse contract routes and sub-filters', () => {

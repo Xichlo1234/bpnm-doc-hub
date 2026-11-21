@@ -23,13 +23,14 @@ import { api } from '../services/api.ts';
 import { formatNotificationTime } from '../utils/dateTime.ts';
 import { ChangePasswordView } from './ChangePasswordView.tsx';
 
-export type ViewMode = 'split' | 'contract_table' | 'doc_table' | 'partners' | 'settings';
+export type ViewMode = 'home' | 'split' | 'contract_table' | 'doc_table' | 'partners' | 'settings';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   viewMode: ViewMode;
   onToggleViewMode: (mode: ViewMode) => void;
+  onOpenHome: () => void;
   onOpenSpotlight: () => void;
   onOpenCreate: () => void;
   onSelectDocumentById?: (id: string) => void;
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   viewMode,
   onToggleViewMode,
+  onOpenHome,
   onOpenSpotlight,
   onOpenCreate,
   onOpenNav,
@@ -115,15 +117,15 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       )}
       {/* Brand Logo */}
-      <div className="brand-section">
-        <div className="brand-logo">
-          <FileText size={20} strokeWidth={2.2} />
-        </div>
-        <div className="brand-info">
+      <button type="button" className="brand-section brand-home-button" onClick={onOpenHome} aria-label={t.homeNav}>
+        <span className="brand-logo">
+          <FileText size={20} strokeWidth={2.2} aria-hidden="true" />
+        </span>
+        <span className="brand-info">
           <span className="brand-title">{t.brandTitle}</span>
           <span className="brand-subtitle">{t.brandSubtitle}</span>
-        </div>
-      </div>
+        </span>
+      </button>
 
       {/* Central Spotlight Search Trigger */}
       <button type="button" className="spotlight-trigger" onClick={onOpenSpotlight} aria-label={t.search}>
@@ -137,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Header Actions */}
       <div className="header-actions">
         {/* View mode: cards | document register | contract table. Partners and settings live in the sidebar. */}
-        <label className="view-select-wrap" title={t.viewModeLabel}>
+        {viewMode !== 'home' && <label className="view-select-wrap" title={t.viewModeLabel}>
           <span className="sr-only">{t.viewModeLabel}</span>
           <select
             className="view-select"
@@ -150,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({
             <option value="doc_table">{t.docTable}</option>
             <option value="contract_table">{t.contractTable}</option>
           </select>
-        </label>
+        </label>}
 
         {/* Notification Bell with Badge & Dropdown */}
         <div className="header-notifications" ref={notifDropdownRef}>

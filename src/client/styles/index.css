@@ -177,6 +177,21 @@ body {
   flex-shrink: 0;
 }
 
+.brand-home-button {
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.brand-home-button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
+}
+
 .brand-logo {
   width: 34px;
   height: 34px;
@@ -2205,15 +2220,28 @@ button.nav-item:focus-visible,
   }
 }
 .sidebar-nav.sidebar-nav-compact {
-  gap: 2px;
+  gap: 5px;
 }
 .nav-top {
   width: 100%;
+  min-height: 45px;
   font-weight: 600;
   color: var(--text-primary);
 }
 .nav-top .nav-item-left {
   gap: 11px;
+}
+.nav-top .nav-item-left > svg {
+  width: 26px;
+  height: 26px;
+  padding: 5px;
+  border-radius: 7px;
+  background: var(--bg-hover);
+}
+.nav-top.active .nav-item-left > svg,
+.nav-top.active-section .nav-item-left > svg {
+  background: var(--accent-light);
+  color: var(--accent-primary);
 }
 .nav-section-toggle.active-section {
   color: var(--accent-primary);

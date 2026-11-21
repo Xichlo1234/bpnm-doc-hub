@@ -6,6 +6,7 @@ import {
   Clock,
   CheckCircle,
   FileText,
+  House,
   ArrowDownLeft,
   ArrowUpRight,
   Bookmark,
@@ -27,6 +28,7 @@ import { canAccessLaborContracts } from '../../../server/types.ts';
 import type { TranslationKey } from '../i18n/index.ts';
 
 export type NavFilter =
+  | 'home'
   | 'all'
   | 'contracts_all'
   | 'contracts_urgent'
@@ -174,7 +176,7 @@ interface TopEntry {
 }
 
 export const TOP_ENTRIES: TopEntry[] = [
-  { id: 'overview', label: 'navTopOverview', icon: Layers, filter: 'all' },
+  { id: 'overview', label: 'homeNav', icon: House, filter: 'home', noCount: true },
   { id: 'documents', label: 'navTopDocuments', icon: FileText, groups: ['docs_all', 'incoming', 'outgoing', 'internal'] },
   { id: 'contracts', label: 'navTopContracts', icon: FileCheck, groups: ['contracts', 'labor'] },
   { id: 'partners', label: 'navTopPartners', icon: Building2, filter: 'partners_all' },
@@ -247,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentFilter, onSelectFilter,
             <X size={16} aria-hidden="true" />
           </button>
         )}
-        <nav className="sidebar-nav sidebar-nav-compact">
+        <nav className="sidebar-nav sidebar-nav-compact" aria-label={t.navOpenMenu}>
           {TOP_ENTRIES.map((entry) => {
             const { filter } = entry;
             if (filter) {

@@ -46,7 +46,7 @@ export function parseCurrentLocation(customPath?: string, customHash?: string): 
   };
 
   if (parts.length === 0) {
-    return state;
+    return { ...state, viewMode: 'home', currentFilter: 'home' };
   }
 
   const first = parts[0].toLowerCase();
@@ -296,6 +296,8 @@ export function buildRouteUrl(params: {
   settingsSubTab?: string | null;
 }): string {
   const { viewMode, currentFilter, selectedItem, settingsSubTab } = params;
+
+  if (viewMode === 'home') return '/';
 
   if (viewMode === 'partners') {
     return '/partners';

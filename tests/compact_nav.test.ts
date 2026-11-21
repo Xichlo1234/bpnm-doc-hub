@@ -2,14 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { NAV_GROUPS, TOP_ENTRIES } from '../src/client/src/components/Sidebar.tsx';
 
 describe('Compact navigation', () => {
-  it('keeps every list of the full menu reachable, each from exactly one top-level entry', () => {
+  it('keeps every register reachable once and links the first menu entry to home', () => {
     const all = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.filter));
     const reachable = TOP_ENTRIES.flatMap((e) => [
       ...(e.filter ? [e.filter] : []),
       ...(e.groups ?? []).flatMap((id) => (id === 'docs_all' ? ['docs_all'] : NAV_GROUPS.find((g) => g.id === id)!.items.map((i) => i.filter))),
     ]);
-    expect([...reachable].sort()).toEqual([...all].sort());
+    expect([...reachable].sort()).toEqual(['home', ...all.filter((filter) => filter !== 'all')].sort());
     expect(new Set(reachable).size).toBe(reachable.length);
+    expect(TOP_ENTRIES[0].filter).toBe('home');
   });
 
   it('has six top-level entries; only documents and contracts expand', () => {

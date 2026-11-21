@@ -1161,6 +1161,22 @@ export const vi = {
   navTopAdmin: "Quản trị",
   viewModeLabel: "Chế độ xem",
   userMenuLabel: "Tài khoản",
+  homeNav: "Trang chủ",
+  homeTitle: "Bàn làm việc",
+  homeWelcome: "Chào, {name}.",
+  homeSearch: "Tìm hồ sơ",
+  homeAllRecords: "Tất cả hồ sơ",
+  homeRecent: "Hồ sơ gần đây",
+  homeAttention: "Cần chú ý",
+  homeViewAll: "Xem tất cả",
+  homeEconomicContracts: "Hợp đồng kinh tế",
+  homeUnassignedDocuments: "Công văn chưa phân công",
+  homeExpiringDocuments: "Công văn sắp đến hạn",
+  homeUrgentContracts: "HĐ kinh tế cần xử lý gấp",
+  homeDocument: "Văn bản",
+  homeEmpty: "Chưa có hồ sơ để hiển thị.",
+  homeLoadError: "Không tải được dữ liệu tổng quan.",
+  homeRetry: "Thử lại",
 };
 
 export type TranslationKey = keyof typeof vi;
