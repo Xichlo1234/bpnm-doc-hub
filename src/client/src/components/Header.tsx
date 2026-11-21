@@ -1,15 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 import {
   Search,
   Plus,
   Sun,
   Moon,
   FileText,
-  Table2,
-  Columns,
-  BookOpen,
-  Building2,
-  SlidersHorizontal,
   LogOut,
   Menu,
   ShieldCheck,
@@ -18,6 +13,8 @@ import {
   Clock,
   UserCheck,
   Languages,
+  ChevronDown,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -58,6 +55,11 @@ export const Header: React.FC<HeaderProps> = ({
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuTrigger = useRef<HTMLButtonElement>(null);
+  const userPanelId = useId();
+  const notificationPanelId = useId();
 
   const fetchNotifications = async () => {
     try {
@@ -78,6 +80,9 @@ export const Header: React.FC<HeaderProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (notifDropdownRef.current && !notifDropdownRef.current.contains(e.target as Node)) {
         setIsNotifOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -121,122 +126,45 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Central Spotlight Search Trigger */}
-      <div className="spotlight-trigger" onClick={onOpenSpotlight} role="button" tabIndex={0}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Search size={16} />
+      <button type="button" className="spotlight-trigger" onClick={onOpenSpotlight} aria-label={t.search}>
+        <span className="spotlight-label">
+          <Search size={16} aria-hidden="true" />
           <span>{t.searchPlaceholder}</span>
-        </div>
-        <span className="spotlight-shortcut">⌘ K</span>
-      </div>
+        </span>
+        <span className="spotlight-shortcut" aria-hidden="true">⌘ K</span>
+      </button>
 
       {/* Header Actions */}
       <div className="header-actions">
         {/* View mode: cards | document register | contract table. Partners and settings live in the sidebar. */}
-        <div className="view-switch" role="group" aria-label={t.cardView}>
-          {(
-            [
-              ['split', Columns, t.cardView, undefined],
-              ['doc_table', BookOpen, t.docTable, 'var(--accent-primary)'],
-              ['contract_table', Table2, t.contractTable, '#107C41'],
-            ] as const
-          ).map(([mode, Icon, label, color]) => (
-            <button
-              key={mode}
-              type="button"
-              className={viewMode === mode ? 'view-switch-btn active' : 'view-switch-btn'}
-              aria-pressed={viewMode === mode}
-              onClick={() => onToggleViewMode(mode)}
-              title={label}
-            >
-              <Icon size={13} color={color} />
-              <span className="header-label header-label-view">{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Language Switch Toggle: 🇻🇳 VN | 🇬🇧 EN | 🇰🇭 KM */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: 'var(--bg-input)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            padding: '2px',
-            marginRight: 6,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setLanguage('vi')}
-            style={{
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 7px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: language === 'vi' ? 'var(--accent-primary)' : 'transparent',
-              color: language === 'vi' ? '#ffffff' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-            }}
-            title={LANGUAGE_NAMES.vi}
+        <label className="view-select-wrap" title={t.viewModeLabel}>
+          <span className="sr-only">{t.viewModeLabel}</span>
+          <select
+            className="view-select"
+            aria-label={t.viewModeLabel}
+            value={viewMode === 'partners' || viewMode === 'settings' ? '' : viewMode}
+            onChange={(e) => onToggleViewMode(e.target.value as ViewMode)}
           >
-            🇻🇳 VN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage('en')}
-            style={{
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 7px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: language === 'en' ? 'var(--accent-primary)' : 'transparent',
-              color: language === 'en' ? '#ffffff' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-            }}
-            title={LANGUAGE_NAMES.en}
-          >
-            🇬🇧 EN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage('km')}
-            style={{
-              border: 'none',
-              borderRadius: 4,
-              padding: '4px 7px',
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: language === 'km' ? 'var(--accent-primary)' : 'transparent',
-              color: language === 'km' ? '#ffffff' : 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-            }}
-            title={LANGUAGE_NAMES.km}
-          >
-            🇰🇭 KM
-          </button>
-        </div>
+            <option value="" disabled>{t.viewModeLabel}</option>
+            <option value="split">{t.cardView}</option>
+            <option value="doc_table">{t.docTable}</option>
+            <option value="contract_table">{t.contractTable}</option>
+          </select>
+        </label>
 
         {/* Notification Bell with Badge & Dropdown */}
-        <div style={{ position: 'relative' }} ref={notifDropdownRef}>
+        <div className="header-notifications" ref={notifDropdownRef}>
           <button
+            type="button"
             className="btn-icon"
-            onClick={() => setIsNotifOpen(prev => !prev)}
+            onClick={() => { setIsNotifOpen((open) => !open); setIsUserMenuOpen(false); }}
             title={t.notificationsTitle}
+            aria-label={t.notificationsTitle}
+            aria-expanded={isNotifOpen}
+            aria-controls={isNotifOpen ? notificationPanelId : undefined}
             style={{ position: 'relative' }}
           >
-            <Bell size={17} />
+            <Bell size={17} aria-hidden="true" />
             {unreadCount > 0 && (
               <span
                 style={{
@@ -261,11 +189,9 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Dropdown Menu */}
           {isNotifOpen && (
             <div
+              id={notificationPanelId}
+              className="header-notifications-panel"
               style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                right: 0,
-                width: 'min(420px, calc(100vw - 24px))',
                 maxHeight: 480,
                 background: 'var(--bg-surface)',
                 borderRadius: 'var(--radius-lg)',
@@ -405,45 +331,71 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <button
-          className="btn-icon"
-          onClick={onToggleTheme}
-          title={theme === 'dark' ? t.lightTheme : t.darkTheme}
-        >
-          {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-        </button>
-
         {(user?.role === 'admin' || user?.can_access_labor_contracts) && (
-          <button className="btn-primary" onClick={onOpenCreate}>
-            <Plus size={16} strokeWidth={2.5} />
+          <button type="button" className="btn-primary" onClick={onOpenCreate} aria-label={t.addNew} title={t.addNew}>
+            <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
             <span className="header-label">{t.addNew}</span>
           </button>
         )}
 
-        {/* Admin profile and Logout action */}
+        {/* Account menu: language, theme, password, sign-out */}
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
+          <div
+            className="user-menu"
+            ref={userMenuRef}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && isUserMenuOpen) {
+                setIsUserMenuOpen(false);
+                userMenuTrigger.current?.focus();
+              }
+            }}
+          >
             <button
               type="button"
               className="header-user-badge"
-              style={{ cursor: 'pointer', border: 'none' }}
-              onClick={() => setIsPasswordOpen(true)}
-              title={`${tf('loggedInAs', { name: user.name, username: user.username })} · ${t.cpwTitle}`}
+              ref={userMenuTrigger}
+              aria-label={t.userMenuLabel}
+              aria-expanded={isUserMenuOpen}
+              aria-controls={isUserMenuOpen ? userPanelId : undefined}
+              onClick={() => { setIsUserMenuOpen((open) => !open); setIsNotifOpen(false); }}
+              title={t.userMenuLabel}
             >
               <div className="header-user-avatar">
-                <ShieldCheck size={13} />
+                <ShieldCheck size={13} aria-hidden="true" />
               </div>
               <span className="header-label">{user.username}</span>
+              <ChevronDown className="header-label" size={13} aria-hidden="true" />
             </button>
-            <button
-              type="button"
-              className="btn-logout"
-              onClick={logout}
-              title={t.logout}
-            >
-              <LogOut size={13} />
-              <span className="header-label">{t.logout}</span>
-            </button>
+            {isUserMenuOpen && (
+              <div className="user-menu-panel" id={userPanelId}>
+                <div className="user-menu-who">{tf('loggedInAs', { name: user.name, username: user.username })}</div>
+                <label className="user-menu-language">
+                  <span><Languages size={14} aria-hidden="true" />{t.language}</span>
+                  <select value={language} onChange={(event) => setLanguage(event.target.value as typeof language)}>
+                    {Object.entries(LANGUAGE_NAMES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+                  </select>
+                </label>
+                <button type="button" className="user-menu-item" onClick={onToggleTheme}>
+                  {theme === 'dark' ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
+                  {theme === 'dark' ? t.lightTheme : t.darkTheme}
+                </button>
+                <button
+                  type="button"
+                  className="user-menu-item"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    setIsPasswordOpen(true);
+                  }}
+                >
+                  <KeyRound size={14} aria-hidden="true" />
+                  {t.cpwTitle}
+                </button>
+                <button type="button" className="user-menu-item danger" onClick={logout}>
+                  <LogOut size={14} aria-hidden="true" />
+                  {t.logout}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

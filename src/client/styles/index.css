@@ -258,14 +258,6 @@ body {
   white-space: nowrap;
 }
 
-/* The header holds ~1100px of controls; drop text labels (buttons keep their title tooltips)
-   as the window narrows so nothing is pushed off-screen, e.g. the logout button. */
-@media (max-width: 1600px) {
-  .header-label-view {
-    display: none;
-  }
-}
-
 @media (max-width: 1200px) {
   .header-label,
   .brand-subtitle {
@@ -485,16 +477,7 @@ body {
   flex-direction: column;
   padding: 16px 12px;
   overflow-y: auto;
-  gap: 24px;
-}
-
-.sidebar-group-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding: 0 10px 6px 10px;
+  gap: 8px;
 }
 
 .nav-item {
@@ -540,27 +523,6 @@ body {
 .nav-count-badge.urgent {
   background: var(--urgent-bg);
   color: var(--urgent-text);
-}
-
-/* Dropzone in sidebar */
-.quick-dropzone {
-  margin-top: auto;
-  border: 1.5px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: 18px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 6px;
-  background: var(--bg-surface-subtle);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.quick-dropzone:hover {
-  border-color: var(--accent-primary);
-  background: var(--bg-hover);
 }
 
 /* Column 2: Middle List Pane */
@@ -1664,28 +1626,6 @@ body {
   font-size: 11px;
 }
 
-.btn-logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-logout:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #DC2626;
-  border-color: rgba(239, 68, 68, 0.3);
-}
-
 /* Upload Progress & Feedback UI */
 .upload-progress-box {
   background: var(--bg-surface-subtle);
@@ -2041,41 +1981,11 @@ button.nav-item {
   text-align: left;
 }
 button.nav-item:focus-visible,
-.view-switch-btn:focus-visible,
-button.quick-dropzone:focus-visible {
+.nav-filter-trigger:focus-visible,
+.spotlight-trigger:focus-visible,
+.header-user-badge:focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 1px;
-}
-button.quick-dropzone {
-  width: 100%;
-  font: inherit;
-  color: inherit;
-}
-.view-switch {
-  display: flex;
-  background: var(--bg-input);
-  padding: 2px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  margin-right: 6px;
-}
-.view-switch-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.view-switch-btn.active {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
 }
 .nav-toggle,
 .sidebar-close,
@@ -2121,11 +2031,13 @@ button.quick-dropzone {
     bottom: 0;
     z-index: 1200;
     width: 280px;
+    visibility: hidden;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.25));
   }
   .sidebar-pane.sidebar-open {
+    visibility: visible;
     transform: translateX(0);
   }
   .sidebar-backdrop {
@@ -2152,9 +2064,6 @@ button.quick-dropzone {
     padding-left: 8px;
     padding-right: 8px;
     gap: 6px;
-  }
-  .view-switch {
-    display: none;
   }
   .split-view-list {
     width: 100%;
@@ -2272,11 +2181,243 @@ button.quick-dropzone {
   .spotlight-shortcut {
     display: none;
   }
-  /* All header actions stay reachable: the row scrolls sideways on narrow screens */
+
+}
+
+/* ------------------------------------------------------------------ */
+/* Compact navigation: six top-level entries, two of them expandable    */
+/* ------------------------------------------------------------------ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (min-width: 1025px) {
+  .sidebar-pane {
+    width: 236px;
+    min-width: 236px;
+  }
+}
+.sidebar-nav.sidebar-nav-compact {
+  gap: 2px;
+}
+.nav-top {
+  width: 100%;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.nav-top .nav-item-left {
+  gap: 11px;
+}
+.nav-section-toggle.active-section {
+  color: var(--accent-primary);
+}
+.nav-chevron {
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+[aria-expanded="true"] > .nav-chevron {
+  transform: rotate(180deg);
+}
+.nav-section-body,
+.nav-filter-items {
+  margin: 2px 0 8px 12px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-subtle);
+}
+.nav-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.nav-filter-row > .nav-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 4px;
+}
+.nav-filter-trigger {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+}
+.nav-item-left {
+  min-width: 0;
+}
+.nav-item-left svg,
+.nav-chevron {
+  flex-shrink: 0;
+}
+.nav-item.nav-upload {
+  margin-top: 4px;
+  color: var(--accent-primary);
+}
+
+.nav-item.nav-subitem {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+/* Header: view mode as one select, account actions in a menu */
+.view-select-wrap {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.view-select {
+  width: clamp(108px, 12vw, 152px);
+  min-width: 0;
+  height: 36px;
+  padding: 0 28px 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.view-select:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+.user-menu,
+.header-notifications {
+  position: relative;
+}
+.header-notifications-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(420px, calc(100vw - 24px));
+}
+.spotlight-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.spotlight-label svg { flex-shrink: 0; }
+.spotlight-label > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-menu .header-user-badge {
+  cursor: pointer;
+}
+.user-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(300px, calc(100vw - 24px));
+  box-sizing: border-box;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.2));
+  padding: 8px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: normal;
+}
+.user-menu-who {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+.user-menu-language,
+.user-menu-language > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-menu-language {
+  justify-content: space-between;
+  padding: 4px 8px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+}
+.user-menu-language select {
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font: inherit;
+}
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  min-height: 42px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.user-menu-item:hover {
+  background: var(--bg-hover);
+}
+.user-menu-item.danger {
+  color: #ef4444;
+}
+.user-menu-item:focus-visible,
+.user-menu-language select:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+@media (max-width: 720px) {
   .top-header .header-actions {
     flex: 1 1 auto;
     min-width: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
+    justify-content: flex-end;
+  }
+  .top-header .spotlight-trigger {
+    justify-content: center;
+    padding: 0;
+  }
+  .spotlight-label > span {
+    display: none;
+  }
+  .top-header .btn-primary {
+    padding-inline: 7px;
+  }
+  .header-notifications-panel {
+    position: fixed;
+    width: auto;
+    top: 64px;
+    right: 8px;
+    left: 8px;
+  }
+  .view-select {
+    width: clamp(70px, 22vw, 115px);
+    height: 36px;
+    padding-inline: 4px;
+    font-size: 11px;
+  }
+  .user-menu .header-user-badge {
+    padding: 4px 6px;
+  }
+  .user-menu-panel {
+    position: fixed;
+    top: 58px;
+    right: 8px;
   }
 }

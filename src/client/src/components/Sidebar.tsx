@@ -18,6 +18,7 @@ import {
   Lock,
   PenLine,
   X,
+  ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -74,7 +75,6 @@ interface NavGroup {
   title: TranslationKey;
   items: NavItem[];
   when?: 'labor' | 'admin';
-  icon?: LucideIcon;
 }
 
 // One entry per destination: every list appears exactly once in the menu.
@@ -131,7 +131,6 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'labor',
     title: 'laborContractsNavTitle',
     when: 'labor',
-    icon: Lock,
     items: [
       { filter: 'labor_all', label: 'laborAll', icon: Lock, color: '#F59E0B' },
       { filter: 'labor_urgent', label: 'laborUrgentRenewal', icon: AlertCircle, color: 'var(--urgent-dot)' },
@@ -159,6 +158,34 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+/**
+ * The compact menu: six top-level entries. "Công văn" and "Hợp đồng" open into their registers; the
+ * current list opens its own section. Status filters stay behind separate controls.
+ */
+interface TopEntry {
+  id: string;
+  label: TranslationKey;
+  icon: LucideIcon;
+  /** Direct destination (no children) */
+  filter?: NavFilter;
+  /** Groups shown inside this entry */
+  groups?: string[];
+  noCount?: boolean;
+}
+
+export const TOP_ENTRIES: TopEntry[] = [
+  { id: 'overview', label: 'navTopOverview', icon: Layers, filter: 'all' },
+  { id: 'documents', label: 'navTopDocuments', icon: FileText, groups: ['docs_all', 'incoming', 'outgoing', 'internal'] },
+  { id: 'contracts', label: 'navTopContracts', icon: FileCheck, groups: ['contracts', 'labor'] },
+  { id: 'partners', label: 'navTopPartners', icon: Building2, filter: 'partners_all' },
+  { id: 'archive', label: 'navTopArchive', icon: Archive, filter: 'archive' },
+  { id: 'admin', label: 'navTopAdmin', icon: SlidersHorizontal, filter: 'settings_all', noCount: true },
+];
+
+// "Tất cả văn bản" sits at the top of the documents section
+const DOCS_ALL_GROUP: NavGroup = { id: 'docs_all', title: 'navAllDocs', items: [{ filter: 'docs_all', label: 'navAllDocs', icon: FileText }] };
+const groupById = (id: string): NavGroup | undefined => (id === 'docs_all' ? DOCS_ALL_GROUP : NAV_GROUPS.find((g) => g.id === id));
+
 interface SidebarProps {
   currentFilter: NavFilter;
   onSelectFilter: (filter: NavFilter) => void;
@@ -175,12 +202,40 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentFilter, onSelectFilter,
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const hasLaborAccess = canAccessLaborContracts(user);
+  const [disclosure, setDisclosure] = React.useState<{ filter: NavFilter; section: string | null; group: string | null }>();
 
-  const groups = NAV_GROUPS.filter((g) => (g.when === 'labor' ? hasLaborAccess : g.when === 'admin' ? isAdmin : true));
+  const visible = (group: NavGroup | undefined): group is NavGroup =>
+    Boolean(group && (group.when === 'labor' ? hasLaborAccess : group.when === 'admin' ? isAdmin : true));
+  const isActive = (item: NavItem) => currentFilter === item.filter || Boolean(item.alsoActive?.includes(currentFilter));
+  const entryGroups = (entry: TopEntry) => (entry.groups ?? []).map(groupById).filter(visible);
+  const activeEntry = TOP_ENTRIES.find((entry) => entryGroups(entry).some((group) => group.items.some(isActive)));
+  const activeFilters = activeEntry && entryGroups(activeEntry).find((group) => group.items.slice(1).some(isActive));
+  const expandedSection = disclosure?.filter === currentFilter ? disclosure.section : activeEntry?.id;
+  const expandedGroup = disclosure?.filter === currentFilter ? disclosure.group : activeFilters?.id;
 
   const select = (filter: NavFilter) => {
     onSelectFilter(filter);
     onClose?.();
+  };
+
+  const renderItem = (item: NavItem) => {
+    const active = isActive(item);
+    const count = item.noCount ? 0 : countFor(item.filter);
+    return (
+      <button
+        type="button"
+        key={item.filter}
+        className={`nav-item nav-subitem ${active ? 'active' : ''}`}
+        aria-current={active ? 'page' : undefined}
+        onClick={() => select(item.filter)}
+      >
+        <span className="nav-item-left">
+          <item.icon size={14} color={item.color} aria-hidden="true" />
+          <span>{t[item.label]}</span>
+        </span>
+        {count > 0 && <span className="nav-count-badge">{count}</span>}
+      </button>
+    );
   };
 
   return (
@@ -188,47 +243,91 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentFilter, onSelectFilter,
       {isOpen && <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />}
       <aside className={`sidebar-pane ${isOpen ? 'sidebar-open' : ''}`} aria-label={t.navOpenMenu}>
         {onClose && (
-          <button type="button" className="btn-icon sidebar-close" onClick={onClose} title={t.close}>
-            <X size={16} />
+          <button type="button" className="btn-icon sidebar-close" onClick={onClose} title={t.close} aria-label={t.close}>
+            <X size={16} aria-hidden="true" />
           </button>
         )}
-        <nav className="sidebar-nav">
-          {groups.map((group) => (
-            <div key={group.id}>
-              <div className="sidebar-group-title" style={group.when === 'labor' ? { color: '#F59E0B', display: 'flex', alignItems: 'center', gap: 4 } : undefined}>
-                {group.icon && <group.icon size={12} color="#F59E0B" />}
-                {t[group.title]}
-              </div>
-              {group.items.map((item) => {
-                const active = currentFilter === item.filter || Boolean(item.alsoActive?.includes(currentFilter));
-                const count = item.noCount ? 0 : countFor(item.filter);
-                return (
-                  <button
-                    type="button"
-                    key={item.filter}
-                    className={`nav-item ${active ? 'active' : ''}`}
-                    aria-current={active ? 'page' : undefined}
-                    onClick={() => select(item.filter)}
-                  >
-                    <span className="nav-item-left">
-                      <item.icon size={15} color={item.color} />
-                      <span>{t[item.label]}</span>
-                    </span>
-                    {count > 0 && <span className="nav-count-badge">{count}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
+        <nav className="sidebar-nav sidebar-nav-compact">
+          {TOP_ENTRIES.map((entry) => {
+            const { filter } = entry;
+            if (filter) {
+              const here = currentFilter === filter;
+              const count = entry.noCount ? 0 : countFor(filter);
+              const label = entry.id === 'admin' && !isAdmin ? 'settings' : entry.label;
+              return (
+                <button
+                  type="button"
+                  key={entry.id}
+                  className={`nav-item nav-top ${here ? 'active' : ''}`}
+                  aria-current={here ? 'page' : undefined}
+                  onClick={() => select(filter)}
+                >
+                  <span className="nav-item-left">
+                    <entry.icon size={16} aria-hidden="true" />
+                    <span>{t[label]}</span>
+                  </span>
+                  {count > 0 && <span className="nav-count-badge">{count}</span>}
+                </button>
+              );
+            }
 
-        {isAdmin && (
-          <button type="button" className="quick-dropzone" onClick={onOpenUpload}>
-            <UploadCloud size={24} color="var(--accent-primary)" />
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t.quickUploadTitle}</span>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t.quickUploadDesc}</span>
-          </button>
-        )}
+            const expanded = expandedSection === entry.id;
+            const here = activeEntry?.id === entry.id;
+            const panelId = `nav-section-${entry.id}`;
+            return (
+              <div key={entry.id} className="nav-section">
+                <button
+                  type="button"
+                  className={`nav-item nav-top nav-section-toggle ${here ? 'active-section' : ''}`}
+                  aria-expanded={expanded}
+                  aria-controls={panelId}
+                  onClick={() => setDisclosure({ filter: currentFilter, section: expanded ? null : entry.id, group: here ? activeFilters?.id ?? null : null })}
+                >
+                  <span className="nav-item-left">
+                    <entry.icon size={16} aria-hidden="true" />
+                    <span>{t[entry.label]}</span>
+                  </span>
+                  <ChevronDown size={14} className="nav-chevron" aria-hidden="true" />
+                </button>
+                <div className="nav-section-body" id={panelId} hidden={!expanded}>
+                  {expanded && entryGroups(entry).map((group) => {
+                    const [primary, ...filters] = group.items;
+                    if (!filters.length) return renderItem(primary);
+                    const filtersOpen = expandedGroup === group.id;
+                    const filtersId = `nav-filters-${group.id}`;
+                    const filtersLabel = `${t.filter} · ${t[primary.label]}`;
+                    return (
+                      <div key={group.id}>
+                        <div className="nav-filter-row">
+                          {renderItem(primary)}
+                          <button
+                            type="button"
+                            className="btn-icon nav-filter-trigger"
+                            aria-label={filtersLabel}
+                            title={filtersLabel}
+                            aria-expanded={filtersOpen}
+                            aria-controls={filtersId}
+                            onClick={() => setDisclosure({ filter: currentFilter, section: entry.id, group: filtersOpen ? null : group.id })}
+                          >
+                            <ChevronDown className="nav-chevron" size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                        <div className="nav-filter-items" id={filtersId} hidden={!filtersOpen}>
+                          {filtersOpen && filters.map(renderItem)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {expanded && entry.id === 'documents' && isAdmin && (
+                    <button type="button" className="nav-item nav-subitem nav-upload" onClick={() => { onClose?.(); onOpenUpload(); }}>
+                      <span className="nav-item-left"><UploadCloud size={15} aria-hidden="true" />{t.quickUploadTitle}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </nav>
       </aside>
     </>
   );

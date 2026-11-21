@@ -1153,6 +1153,14 @@ export const vi = {
   srvMaintenance: "Hệ thống đang bảo trì. Vui lòng thử lại sau.",
   srvLoginRetry: "Tài khoản vừa được cập nhật. Vui lòng đăng nhập lại.",
   srvPartnerCodeTakenConcurrent: "Mã đối tác đã được dùng cho đối tác khác.",
+  navTopOverview: "Tổng quan",
+  navTopDocuments: "Công văn",
+  navTopContracts: "Hợp đồng",
+  navTopPartners: "Đối tác",
+  navTopArchive: "Kho lưu trữ",
+  navTopAdmin: "Quản trị",
+  viewModeLabel: "Chế độ xem",
+  userMenuLabel: "Tài khoản",
 };
 
 export type TranslationKey = keyof typeof vi;
