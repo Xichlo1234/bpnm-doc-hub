@@ -121,6 +121,7 @@ export const partnersTable: TableSpec = {
   columns: {
     id: text,
     code: text,
+    code_key: optText, // migration 0011: partnerCodeKey(code), unique among active partners
     name_vn: text,
     name_en: optText,
     category: optText,

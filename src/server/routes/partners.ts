@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { store } from '../db/store.ts';
+import { partnerCodeKey } from '../../shared/partnerCodeKey.mjs';
 import { requireAdmin, getAuthUser } from './auth.ts';
 import { partnerInput, parseInput, revisionConflict } from '../utils/validation.ts';
 
@@ -10,9 +11,10 @@ export function normalizePartnerCode(code: string): string {
   return String(code ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toUpperCase();
 }
 
+/** Same code as an active partner, by the shared key (case, spaces, Unicode form ignored). */
 export function partnerCodeTaken(code: string, excludeId?: string): boolean {
-  const n = normalizePartnerCode(code);
-  return store.getPartners().some((p) => p.id !== excludeId && normalizePartnerCode(p.code) === n);
+  const k = partnerCodeKey(code);
+  return Boolean(k) && store.getPartners().some((p) => p.id !== excludeId && partnerCodeKey(p.code) === k);
 }
 
 // GET /api/partners

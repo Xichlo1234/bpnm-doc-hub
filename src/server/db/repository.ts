@@ -302,7 +302,7 @@ export function isUsernameUniqueViolation(err: unknown): boolean {
 }
 
 export function isPartnerCodeUniqueViolation(err: unknown): boolean {
-  return /UNIQUE constraint failed: (index 'idx_partners_code_active'|partners\.code)/i.test(String((err as Error)?.message || err));
+  return /UNIQUE constraint failed: (index '(idx_partners_code_active|idx_partners_code_key_active)'|partners\.code(_key)?\b)/i.test(String((err as Error)?.message || err));
 }
 
 export class PartnerCodeTakenError extends Error {

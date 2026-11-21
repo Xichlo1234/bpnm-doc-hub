@@ -111,6 +111,8 @@ export interface ContractRecord {
 export interface PartnerRecord {
   id: string;
   code: string;
+  /** partnerCodeKey(code), migration 0011 (unique among active partners; NULL for an unresolved historical duplicate) */
+  code_key?: string | null;
   name_vn: string;
   name_en?: string | null;
   category?: string | null;
