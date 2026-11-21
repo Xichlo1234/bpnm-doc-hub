@@ -609,3 +609,36 @@ describe('E7 — maintenance rehearsal on a 0001–0003 database: fence, backup,
     expect((await runPreflight(async (sql: string) => raw.prepare(sql).all(), ALL)).blocking).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe('Worker entry (found in the workerd rehearsal)', () => {
+  it('exports only the app: workerd refuses to start when a named export is not a handler', async () => {
+    const mod: Record<string, unknown> = await import('../src/server/index.ts');
+    expect(Object.keys(mod).sort()).toEqual(['app', 'default']);
+    expect(typeof (mod.default as any).fetch).toBe('function');
+  });
+
+  it('scripts read wrangler --json output that is preceded by notices', async () => {
+    const { parseWranglerJson } = await import('../scripts/lib/write-fence-core.mjs');
+    expect(parseWranglerJson('Proxy environment variables detected.\n\n[{"results":[{"n":1}]}]')).toEqual([{ results: [{ n: 1 }] }]);
+    expect(parseWranglerJson('notice\n{\n  "error": { "text": "WRITE_FENCE" }\n}').error.text).toBe('WRITE_FENCE');
+  });
+});
+
+describe('E7 — runbook order', () => {
+  it('locks writes in D1 before migrating and opens them only afterwards, every step with PASS/FAIL', () => {
+    const rb = fs.readFileSync(path.join(process.cwd(), 'docs/ops/DEPLOY_RUNBOOK.md'), 'utf-8');
+    const at = (s: string) => rb.indexOf(s);
+    expect(at('MAINTENANCE_MODE:1')).toBeGreaterThan(-1);
+    expect(at('write-fence.mjs on --remote')).toBeGreaterThan(at('deploy --var MAINTENANCE_MODE:1'));
+    expect(at('write-fence.mjs verify --remote')).toBeGreaterThan(at('write-fence.mjs on --remote'));
+    expect(at('npm run db:migrate:remote')).toBeGreaterThan(at('write-fence.mjs verify --remote'));
+    expect(at('write-fence.mjs off --remote')).toBeGreaterThan(at('npm run db:migrate:remote'));
+    expect(at('deploy --var MAINTENANCE_MODE:0')).toBeGreaterThan(at('write-fence.mjs off --remote'));
+    for (const step of ['## 1.', '## 2.', '## 3.', '## 4.', '## 5.', '## 6.', '## 7.']) {
+      const body = rb.slice(at(step), rb.indexOf('\n## ', at(step) + 3));
+      expect(body, step).toMatch(/\*\*PASS/);
+      expect(body, step).toMatch(/\*\*FAIL/);
+    }
+  });
+});

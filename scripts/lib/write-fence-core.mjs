@@ -31,3 +31,11 @@ export function fenceOffSql() {
 
 export const FENCE_STATUS_SQL = `SELECT name, tbl_name FROM sqlite_master WHERE type = 'trigger' AND name LIKE '${FENCE_PREFIX}%' ORDER BY name`;
 export const TABLES_SQL = "SELECT name FROM sqlite_master WHERE type = 'table'";
+
+/** wrangler --json output may be preceded by notices (e.g. proxy settings): parse from the JSON start. */
+export function parseWranglerJson(out) {
+  const text = String(out);
+  const start = text.search(/^\s*[[{]/m);
+  if (start < 0) throw new Error(`wrangler did not return JSON: ${text.slice(0, 200)}`);
+  return JSON.parse(text.slice(start));
+}

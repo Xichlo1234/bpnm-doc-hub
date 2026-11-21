@@ -8,7 +8,7 @@
 //   ... --file path/to.db                               # same on a SQLite file (rehearsal, restored copy)
 
 import { execFileSync } from 'node:child_process';
-import { fenceOnSql, fenceOffSql, FENCE_STATUS_SQL, TABLES_SQL, FENCED_TABLES } from './lib/write-fence-core.mjs';
+import { fenceOnSql, fenceOffSql, FENCE_STATUS_SQL, TABLES_SQL, FENCED_TABLES, parseWranglerJson } from './lib/write-fence-core.mjs';
 
 const DB_NAME = 'bpnm-doc-hub-db';
 const [command, ...args] = process.argv.slice(2);
@@ -28,7 +28,7 @@ if (target === 'file') {
 } else {
   const wr = (extra) =>
     execFileSync('npx', ['wrangler', 'd1', 'execute', DB_NAME, target, '--json', ...extra], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CI: 'true' } });
-  query = (sql) => JSON.parse(wr(['--command', sql]))[0]?.results ?? [];
+  query = (sql) => parseWranglerJson(wr(['--command', sql]))[0]?.results ?? [];
   exec = (sql) => wr(['--command', sql]);
 }
 
@@ -44,7 +44,7 @@ if (command === 'on') {
   try {
     exec("UPDATE meta SET value = value WHERE key = 'data_version'");
   } catch (err) {
-    refused = /WRITE_FENCE/.test(String(err?.stderr || err?.message || err));
+    refused = /WRITE_FENCE/.test([err?.stdout, err?.stderr, err?.message].map((x) => String(x ?? '')).join('\n'));
   }
   const n = status().length;
   console.log(refused ? `PASS: D1 từ chối ghi (${n} trigger).` : 'FAIL: D1 vẫn nhận ghi — rào chắn chưa hoạt động.');

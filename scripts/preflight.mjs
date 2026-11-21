@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { runPreflight } from './lib/preflight-core.mjs';
+import { parseWranglerJson } from './lib/write-fence-core.mjs';
 
 const DB_NAME = 'bpnm-doc-hub-db';
 const args = process.argv.slice(2);
@@ -32,7 +33,7 @@ if (target === 'file') {
       stdio: ['ignore', 'pipe', 'inherit'],
       env: { ...process.env, CI: 'true' },
     });
-    return JSON.parse(out)[0]?.results ?? [];
+    return parseWranglerJson(out)[0]?.results ?? [];
   };
 }
 

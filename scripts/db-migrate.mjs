@@ -12,6 +12,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { parseWranglerJson } from './lib/write-fence-core.mjs';
 
 const DB_NAME = 'bpnm-doc-hub-db';
 const [command = 'status', ...flags] = process.argv.slice(2);
@@ -28,7 +29,7 @@ function wrangler(args, { json = false } = {}) {
     stdio: json ? ['ignore', 'pipe', 'inherit'] : 'inherit',
     env: { ...process.env, CI: 'true' }, // skip interactive confirmations
   });
-  return json ? JSON.parse(output) : output;
+  return json ? parseWranglerJson(output) : output;
 }
 
 function query(sql) {

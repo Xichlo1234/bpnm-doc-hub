@@ -5,3 +5,4 @@ export declare function fenceOnSql(existingTables: string[]): string[];
 export declare function fenceOffSql(): string[];
 export declare const FENCE_STATUS_SQL: string;
 export declare const TABLES_SQL: string;
+export declare function parseWranglerJson(out: unknown): any;

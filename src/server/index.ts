@@ -28,7 +28,7 @@ export const app = new Hono();
 
 // Request size cap: uploads are ≤5MB and Excel imports ≤5,000 rows, so 12MB is ample. Bigger bodies are
 // refused before they are read or validated.
-export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
 app.use(
   '/api/*',
   bodyLimit({
@@ -68,7 +68,7 @@ app.use('/api/*', async (c, next) => {
 
 // Browser hardening for every response. The CSP allows only same-origin scripts; inline styles are
 // used throughout the React components, and Google Fonts serves the web fonts.
-export const SECURITY_HEADERS: Record<string, string> = {
+const SECURITY_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'same-origin',
   'X-Frame-Options': 'SAMEORIGIN',
