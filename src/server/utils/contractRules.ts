@@ -1,5 +1,6 @@
 import { store } from '../db/store.ts';
 import type { ContractRecord } from '../types.ts';
+import { normalizeNumber } from './numberKeys.ts';
 
 export interface ContractRuleError {
   status: 400 | 409;
@@ -12,10 +13,11 @@ const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
 const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v);
 const day = (v: unknown) => (isDate(v) ? String(v).slice(0, 10) : null);
 
+/** Number used by another contract, including contracts in the trash (never re-issued). */
 export function contractNumberTaken(number: string, excludeId?: string): ContractRecord | null {
-  const n = norm(number);
+  const n = normalizeNumber(number);
   if (!n) return null;
-  return store.getContracts().find((c) => c.id !== excludeId && norm(c.contract_number) === n) ?? null;
+  return [...store.getContracts(), ...store.getTrash().contracts].find((c) => c.id !== excludeId && normalizeNumber(c.contract_number) === n) ?? null;
 }
 
 /** Checks the contract's milestones: start ≤ end, signing not after the end, liquidation/termination after signing. */
@@ -73,7 +75,8 @@ export function contractValueTotals(contracts: ContractRecord[]) {
   };
   const byCurrency: Record<string, number> = {};
   for (const c of contracts) {
-    if (c.status !== 'active') continue;
+    // A contract without a status (older imports) is in force, as everywhere else
+    if ((c.status || 'active') !== 'active') continue;
     const code = (c.currency || base).toUpperCase();
     byCurrency[code] = (byCurrency[code] || 0) + (Number(c.value) || 0);
   }

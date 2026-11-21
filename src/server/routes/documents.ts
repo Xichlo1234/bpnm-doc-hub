@@ -8,8 +8,16 @@ import { getDatabase } from '../db/database.ts';
 import { documentInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
 import { importPreviewHandler, importCommitHandler } from './imports.ts';
 import { allocateDocumentNumber, peekNextSequence } from '../utils/numbering.ts';
-import { prepareNewDocument, documentNumberTaken, appendDirectiveLog, checkPostIssueAdjustment, type RuleError } from '../utils/documentRules.ts';
-import { workflowKind, stageOf, stageByCode, allowedTransitions, stagesFor, parseAutoNumber, vietnamToday } from '../utils/workflow.ts';
+import {
+  prepareNewDocument,
+  documentNumberTaken,
+  appendDirectiveLog,
+  checkPostIssueAdjustment,
+  planStatusChange,
+  type RuleError,
+} from '../utils/documentRules.ts';
+import { workflowKind, stageByCode, allowedTransitions, stagesFor, parseAutoNumber, vietnamToday } from '../utils/workflow.ts';
+import type { DocumentRecord } from '../types.ts';
 
 export const documentsRouter = new Hono();
 
@@ -98,7 +106,7 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     db,
     body.doc_type,
     requestedNumber,
-    store.getDocuments().filter((d) => d.doc_type === body.doc_type).map((d) => d.document_number)
+    [...store.getDocuments(), ...store.getTrash().documents].filter((d) => d.doc_type === body.doc_type).map((d) => d.document_number)
   );
   body.document_number = allocation.number;
   if (documentNumberTaken(body.document_number, body.doc_type)) return numberTaken(c, body.document_number);
@@ -143,29 +151,39 @@ async function updateDocumentHandler(c: Context) {
   const current = store.getDocument(id);
   const parsed = parseInput(c, documentInput.update, withoutUnchangedLinks(rawBody, current));
   if (!parsed.ok) return parsed.response;
-  const { expected_revision, adjustment_reason, ...changes } = parsed.data as Record<string, any>;
-  const conflict = revisionConflict(c, current, expected_revision);
-  if (conflict) return conflict;
+  const { expected_revision, adjustment_reason, status_override_reason, ...changes } = parsed.data as Record<string, any>;
   if (!current) {
     return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
   }
+  const conflict = revisionConflict(c, current, expected_revision);
+  if (conflict) return conflict;
+  return applyDocumentChange(c, current, changes, { adjustmentReason: adjustment_reason, overrideReason: status_override_reason });
+}
+
+/** Shared by PATCH/PUT and /transition: numbers, workflow rules, post-issue adjustments, logs. */
+async function applyDocumentChange(
+  c: Context,
+  current: DocumentRecord,
+  changes: Record<string, any>,
+  opts: { adjustmentReason?: string; overrideReason?: string; note?: string | null }
+) {
+  const id = current.id;
   const currentUser = getAuthUser(c)!;
   const docType = changes.doc_type ?? current.doc_type;
 
   if (changes.document_number !== undefined && documentNumberTaken(changes.document_number, docType, id)) {
     return numberTaken(c, changes.document_number);
   }
-  const kind = workflowKind(docType);
-  if (kind && changes.status !== undefined && changes.status !== current.status) {
-    changes.status = stageOf(kind, changes.status).status; // aliases → canonical value
+  if (changes.doc_type !== undefined && changes.doc_type !== current.doc_type && documentNumberTaken(current.document_number, changes.doc_type, id)) {
+    return numberTaken(c, current.document_number);
   }
-  if (kind === 'incoming' && changes.status === 'Hoàn thành' && !current.completed_date && !changes.completed_date) {
-    changes.completed_date = vietnamToday();
-  }
-  const adjustment = checkPostIssueAdjustment(current, changes, adjustment_reason, currentUser);
+  const plan = planStatusChange(current, changes, opts.overrideReason);
+  if (plan.error) return ruleResponse(c, plan.error);
+  const adjustment = checkPostIssueAdjustment(current, changes, opts.adjustmentReason, currentUser);
   if (adjustment.error) return ruleResponse(c, adjustment.error);
   if (adjustment.log) changes.adjustments = adjustment.log;
-  const log = appendDirectiveLog(current, changes, currentUser);
+  const statusNote = plan.changed ? opts.note || `→ ${changes.status}${plan.override ? ` (ngoại lệ: ${opts.overrideReason})` : ''}` : null;
+  const log = appendDirectiveLog(current, changes, currentUser, statusNote);
   if (log) changes.directive_log = log;
 
   const updated = store.updateDocument(id, changes)!;
@@ -173,7 +191,7 @@ async function updateDocumentHandler(c: Context) {
   store.recordHistory({
     record_type: 'document',
     record_id: id,
-    action: adjustment.log ? 'adjust_after_issue' : 'update',
+    action: plan.override ? 'status_override' : adjustment.log ? 'adjust_after_issue' : 'update',
     user: currentUser,
     before: current,
     after: updated,
@@ -181,12 +199,16 @@ async function updateDocumentHandler(c: Context) {
   store.recordAuditLog({
     user_id: currentUser.id,
     username: currentUser.username,
-    action: 'update',
+    action: plan.changed ? 'status_change' : 'update',
     entity_type: 'document',
     entity_id: id,
     entity_title: updated.document_number,
-    details: adjustment.log
-      ? `Điều chỉnh văn bản đã phát hành ${updated.document_number}: ${adjustment_reason}`
+    details: plan.override
+      ? `Chuyển trạng thái ngoài quy trình ${updated.document_number}: ${current.status || '-'} → ${updated.status}. Lý do: ${opts.overrideReason}`
+      : adjustment.log
+      ? `Điều chỉnh văn bản đã phát hành ${updated.document_number}: ${opts.adjustmentReason}`
+      : plan.changed
+      ? `${updated.document_number}: ${current.status || '-'} → ${updated.status}`
       : `Cập nhật văn bản ${updated.document_number}`,
   });
 
@@ -197,64 +219,35 @@ documentsRouter.put('/:id', requireAdmin, updateDocumentHandler);
 documentsRouter.patch('/:id', requireAdmin, updateDocumentHandler);
 
 // POST /api/documents/:id/transition (Admin Only)
-// Body: { to: stage code, note?, handler?, due_date?, directive?, signer? }
+// Body: { to: stage code, expected_revision, note?, handler?, due_date?, directive?, signer? }
 documentsRouter.post('/:id/transition', requireAdmin, async (c) => {
   const id = c.req.param('id') || '';
   const current = store.getDocument(id);
   if (!current) return c.json({ error: 'Document not found', code: 'DOCUMENT_NOT_FOUND' }, 404);
   const kind = workflowKind(current.doc_type);
   const body = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+  const conflict = revisionConflict(c, current, body.expected_revision);
+  if (conflict) return conflict;
   const target = kind ? stageByCode(kind, String(body.to || '')) : null;
-  if (!kind || !target || !allowedTransitions(kind, current.status).includes(target.code)) {
+  if (!kind || !target) {
     return c.json(
-      {
-        error: 'Không thể chuyển sang bước này từ trạng thái hiện tại.',
-        code: 'TRANSITION_NOT_ALLOWED',
-        params: { from: stageOf(kind || 'incoming', current.status).code, to: String(body.to || '') },
-      },
+      { error: 'Không thể chuyển sang bước này từ trạng thái hiện tại.', code: 'TRANSITION_NOT_ALLOWED', params: { from: String(current.status ?? ''), to: String(body.to || '') } },
       400
     );
   }
   const str = (v: unknown, max = 2000) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
   const changes: Record<string, any> = { status: target.status };
-  const handler = str(body.handler, 200);
   const due = str(body.due_date, 10);
-  const directive = str(body.directive);
-  const signer = str(body.signer, 200);
   if (due && !/^\d{4}-\d{2}-\d{2}$/.test(due)) {
     return c.json({ error: 'Hạn xử lý không hợp lệ (YYYY-MM-DD).', code: 'VALIDATION_FAILED', params: { fields: 'due_date' } }, 400);
   }
-  if (handler !== undefined) changes.handler = handler;
-  if (due !== undefined) changes.due_date = due;
-  if (directive !== undefined) changes.directive = directive;
-  if (signer !== undefined) changes.signer = signer;
-
-  const missing = (field: string) =>
-    c.json({ error: `Cần nhập ${field} cho bước này.`, code: 'TRANSITION_FIELD_REQUIRED', params: { fields: field } }, 400);
-  if (target.code === 'assigned' && !(changes.handler || current.handler)) return missing('handler');
-  if (target.code === 'signed' && !(changes.signer || current.signer)) return missing('signer');
-  if (target.code === 'completed' && !current.completed_date) changes.completed_date = vietnamToday();
-  if (target.code === 'issued') {
-    if (!current.issue_date) changes.issue_date = vietnamToday();
-    changes.issued_at = new Date().toISOString();
+  for (const [field, max] of [['handler', 200], ['directive', 2000], ['signer', 200]] as const) {
+    const v = str(body[field], max);
+    if (v !== undefined) changes[field] = v;
   }
-
-  const user = getAuthUser(c)!;
-  const log = appendDirectiveLog(current, changes, user, str(body.note, 1000) || `→ ${target.status}`);
-  if (log) changes.directive_log = log;
-  const updated = store.updateDocument(id, changes)!;
-  store.recordHistory({ record_type: 'document', record_id: id, action: 'update', user, before: current, after: updated });
-  store.recordAuditLog({
-    user_id: user.id,
-    username: user.username,
-    action: 'status_change',
-    entity_type: 'document',
-    entity_id: id,
-    entity_title: updated.document_number,
-    details: `${updated.document_number}: ${current.status || '-'} → ${target.status}`,
-  });
-  await store.persistAsync();
-  return c.json({ ...updated, allowed_transitions: allowedTransitions(kind, updated.status) });
+  if (due !== undefined) changes.due_date = due;
+  // The /transition endpoint only takes normal steps; exceptions go through PATCH with a reason
+  return applyDocumentChange(c, current, changes, { note: str(body.note, 1000) || null });
 });
 
 // DELETE /api/documents/:id (Admin Only) — moves the document to the trash (restorable)

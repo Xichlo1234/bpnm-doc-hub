@@ -10,13 +10,15 @@ interface AttachmentsPanelProps {
   recordType: 'document' | 'contract';
   recordId: string;
   canEdit: boolean;
+  /** Revision of the record as loaded; sent with every change (optimistic concurrency) */
+  recordRevision: number;
   /** Called with the updated record after a change, so the parent can refresh its copy. */
   onRecordChanged?: (record: any) => void;
 }
 
 const ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.svg,.txt,.zip';
 
-export const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({ recordType, recordId, canEdit, onRecordChanged }) => {
+export const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({ recordType, recordId, canEdit, recordRevision, onRecordChanged }) => {
   const { t, tf } = useLanguage();
   const [items, setItems] = useState<AttachmentRecord[]>([]);
   const [showVersions, setShowVersions] = useState(false);
@@ -54,6 +56,7 @@ export const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({ recordType, 
     try {
       // Success is shown only after the server confirmed both the file and the record
       const res = await api.addAttachment(recordType, recordId, file, {
+        expectedRevision: recordRevision,
         replaces: replaceTarget.current || undefined,
         onProgress: setProgress,
       });
@@ -71,7 +74,7 @@ export const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({ recordType, 
     if (!window.confirm(tf('attRemoveConfirm', { name: att.original_name }))) return;
     setBusy(att.id);
     try {
-      const res = await api.removeAttachment(att.id);
+      const res = await api.removeAttachment(att.id, recordRevision);
       setMessage({ ok: true, text: t.attRemoved });
       onRecordChanged?.(res.record);
       await load();

@@ -1147,4 +1147,7 @@ export const en: Translations = {
   backToList: "Back to list",
   recordSavedSuccess: "Record saved.",
   srvPayloadTooLarge: "The request is too large.",
+  srvRevisionRequired: "The record version is missing. Please reload the record and save again.",
+  srvStatusInvalid: "Status \"{status}\" is not part of the workflow.",
+  srvRecordNumberTaken: "This document/contract number is already in use. Reload and choose another number.",
 };

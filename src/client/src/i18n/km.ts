@@ -1147,4 +1147,7 @@ export const km: Translations = {
   backToList: "ត្រឡប់ទៅបញ្ជី",
   recordSavedSuccess: "បានរក្សាទុកកំណត់ត្រា។",
   srvPayloadTooLarge: "សំណើធំពេក។",
+  srvRevisionRequired: "ខ្វះកំណែកំណត់ត្រា។ សូមផ្ទុកកំណត់ត្រាឡើងវិញ ហើយរក្សាទុកម្តងទៀត។",
+  srvStatusInvalid: "ស្ថានភាព \"{status}\" មិនមែនជាផ្នែកនៃដំណើរការទេ។",
+  srvRecordNumberTaken: "លេខនេះត្រូវបានប្រើរួចហើយ។ សូមផ្ទុកឡើងវិញ ហើយជ្រើសលេខផ្សេង។",
 };

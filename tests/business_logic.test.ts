@@ -6,17 +6,11 @@ import { importLegacyDataset } from '../src/server/db/repository.ts';
 import { withSeedDefaults } from '../src/server/db/persistence.ts';
 import { allocateDocumentNumber } from '../src/server/utils/numbering.ts';
 import { vietnamToday, stageOf } from '../src/server/utils/workflow.ts';
-import { tokenFor } from './setup.ts';
+import { tokenFor, fetchAs } from './setup.ts';
 
 const { DatabaseSync } = (process as any).getBuiltinModule('node:sqlite');
 
-const as = async (userId: string, p: string, init: RequestInit = {}) =>
-  app.fetch(
-    new Request(`http://localhost${p}`, {
-      ...init,
-      headers: { ...(init.headers as any), Authorization: `Bearer ${await tokenFor(userId)}` },
-    })
-  );
+const as = (userId: string, p: string, init: RequestInit & { rawRevision?: boolean } = {}) => fetchAs(userId, p, init);
 const admin = (p: string, init?: RequestInit) => as('admin_root', p, init);
 const send = (method: string, body: unknown): RequestInit => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const post = (p: string, body: unknown) => admin(p, send('POST', body));

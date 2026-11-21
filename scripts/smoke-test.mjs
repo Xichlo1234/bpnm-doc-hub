@@ -242,9 +242,10 @@ async function writeTests(admin) {
     expectStatus(res, 409, 'conflict');
     assert(res.data.code === 'REVISION_CONFLICT', res.data.code);
   });
-  await check('validation rejects javascript: links', async () => expectStatus(await api(`/api/documents/${encodeURIComponent(doc.id)}`, { token: T, method: 'PATCH', body: { google_drive_url: 'javascript:alert(1)' } }), 400, 'js url'));
+  await check('validation rejects javascript: links', async () => expectStatus(await api(`/api/documents/${encodeURIComponent(doc.id)}`, { token: T, method: 'PATCH', body: { google_drive_url: 'javascript:alert(1)', expected_revision: doc.revision } }), 400, 'js url'));
   await check('link Google Drive (sync-drive)', async () => {
-    const res = await api('/api/files/sync-drive', { token: T, method: 'POST', body: { id: doc.id, type: 'document', drive_url: 'drive.google.com/file/d/smoke' } });
+    const fresh = (await api(`/api/documents/${encodeURIComponent(doc.id)}`, { token: T })).data;
+    const res = await api('/api/files/sync-drive', { token: T, method: 'POST', body: { id: doc.id, type: 'document', drive_url: 'drive.google.com/file/d/smoke', expected_revision: fresh.revision } });
     expectStatus(res, 200, 'sync-drive');
     assert(res.data.google_drive_url === 'https://drive.google.com/file/d/smoke', res.data.google_drive_url);
   });
@@ -292,13 +293,15 @@ async function writeTests(admin) {
     assert(contract.urgency?.level === 'urgent', `urgency ${contract.urgency?.level}`);
   });
   await check('numeric strings are coerced, wrong types rejected', async () => {
-    const ok = await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: T, method: 'PATCH', body: { value: '2500' } });
+    expectStatus(await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: T, method: 'PATCH', body: { value: '2500' } }), 428, 'missing revision');
+    const ok = await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: T, method: 'PATCH', body: { value: '2500', expected_revision: contract.revision } });
     expectStatus(ok, 200, 'coerce');
     assert(ok.data.value === 2500, `value ${ok.data.value}`);
-    expectStatus(await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: T, method: 'PATCH', body: { value: 'abc' } }), 400, 'bad type');
+    expectStatus(await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: T, method: 'PATCH', body: { value: 'abc', expected_revision: ok.data.revision } }), 400, 'bad type');
+    contract = ok.data;
   });
   await check('liquidate contract', async () => {
-    const res = await api(`/api/contracts/${encodeURIComponent(contract.id)}/liquidate`, { token: T, method: 'PATCH' });
+    const res = await api(`/api/contracts/${encodeURIComponent(contract.id)}/liquidate`, { token: T, method: 'PATCH', body: { expected_revision: contract.revision } });
     expectStatus(res, 200, 'liquidate');
     assert(res.data.status === 'liquidated', res.data.status);
   });
@@ -355,7 +358,7 @@ async function writeTests(admin) {
     expectStatus(await api(`/api/files/${labor.file_key}`, { token: staffToken }), 200, 'file after grant');
   });
   await check('labor-only user cannot turn an economic contract into labor', async () => {
-    expectStatus(await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: staffToken, method: 'PATCH', body: { contract_type: 'labor' } }), 403, 'convert');
+    expectStatus(await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: staffToken, method: 'PATCH', body: { contract_type: 'labor', expected_revision: contract.revision } }), 403, 'convert');
   });
   await check('locking a user cuts off the session', async () => {
     expectStatus(await api(`/api/users/${staff.id}`, { token: T, method: 'PATCH', body: { status: 'locked' } }), 200, 'lock');

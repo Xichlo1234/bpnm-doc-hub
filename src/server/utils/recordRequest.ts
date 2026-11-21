@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import { saveUploadedFile, registerUpload, deleteStoredFile, validateUpload, type SavedUpload } from './fileStorage.ts';
+import { saveUploadedFile, registerUpload, discardUpload, validateUpload, type SavedUpload } from './fileStorage.ts';
 import { getDatabase } from '../db/database.ts';
 
 /**
@@ -35,9 +35,10 @@ export async function storeAttachment(
   rollback: () => Promise<void>;
 }> {
   const uploaded = await saveUploadedFile(file, c.env);
-  const rollback = () => deleteStoredFile(uploaded.file_key, c.env).catch(() => {});
+  const db = await getDatabase(c.env);
+  const rollback = () => discardUpload(db, uploaded.file_key, c.env);
   try {
-    await registerUpload(await getDatabase(c.env), uploaded, userId);
+    await registerUpload(db, uploaded, userId);
   } catch (err) {
     await rollback();
     throw err;

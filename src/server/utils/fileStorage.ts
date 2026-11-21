@@ -219,6 +219,25 @@ export async function getUploadRow(db: any, key: string): Promise<UploadRow | nu
   return (await db.prepare('SELECT * FROM file_uploads WHERE key = ?').bind(key).first()) ?? null;
 }
 
+/**
+ * Rolls back an upload whose record could not be saved: removes the stored object, then its
+ * file_uploads row. If removing the object fails, the row is kept so the storage check still lists
+ * the file (with its uploader) instead of losing track of it.
+ */
+export async function discardUpload(db: any, key: string, env?: any): Promise<void> {
+  try {
+    await deleteStoredFile(key, env);
+  } catch (err) {
+    console.warn('Rollback: could not delete stored file', key, err);
+    return;
+  }
+  try {
+    await db.prepare('DELETE FROM file_uploads WHERE key = ?').bind(key).run();
+  } catch (err) {
+    console.warn('Rollback: could not delete upload registration', key, err);
+  }
+}
+
 /** Removes a stored object (used to roll back an upload whose record could not be saved). */
 export async function deleteStoredFile(key: string, env?: any): Promise<void> {
   if (!isSafeFileKey(key) || !key.startsWith('uploads/')) return;

@@ -180,7 +180,77 @@ export class RevisionConflictError extends Error {
 
 export function isGuardViolation(err: unknown): boolean {
   const msg = String((err as Error)?.message || err);
-  return /CHECK constraint failed/i.test(msg) && /write_guard|conflict/i.test(msg);
+  return /CHECK constraint failed/i.test(msg) && /(^|[^_])conflict = 0|write_guard/i.test(msg) && !isNumberGuardViolation(err);
+}
+
+export function isNumberGuardViolation(err: unknown): boolean {
+  const msg = String((err as Error)?.message || err);
+  return /CHECK constraint failed/i.test(msg) && /number_conflict|number_guard/i.test(msg);
+}
+
+export class NumberConflictError extends Error {
+  constructor(readonly number?: string) {
+    super(`Number already in use${number ? `: ${number}` : ''}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Number registry (migration 0008)
+// ---------------------------------------------------------------------------
+
+export interface NumberEntry {
+  scope: string;
+  norm: string;
+  display: string;
+  recordType: 'document' | 'contract';
+  recordId: string;
+}
+
+/** Aborts the batch when any of these numbers belongs to another record. */
+export function numberGuardStatements(db: SqlDatabase, entries: NumberEntry[]): SqlStatement[] {
+  const sql = `INSERT INTO number_guard (number_conflict)
+    SELECT 1 FROM json_each(?) j JOIN number_registry r
+      ON r.scope = json_extract(j.value, '$[0]') AND r.number_norm = json_extract(j.value, '$[1]')
+     AND r.record_id <> json_extract(j.value, '$[2]')
+    LIMIT 1`;
+  return chunkJson(entries.map((e) => [e.scope, e.norm, e.recordId])).map((json) => db.prepare(sql).bind(json));
+}
+
+export function numberRegisterStatements(db: SqlDatabase, entries: NumberEntry[]): SqlStatement[] {
+  const now = new Date().toISOString();
+  const sql = `INSERT OR IGNORE INTO number_registry (scope, number_norm, number_display, record_type, record_id, registered_at)
+    SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), json_extract(value, '$[2]'),
+           json_extract(value, '$[3]'), json_extract(value, '$[4]'), ? FROM json_each(?)`;
+  return chunkJson(entries.map((e) => [e.scope, e.norm, e.display, e.recordType, e.recordId])).map((json) =>
+    db.prepare(sql).bind(now, json)
+  );
+}
+
+/** Releases numbers a record no longer carries (only that record's own rows). */
+export function numberReleaseStatements(db: SqlDatabase, entries: NumberEntry[]): SqlStatement[] {
+  const sql = `DELETE FROM number_registry WHERE EXISTS (
+      SELECT 1 FROM json_each(?) j
+       WHERE number_registry.scope = json_extract(j.value, '$[0]')
+         AND number_registry.number_norm = json_extract(j.value, '$[1]')
+         AND number_registry.record_id = json_extract(j.value, '$[2]'))`;
+  return chunkJson(entries.map((e) => [e.scope, e.norm, e.recordId])).map((json) => db.prepare(sql).bind(json));
+}
+
+export async function hasNumberBackfill(db: SqlDatabase): Promise<boolean> {
+  return Boolean(await db.prepare("SELECT 1 AS x FROM meta WHERE key = 'number_registry_backfill'").first());
+}
+
+/**
+ * Registers the numbers of existing records once (oldest record first). Never modifies records:
+ * historical duplicates are reported in the meta row instead.
+ */
+export async function backfillNumberRegistry(db: SqlDatabase, entries: NumberEntry[], duplicates: Array<{ scope: string; number: string; record_ids: string[] }>) {
+  await db.batch([
+    ...numberRegisterStatements(db, entries),
+    db
+      .prepare("INSERT OR IGNORE INTO meta (key, value) VALUES ('number_registry_backfill', ?)")
+      .bind(JSON.stringify({ at: new Date().toISOString(), registered: entries.length, duplicates })),
+  ]);
 }
 
 export function deleteStatements(db: SqlDatabase, spec: TableSpec, ids: string[]): SqlStatement[] {

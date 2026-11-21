@@ -6,7 +6,7 @@ import {
   isSafeFileKey,
   isActiveContentType,
   registerUpload,
-  deleteStoredFile,
+  discardUpload,
   getUploadRow,
   UploadValidationError,
 } from '../utils/fileStorage.ts';
@@ -16,7 +16,7 @@ import { getAuthUser } from './auth.ts';
 import { isLaborContract, canAccessLaborContracts } from '../types.ts';
 import { canUploadFiles } from '../utils/access.ts';
 import { canReadFile } from '../utils/fileAccess.ts';
-import { fileInput, parseInput } from '../utils/validation.ts';
+import { fileInput, parseInput, revisionConflict } from '../utils/validation.ts';
 
 export const filesRouter = new Hono();
 
@@ -67,7 +67,7 @@ filesRouter.post('/upload', async (c) => {
       return c.json({ error: err.message, code: err.code, params: err.params }, 400);
     }
     // The object was stored but could not be registered: remove it rather than leave an orphan
-    if (uploadedKey) await deleteStoredFile(uploadedKey, c.env).catch(() => {});
+    if (uploadedKey) await discardUpload(await getDatabase(c.env), uploadedKey, c.env);
     console.error('File upload error:', err);
     return c.json({ error: 'Không thể lưu tệp tải lên', code: 'FILE_SAVE_FAILED' }, 500);
   }
@@ -78,7 +78,7 @@ filesRouter.post('/upload', async (c) => {
 filesRouter.post('/sync-drive', async (c) => {
   const parsed = parseInput(c, fileInput.syncDrive, await c.req.json().catch(() => null));
   if (!parsed.ok) return parsed.response;
-  const { id, type, drive_url } = parsed.data;
+  const { id, type, drive_url, expected_revision } = parsed.data as any;
 
   // Same rules as PATCH /api/contracts/:id and PATCH /api/documents/:id
   const user = getAuthUser(c);
@@ -95,6 +95,9 @@ filesRouter.post('/sync-drive', async (c) => {
       ? drive_url.trim()
       : settings.google_drive_folder_url || 'https://drive.google.com/drive/my-drive';
 
+  const existing = type === 'contract' ? store.getContract(id) : store.getDocument(id);
+  const conflict = revisionConflict(c, existing, expected_revision);
+  if (conflict) return conflict;
   const now = new Date().toISOString();
   const updated =
     type === 'contract'

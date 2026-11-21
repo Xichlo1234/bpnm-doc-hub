@@ -33,7 +33,15 @@ import {
   historyStatement,
   revisionGuardStatements,
   isGuardViolation,
+  isNumberGuardViolation,
   RevisionConflictError,
+  NumberConflictError,
+  numberGuardStatements,
+  numberRegisterStatements,
+  numberReleaseStatements,
+  hasNumberBackfill,
+  backfillNumberRegistry,
+  type NumberEntry,
   type HistoryEntry,
   CONFIG_KEYS,
   AUDIT_CACHE_SIZE,
@@ -53,6 +61,9 @@ import {
 } from './tables.ts';
 import initialCategories from './categories.json';
 import { contractValueTotals } from '../utils/contractRules.ts';
+import { normalizeNumber, numberScope, numberOf } from '../utils/numberKeys.ts';
+import { vietnamToday } from '../utils/workflow.ts';
+import { canReadContract, canReadDocument, type AccessSubject } from '../utils/access.ts';
 
 // Vietnamese string normalizer for fast, diacritic-insensitive search
 export function normalizeVietnamese(str: string): string {
@@ -68,6 +79,23 @@ export function normalizeVietnamese(str: string): string {
 export type LegacySource = 'd1' | 'json';
 export type TrashRecordType = 'document' | 'contract' | 'partner';
 const REVISIONED_TABLES = new Set(['documents', 'contracts']);
+
+function numberEntry(table: string, record: Record<string, any>): NumberEntry | null {
+  const recordType = table === 'contracts' ? 'contract' : 'document';
+  const display = String(numberOf(recordType, record) ?? '').trim();
+  const norm = normalizeNumber(display);
+  if (!norm) return null;
+  return { scope: numberScope(recordType, record), norm, display, recordType, recordId: record.id };
+}
+
+function entryKey(e: NumberEntry | null): string | null {
+  return e ? `${e.scope}|${e.norm}` : null;
+}
+
+function splitKey(key: string): [string, string] {
+  const i = key.indexOf('|');
+  return [key.slice(0, i), key.slice(i + 1)];
+}
 
 // Fields that change on every save and say nothing about what the user edited
 const HISTORY_IGNORED_FIELDS = new Set(['updated_at', 'revision', 'deadline_status', 'urgency', 'created_at']);
@@ -126,6 +154,8 @@ export class MemoryStore {
   private attachments: Map<string, AttachmentRecord> = new Map();
   // Edit-history rows written with the next flush (same transaction as the change itself)
   private pendingHistory: HistoryEntry[] = [];
+  // Extra statements that must commit together with this request's record changes (e.g. import log)
+  private pendingStatements: Array<(db: SqlDatabase) => SqlStatement> = [];
 
   private db: SqlDatabase | null = null;
   private loaded = false;
@@ -135,6 +165,8 @@ export class MemoryStore {
   private snapshots = new Map<string, Map<string, string>>();
   // Revision of each document/contract as last read from or written to the database
   private baseRevisions = new Map<string, Map<string, number>>();
+  // Registered number ("scope|norm") of each document/contract as last read or written
+  private baseNumbers = new Map<string, Map<string, string | null>>();
   private configSnapshot: Partial<Record<ConfigKey, string>> = {};
   private persistedAuditIds = new Set<string>();
   // Serializes sync/flush so a reload never interleaves with a commit within one isolate
@@ -146,6 +178,9 @@ export class MemoryStore {
     this.auditLogs = [];
     this.attachments.clear();
     this.pendingHistory = [];
+    this.pendingStatements = [];
+    // The reset dataset replaces whatever a failed commit left behind
+    this.stale = false;
   }
 
   private applyDataset(data: Omit<PersistedDataset, 'audit_logs'>) {
@@ -198,6 +233,7 @@ export class MemoryStore {
           await importLegacyDataset(db, withSeedDefaults(legacy), legacy ? legacySource : 'seed');
         }
         await this.reload(db);
+        await this.ensureNumberRegistry(db);
         return;
       }
       if (this.stale) {
@@ -210,6 +246,30 @@ export class MemoryStore {
         await this.reload(db);
       }
     });
+  }
+
+  /** One-time registration of existing numbers after migration 0008 (see backfillNumberRegistry). */
+  private async ensureNumberRegistry(db: SqlDatabase) {
+    if (await hasNumberBackfill(db)) return;
+    const entries: NumberEntry[] = [];
+    const owners = new Map<string, string[]>();
+    const byAge = (a: any, b: any) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id));
+    for (const [table, list] of [
+      ['documents', Array.from(this.documents.values())],
+      ['contracts', Array.from(this.contracts.values())],
+    ] as const) {
+      for (const r of [...(list as any[])].sort(byAge)) {
+        const e = numberEntry(table, r);
+        const key = entryKey(e);
+        if (!e || !key) continue;
+        if (!owners.has(key)) entries.push(e);
+        owners.set(key, [...(owners.get(key) || []), r.id]);
+      }
+    }
+    const duplicates = [...owners.entries()]
+      .filter(([, ids]) => ids.length > 1)
+      .map(([key, ids]) => ({ scope: splitKey(key)[0], number: splitKey(key)[1], record_ids: ids }));
+    await backfillNumberRegistry(db, entries, duplicates);
   }
 
   private async reload(db: SqlDatabase) {
@@ -227,6 +287,7 @@ export class MemoryStore {
     this.auditLogs = data.auditLogs;
     this.attachments = new Map(data.attachments.map((a: AttachmentRecord) => [a.id, a]));
     this.pendingHistory = [];
+    this.pendingStatements = [];
 
     this.snapshots.clear();
     this.baseRevisions.clear();
@@ -236,6 +297,7 @@ export class MemoryStore {
       this.snapshots.set(spec.name, snap);
       if (REVISIONED_TABLES.has(spec.name)) {
         this.baseRevisions.set(spec.name, new Map(records.map((r) => [r.id, Number(r.revision ?? 0)])));
+        this.baseNumbers.set(spec.name, new Map(records.map((r) => [r.id, entryKey(numberEntry(spec.name, r))])));
       }
     }
     // Config rows that don't exist yet are treated as changed so defaults get persisted
@@ -288,10 +350,17 @@ export class MemoryStore {
       }
       const removed = [...snap.keys()].filter((id) => !fingerprints.has(id));
       if (changed.length === 0 && removed.length === 0) continue;
+      let numberChanges: { claim: NumberEntry[]; release: NumberEntry[] } | null = null;
       if (REVISIONED_TABLES.has(spec.name) && changed.length > 0) {
         // Checked inside the same transaction as the write: a row someone else saved meanwhile aborts it
         const base = this.baseRevisions.get(spec.name) ?? new Map<string, number>();
         statements.push(...revisionGuardStatements(db, spec, changed.map((r) => [r.id, base.has(r.id) ? base.get(r.id)! : null])));
+        // Business numbers: a record that gets a new number (new record, number or type changed)
+        // claims it in number_registry; the database refuses a number another record holds.
+        numberChanges = this.numberChangesFor(spec.name, changed, records);
+        statements.push(...numberGuardStatements(db, numberChanges.claim));
+        statements.push(...numberReleaseStatements(db, numberChanges.release));
+        statements.push(...numberRegisterStatements(db, numberChanges.claim));
       }
       statements.push(...upsertStatements(db, spec, changed), ...deleteStatements(db, spec, removed));
       pendingSnapshots.push(() => {
@@ -301,6 +370,9 @@ export class MemoryStore {
           for (const r of changed) base.set(r.id, Number(r.revision ?? 0));
           for (const id of removed) base.delete(id);
           this.baseRevisions.set(spec.name, base);
+          const nums = this.baseNumbers.get(spec.name) ?? new Map<string, string | null>();
+          for (const r of changed) nums.set(r.id, entryKey(numberEntry(spec.name, r)));
+          this.baseNumbers.set(spec.name, nums);
         }
       });
     }
@@ -317,6 +389,12 @@ export class MemoryStore {
     if (newAuditLogs.length > 0) {
       statements.push(...upsertStatements(db, auditLogsTable, newAuditLogs));
       pendingSnapshots.push(() => newAuditLogs.forEach((l) => this.persistedAuditIds.add(l.id)));
+    }
+
+    const extra = this.pendingStatements;
+    if (extra.length > 0) {
+      statements.push(...extra.map((make) => make(db)));
+      pendingSnapshots.push(() => (this.pendingStatements = this.pendingStatements.filter((x) => !extra.includes(x))));
     }
 
     const history = this.pendingHistory;
@@ -336,9 +414,41 @@ export class MemoryStore {
     } catch (err) {
       // The cache now holds changes the database rejected; discard them on the next request
       this.stale = true;
+      if (isNumberGuardViolation(err)) throw new NumberConflictError();
       if (isGuardViolation(err)) throw new RevisionConflictError();
       throw err;
     }
+  }
+
+  /**
+   * Numbers that changed records claim or release. Two records of this cache claiming the same number
+   * in one write is refused here (the registry check only sees committed rows).
+   */
+  private numberChangesFor(table: string, changed: Array<Record<string, any>>, all: Array<Record<string, any>>) {
+    const base = this.baseNumbers.get(table) ?? new Map<string, string | null>();
+    const claim: NumberEntry[] = [];
+    const release: NumberEntry[] = [];
+    for (const r of changed) {
+      const entry = numberEntry(table, r);
+      const key = entryKey(entry);
+      const before = base.has(r.id) ? base.get(r.id)! : undefined;
+      if (key === before) continue; // unchanged number (historical duplicates stay editable)
+      if (entry) {
+        const clash = all.find((o) => o.id !== r.id && entryKey(numberEntry(table, o)) === key);
+        if (clash) throw new NumberConflictError(entry.display);
+        claim.push(entry);
+      }
+      if (before) {
+        const [scope, norm] = splitKey(before);
+        release.push({ scope, norm, display: '', recordType: entry?.recordType ?? (table === 'contracts' ? 'contract' : 'document'), recordId: r.id });
+      }
+    }
+    return { claim, release };
+  }
+
+  /** Adds a statement to the next flush, in the same transaction as the record changes. */
+  public queueStatement(make: (db: SqlDatabase) => SqlStatement) {
+    this.pendingStatements.push(make);
   }
 
   /** Kept for route handlers: persists this request's changes before the response is built. */
@@ -489,7 +599,7 @@ export class MemoryStore {
         const id = item.id || ('doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6));
         const newRecord: DocumentRecord = {
           id,
-          document_number: item.document_number || `CV-${new Date().getFullYear()}-${String(this.documents.size + 1).padStart(4, '0')}`,
+          document_number: item.document_number || `CV-${vietnamToday().slice(0, 4)}-${String(this.documents.size + 1).padStart(4, '0')}`,
           title: item.title || 'Văn bản mới',
           doc_type: item.doc_type || 'incoming',
           doc_category: item.doc_category || 'CV',
@@ -527,7 +637,9 @@ export class MemoryStore {
   }
 
   public getNextDocumentNumber(type: 'incoming' | 'outgoing', categoryCode = 'CV', deptCode = 'HCNS'): string {
-    const year = new Date().getFullYear();
+    // The numbering year is the year in Vietnam (UTC+7), not the server's
+    const year = Number(vietnamToday().slice(0, 4));
+    // Trashed documents keep their numbers: they are never re-issued
     const docs = Array.from(this.documents.values());
     if (type === 'incoming') {
       const prefix = `ĐẾN-${year}-`;
@@ -671,7 +783,7 @@ export class MemoryStore {
         const id = item.id || ('con-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6));
         const newRecord: ContractRecord = {
           id,
-          contract_number: item.contract_number || `HĐ-${new Date().getFullYear()}-${String(this.contracts.size + 1).padStart(4, '0')}`,
+          contract_number: item.contract_number || `HĐ-${vietnamToday().slice(0, 4)}-${String(this.contracts.size + 1).padStart(4, '0')}`,
           title: item.title || 'Hợp đồng mới',
           contract_type: item.contract_type || 'service',
           contract_category: item.contract_category || 'Dịch vụ',
@@ -950,16 +1062,26 @@ export class MemoryStore {
     );
   }
 
-  /** Finds the account a free-text handler/recipient name refers to (username, full name or email). */
-  public resolveUserByName(name?: string | null): UserAccount | null {
+  /** Active accounts whose username, full name or email equals `name` (case/diacritic-insensitive). */
+  public findUsersByName(name?: string | null): UserAccount[] {
     const target = normalizeVietnamese(String(name || '').trim());
-    if (!target) return null;
-    for (const u of this.users.values()) {
-      if (u.status !== 'active') continue;
-      const candidates = [u.username, u.name, u.email].map((v) => normalizeVietnamese(String(v || '').trim()));
-      if (candidates.includes(target)) return { ...u };
-    }
-    return null;
+    if (!target) return [];
+    return Array.from(this.users.values())
+      .filter((u) => u.status === 'active' && [u.username, u.name, u.email].some((v) => normalizeVietnamese(String(v || '').trim()) === target))
+      .map((u) => ({ ...u }));
+  }
+
+  /** The single account a handler name refers to; null when none or several match (never guess). */
+  public resolveUserByName(name?: string | null): UserAccount | null {
+    const matches = this.findUsersByName(name);
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  public setNotificationRecipient(id: string, userId: string): boolean {
+    const n = this.notifications.find((x) => x.id === id);
+    if (!n || n.recipient_user_id) return false;
+    n.recipient_user_id = userId;
+    return true;
   }
 
   public addNotification(notif: Omit<NotificationRecord, 'id' | 'read' | 'created_at'>): NotificationRecord {
@@ -1075,8 +1197,9 @@ export class MemoryStore {
   }
 
   // Detailed Stats matching Excel Dashboard
-  public getStats() {
-    const allContracts = this.getContracts();
+  public getStats(user?: AccessSubject | null) {
+    // Without a user (internal callers) everything counts; with one, only what that user may read
+    const allContracts = this.getContracts().filter((c) => !user || canReadContract(user, c));
     const contracts = allContracts.filter(c => !isLaborContract(c));
     const laborContracts = allContracts.filter(c => isLaborContract(c));
 
@@ -1099,7 +1222,7 @@ export class MemoryStore {
     // Values in different currencies are never added up as-is (see contractValueTotals)
     const valueTotals = contractValueTotals(contracts);
 
-    const docs = this.getDocuments();
+    const docs = this.getDocuments().filter((d) => !user || canReadDocument(user, d));
     const incomingDocs = docs.filter(d => d.doc_type === 'incoming');
     const outgoingDocs = docs.filter(d => d.doc_type === 'outgoing');
     const internalDocs = docs.filter(d => d.doc_type === 'internal' || d.doc_type === 'decision');
