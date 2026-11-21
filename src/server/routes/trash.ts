@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { store, type TrashRecordType } from '../db/store.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
-import { deleteStoredFile } from '../utils/fileStorage.ts';
+import { getDatabase } from '../db/database.ts';
 import { referencedFileKeys } from '../utils/attachments.ts';
+import { enqueueCleanupStatement, processCleanup } from '../utils/storageCleanup.ts';
 
 // Trash (soft-deleted records). Admin only: deleting is admin-only too.
 export const trashRouter = new Hono();
@@ -20,6 +21,14 @@ trashRouter.post('/:type/:id/restore', async (c) => {
   const type = parseType(c.req.param('type'));
   const id = c.req.param('id');
   const user = getAuthUser(c)!;
+  if (type === 'partner') {
+    // A new partner may have taken this code while it was in the trash
+    const trashed = store.getPartner(id, { includeDeleted: true });
+    const clash = trashed && store.getPartners().find((p) => p.id !== id && p.code.trim().toUpperCase() === trashed.code.trim().toUpperCase());
+    if (clash) {
+      return c.json({ error: `Mã đối tác '${trashed!.code}' đã được dùng cho đối tác khác.`, code: 'PARTNER_CODE_TAKEN', params: { code: trashed!.code } }, 409);
+    }
+  }
   const restored = type ? store.restoreRecord(type, id) : null;
   if (!type || !restored) return c.json({ error: 'Không tìm thấy hồ sơ trong thùng rác', code: 'TRASH_ITEM_NOT_FOUND' }, 404);
   if (type !== 'partner') {
@@ -38,8 +47,10 @@ trashRouter.post('/:type/:id/restore', async (c) => {
   return c.json({ success: true, record: restored });
 });
 
-// DELETE /api/trash/:type/:id — permanent. Files that nothing else references are removed from R2
-// after the database commit, so a failed commit never loses a file.
+// DELETE /api/trash/:type/:id — permanent. Stored files the record held are enqueued for deletion
+// in the same transaction (storage_cleanup); after the commit they are deleted only if the database
+// shows no other record or attachment still uses them. A failed deletion is recorded and retried
+// (POST /api/admin/storage-cleanup); the file stays retired either way.
 trashRouter.delete('/:type/:id', async (c) => {
   const type = parseType(c.req.param('type'));
   const id = c.req.param('id');
@@ -57,15 +68,11 @@ trashRouter.delete('/:type/:id', async (c) => {
     entity_title: titleOf(record),
     details: `Xóa vĩnh viễn: ${titleOf(record)}`,
   });
+  const stillUsed = referencedFileKeys();
+  const candidates = keys.filter((key) => key.startsWith('uploads/') && !stillUsed.has(key));
+  for (const key of candidates) store.queueStatement((db) => enqueueCleanupStatement(db, key, `purge ${type}:${id}`, user.id));
   await store.persistAsync();
 
-  const stillUsed = referencedFileKeys();
-  const removed: string[] = [];
-  for (const key of keys) {
-    if (key.startsWith('uploads/') && !stillUsed.has(key)) {
-      await deleteStoredFile(key, c.env).catch((err) => console.warn('Could not delete file', key, err));
-      removed.push(key);
-    }
-  }
-  return c.json({ success: true, removed_files: removed });
+  const cleanup = await processCleanup(await getDatabase(c.env), c.env, candidates);
+  return c.json({ success: true, removed_files: cleanup.deleted, kept_files: cleanup.kept, failed_files: cleanup.failed });
 });

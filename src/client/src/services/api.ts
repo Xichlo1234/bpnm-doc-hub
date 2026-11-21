@@ -416,8 +416,8 @@ export const api = {
     return res.json();
   },
 
-  async deletePartner(id: string): Promise<boolean> {
-    const res = await customFetch(`${API_BASE}/partners/${encodeURIComponent(id)}`, {
+  async deletePartner(id: string, expectedRevision: number): Promise<boolean> {
+    const res = await customFetch(`${API_BASE}/partners/${encodeURIComponent(id)}?expected_revision=${expectedRevision}`, {
       method: 'DELETE',
     });
     // Never report a delete that the server refused (permission, not found, conflict)
@@ -425,11 +425,14 @@ export const api = {
     return true;
   },
 
-  async togglePartnerLock(id: string): Promise<PartnerRecord> {
-    const res = await customFetch(`${API_BASE}/partners/${encodeURIComponent(id)}/toggle-lock`, {
+  // There is no separate toggle endpoint: a revision-checked PATCH of is_locked
+  async togglePartnerLock(partner: PartnerRecord): Promise<PartnerRecord> {
+    const res = await customFetch(`${API_BASE}/partners/${encodeURIComponent(partner.id)}`, {
       method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_locked: !partner.is_locked, expected_revision: partner.revision ?? 0 }),
     });
-    if (!res.ok) throw new Error(tr('errTogglePartnerLock'));
+    if (!res.ok) throw new Error(trServerError((await res.json().catch(() => ({}))) as any, tr('errTogglePartnerLock')));
     return res.json();
   },
 
@@ -686,8 +689,8 @@ export const api = {
     return res.json();
   },
 
-  async deleteUser(id: string): Promise<boolean> {
-    const res = await customFetch(`${API_BASE}/users/${encodeURIComponent(id)}`, {
+  async deleteUser(id: string, expectedRevision: number): Promise<boolean> {
+    const res = await customFetch(`${API_BASE}/users/${encodeURIComponent(id)}?expected_revision=${expectedRevision}`, {
       method: 'DELETE',
     });
     if (!res.ok) {

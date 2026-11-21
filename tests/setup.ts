@@ -60,6 +60,22 @@ export function withLoadedRevision(url: string, init: RequestInit = {}): Request
   let type = m?.[1] === 'documents' ? 'document' : m ? 'contract' : null;
   let id = m ? decodeURIComponent(m[2]) : null;
   if (m && method === 'DELETE') return init;
+  // Admin edits of accounts and partners carry the revision too (migration 0009)
+  const acct = /^\/api\/(users|partners)\/([^/]+)$/.exec(path);
+  if (acct) {
+    const rec: any = acct[1] === 'users' ? store.getUser(decodeURIComponent(acct[2])) : store.getPartner(decodeURIComponent(acct[2]));
+    if (!rec) return init;
+    if (method === 'DELETE') {
+      if (url.includes('expected_revision=')) return init;
+      return { ...init, __url: `${url}${url.includes('?') ? '&' : '?'}expected_revision=${rec.revision ?? 0}` } as any;
+    }
+    if (typeof init.body === 'string') {
+      const body = JSON.parse(init.body);
+      if (body && typeof body === 'object' && body.expected_revision === undefined) body.expected_revision = rec.revision ?? 0;
+      return { ...init, body: JSON.stringify(body) };
+    }
+    return init;
+  }
   const att = /^\/api\/attachments\/(document|contract)\/([^/]+)$/.exec(path);
   if (att) {
     type = att[1];

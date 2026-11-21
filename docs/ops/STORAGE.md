@@ -23,6 +23,16 @@ API:
 
 Hồ sơ cũ chỉ có `file_key` được hiển thị như phiên bản 1 ở lần đầu mở.
 
+## Xoá tệp hai pha (migration 0009)
+
+- Xoá vĩnh viễn hồ sơ chỉ **đưa vào hàng đợi** (`storage_cleanup`, cùng transaction với việc xoá hồ sơ).
+- Sau khi commit, hệ thống hỏi lại **D1** xem còn hồ sơ/tệp đính kèm nào dùng tệp không: còn → `kept`
+  (không xoá); không → xoá object → `deleted`. Lỗi R2 → vẫn `pending`, ghi `attempts`, `last_error`,
+  thử lại bằng `POST /api/admin/storage-cleanup`.
+- Tệp trong hàng đợi/đã xoá là **tombstone**: không ai gắn lại được (kể cả admin; D1 chặn bằng `file_guard`),
+  người không phải admin không bao giờ đọc được — kể cả người đã upload, kể cả khi xoá R2 thất bại.
+- Tệp đã từng gắn vào hồ sơ (`file_uploads.attached_at`) không bao giờ trở lại trạng thái "tệp riêng của người upload".
+
 ## Thùng rác
 
 Xoá văn bản/hợp đồng/đối tác chỉ đặt `deleted_at`/`deleted_by` (migration 0006). Admin xem, khôi phục

@@ -1150,4 +1150,6 @@ export const en: Translations = {
   srvRevisionRequired: "The record version is missing. Please reload the record and save again.",
   srvStatusInvalid: "Status \"{status}\" is not part of the workflow.",
   srvRecordNumberTaken: "This document/contract number is already in use. Reload and choose another number.",
+  srvFileRetired: "This file was removed from the system and cannot be attached again.",
+  srvMaintenance: "The system is under maintenance. Please try again later.",
 };

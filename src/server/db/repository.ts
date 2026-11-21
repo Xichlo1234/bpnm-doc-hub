@@ -31,6 +31,10 @@ export interface LoadedDataset {
   auditLogs: any[];
   attachments: any[];
   config: Partial<Record<ConfigKey, any>>;
+  /** Stored text of each config row, compared byte-for-byte by the write guard */
+  configRaw: Partial<Record<ConfigKey, string>>;
+  /** number_registry: "scope|norm" → owning record id (migration 0008) */
+  numberOwners: Map<string, string>;
 }
 
 export class DatabaseNotMigratedError extends Error {
@@ -66,15 +70,18 @@ export async function loadDataset(db: SqlDatabase): Promise<LoadedDataset> {
       db.prepare(`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ${AUDIT_CACHE_SIZE}`),
       db.prepare('SELECT key, value FROM app_config'),
       db.prepare('SELECT * FROM attachments'),
+      db.prepare('SELECT scope, number_norm, record_id FROM number_registry'),
     ]);
   } catch (err) {
     throw new DatabaseNotMigratedError(err);
   }
-  const [version, documents, contracts, partners, users, notifications, auditLogs, config, attachments] = results.map(
+  const [version, documents, contracts, partners, users, notifications, auditLogs, config, attachments, registry] = results.map(
     (r) => r.results
   );
   const parsedConfig: Partial<Record<ConfigKey, any>> = {};
+  const configRaw: Partial<Record<ConfigKey, string>> = {};
   for (const row of config) {
+    configRaw[row.key as ConfigKey] = row.value;
     try {
       parsedConfig[row.key as ConfigKey] = JSON.parse(row.value);
     } catch {
@@ -91,6 +98,8 @@ export async function loadDataset(db: SqlDatabase): Promise<LoadedDataset> {
     auditLogs: auditLogs.map((r) => fromRow(auditLogsTable, r)),
     attachments: attachments.map((r) => fromRow(attachmentsTable, r)),
     config: parsedConfig,
+    configRaw,
+    numberOwners: new Map(registry.map((r: any) => [`${r.scope}|${r.number_norm}`, r.record_id])),
   };
 }
 
@@ -165,11 +174,18 @@ export function upsertStatements(db: SqlDatabase, spec: TableSpec, records: Reco
  * the database since they were read. Each entry is [id, revision read, or null for a new row].
  */
 export function revisionGuardStatements(db: SqlDatabase, spec: TableSpec, entries: Array<[string, number | null]>): SqlStatement[] {
-  const sql = `INSERT INTO write_guard (conflict)
+  // conflict when the stored row changed (other revision) or appeared (new row that already exists)…
+  const changedSql = `INSERT INTO write_guard (conflict)
     SELECT 1 FROM json_each(?) j JOIN ${spec.name} t ON t.id = json_extract(j.value, '$[0]')
     WHERE json_extract(j.value, '$[1]') IS NULL OR COALESCE(t.revision, 0) <> json_extract(j.value, '$[1]')
     LIMIT 1`;
-  return chunkJson(entries).map((json) => db.prepare(sql).bind(json));
+  // …or disappeared (another worker purged it): writing it back would resurrect a deleted record
+  const vanishedSql = `INSERT INTO write_guard (conflict)
+    SELECT 1 FROM json_each(?) j
+    WHERE json_extract(j.value, '$[1]') IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM ${spec.name} t WHERE t.id = json_extract(j.value, '$[0]'))
+    LIMIT 1`;
+  return chunkJson(entries).flatMap((json) => [db.prepare(changedSql).bind(json), db.prepare(vanishedSql).bind(json)]);
 }
 
 export class RevisionConflictError extends Error {
@@ -226,16 +242,6 @@ export function numberRegisterStatements(db: SqlDatabase, entries: NumberEntry[]
   );
 }
 
-/** Releases numbers a record no longer carries (only that record's own rows). */
-export function numberReleaseStatements(db: SqlDatabase, entries: NumberEntry[]): SqlStatement[] {
-  const sql = `DELETE FROM number_registry WHERE EXISTS (
-      SELECT 1 FROM json_each(?) j
-       WHERE number_registry.scope = json_extract(j.value, '$[0]')
-         AND number_registry.number_norm = json_extract(j.value, '$[1]')
-         AND number_registry.record_id = json_extract(j.value, '$[2]'))`;
-  return chunkJson(entries.map((e) => [e.scope, e.norm, e.recordId])).map((json) => db.prepare(sql).bind(json));
-}
-
 export async function hasNumberBackfill(db: SqlDatabase): Promise<boolean> {
   return Boolean(await db.prepare("SELECT 1 AS x FROM meta WHERE key = 'number_registry_backfill'").first());
 }
@@ -260,6 +266,51 @@ export function deleteStatements(db: SqlDatabase, spec: TableSpec, ids: string[]
 
 export function configStatement(db: SqlDatabase, key: ConfigKey, value: unknown): SqlStatement {
   return db.prepare('INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)').bind(key, JSON.stringify(value));
+}
+
+/** Aborts the batch when the stored config text is no longer what this worker read (null = absent). */
+export function configGuardStatement(db: SqlDatabase, key: ConfigKey, baseRaw: string | null): SqlStatement {
+  return baseRaw === null
+    ? db.prepare('INSERT INTO write_guard (conflict) SELECT 1 FROM app_config WHERE key = ? LIMIT 1').bind(key)
+    : db.prepare('INSERT INTO write_guard (conflict) SELECT 1 FROM app_config WHERE key = ? AND value IS NOT ? LIMIT 1').bind(key, baseRaw);
+}
+
+/**
+ * Files (uploads/…) a write points at: refuses keys queued for deletion or already deleted
+ * (storage_cleanup, migration 0009), and marks the uploads as "attached" for good.
+ */
+export function fileUseStatements(db: SqlDatabase, keys: string[]): SqlStatement[] {
+  if (keys.length === 0) return [];
+  const now = new Date().toISOString();
+  return chunkJson(keys).flatMap((json) => [
+    db
+      .prepare(
+        "INSERT INTO file_guard (file_retired) SELECT 1 FROM storage_cleanup WHERE key IN (SELECT value FROM json_each(?)) AND status IN ('pending', 'deleted') LIMIT 1"
+      )
+      .bind(json),
+    db.prepare('UPDATE file_uploads SET attached_at = COALESCE(attached_at, ?) WHERE key IN (SELECT value FROM json_each(?))').bind(now, json),
+  ]);
+}
+
+export function isFileGuardViolation(err: unknown): boolean {
+  const msg = String((err as Error)?.message || err);
+  return /CHECK constraint failed/i.test(msg) && /file_retired|file_guard/i.test(msg);
+}
+
+export function isUsernameUniqueViolation(err: unknown): boolean {
+  return /UNIQUE constraint failed: (users\.username|index 'idx_users_username_nocase')/i.test(String((err as Error)?.message || err));
+}
+
+export class UsernameTakenError extends Error {
+  constructor() {
+    super('Username already exists');
+  }
+}
+
+export class FileRetiredError extends Error {
+  constructor() {
+    super('The file is queued for deletion or deleted');
+  }
 }
 
 /**

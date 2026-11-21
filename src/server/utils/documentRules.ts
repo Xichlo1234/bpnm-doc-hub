@@ -30,7 +30,11 @@ export function documentNumberTaken(number: string, docType: string | null | und
   if (!n) return null;
   const scope = numberScope('document', { doc_type: docType });
   const all = [...store.getDocuments(), ...store.getTrash().documents];
-  return all.find((d) => d.id !== excludeId && normalizeNumber(d.document_number) === n && numberScope('document', d) === scope) ?? null;
+  const holder = all.find((d) => d.id !== excludeId && normalizeNumber(d.document_number) === n && numberScope('document', d) === scope);
+  if (holder) return holder;
+  // Numbers once held by a renumbered or purged record stay reserved (number_registry)
+  const owner = store.numberOwnerOf(`${scope}|${n}`);
+  return owner && owner !== excludeId ? ({ id: owner, document_number: number } as DocumentRecord) : null;
 }
 
 export interface DirectiveLogEntry {

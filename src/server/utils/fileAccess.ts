@@ -2,6 +2,7 @@ import { store } from '../db/store.ts';
 import type { SqlDatabase } from '../db/database.ts';
 import { canReadContract, canReadDocument, isAdmin, type AccessSubject } from './access.ts';
 import { getUploadRow } from './fileStorage.ts';
+import { getCleanupRow } from './storageCleanup.ts';
 
 /**
  * Where a stored file is (or was) used:
@@ -41,21 +42,25 @@ export function recordsReferencingFile(key: string) {
  *  1. used by live records → only if the user may read at least one of them;
  *  2. bundled samples → any signed-in user (they are public static assets anyway);
  *  3. admins → yes;
- *  4. used only in the past (record trashed/purged, attachment removed) → admins only, even for
- *     the uploader: removing a file or a record must not hand access back to whoever uploaded it;
+ *  4. queued for deletion or deleted (storage_cleanup), ever attached (file_uploads.attached_at),
+ *     or used only in the past (record trashed/purged, attachment removed) → admins only, even for
+ *     the uploader — also when deleting the object from R2 failed: removing a file or a record never
+ *     hands access back to whoever uploaded it;
  *  5. never attached (fresh upload) → only its uploader.
  */
 export async function canReadFile(db: SqlDatabase, user: AccessSubject | null, key: string): Promise<boolean> {
   if (!user) return false;
   const refs = fileReferences(key);
-  if (refs.documents.length > 0 || refs.contracts.length > 0) {
+  const cleanup = key.startsWith('uploads/') ? await getCleanupRow(db, key) : null;
+  const retired = cleanup?.status === 'pending' || cleanup?.status === 'deleted';
+  if (!retired && (refs.documents.length > 0 || refs.contracts.length > 0)) {
     return refs.documents.some((d) => canReadDocument(user, d)) || refs.contracts.some((c) => canReadContract(user, c));
   }
   if (key.startsWith('samples/')) return true;
   if (isAdmin(user)) return true;
-  if (refs.past) return false;
+  if (retired || refs.past || refs.documents.length > 0 || refs.contracts.length > 0) return false;
   const upload = await getUploadRow(db, key);
-  return Boolean(upload && upload.uploaded_by === user.id);
+  return Boolean(upload && upload.uploaded_by === user.id && !upload.attached_at);
 }
 
 /**
@@ -69,6 +74,10 @@ export async function canAttachFile(
   currentKey?: string | null
 ): Promise<boolean> {
   if (!user) return false;
-  if (!key || key === '#' || key === currentKey || /^https?:\/\//i.test(key) || isAdmin(user)) return true;
+  if (!key || key === '#' || key === currentKey || /^https?:\/\//i.test(key)) return true;
+  // A key queued for deletion or deleted can never be attached again, not even by an admin
+  const cleanup = key.startsWith('uploads/') ? await getCleanupRow(db, key) : null;
+  if (cleanup?.status === 'pending' || cleanup?.status === 'deleted') return false;
+  if (isAdmin(user)) return true;
   return canReadFile(db, user, key);
 }

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { store } from '../db/store.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
-import { partnerInput, parseInput } from '../utils/validation.ts';
+import { partnerInput, parseInput, revisionConflict } from '../utils/validation.ts';
 
 export const partnersRouter = new Hono();
 
@@ -71,7 +71,10 @@ partnersRouter.patch('/:id', requireAdmin, async (c) => {
   const id = c.req.param('id') || '';
   const parsed = parseInput(c, partnerInput.update, await c.req.json().catch(() => null));
   if (!parsed.ok) return parsed.response;
-  const updated = store.updatePartner(id, parsed.data);
+  const { expected_revision, ...changes } = parsed.data as Record<string, any>;
+  const conflict = revisionConflict(c, store.getPartner(id), expected_revision);
+  if (conflict) return conflict;
+  const updated = store.updatePartner(id, changes);
   if (!updated) {
     return c.json({ error: 'Partner not found', code: 'PARTNER_NOT_FOUND' }, 404);
   }
@@ -96,6 +99,8 @@ partnersRouter.delete('/:id', requireAdmin, async (c) => {
   if (!partner) {
     return c.json({ error: 'Partner not found', code: 'PARTNER_NOT_FOUND' }, 404);
   }
+  const conflict = revisionConflict(c, partner, c.req.query('expected_revision'));
+  if (conflict) return conflict;
 
   const currentUser = getAuthUser(c)!;
   const success = Boolean(store.trashRecord('partner', id, currentUser.id));

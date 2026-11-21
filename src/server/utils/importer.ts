@@ -3,6 +3,8 @@ import { documentInput, contractInput, withoutUnchangedLinks } from './validatio
 import type { SqlDatabase, SqlStatement } from '../db/database.ts';
 import { normalizeNumber, numberScope } from './numberKeys.ts';
 import { workflowKind, findStage, isIssued, ISSUED_PROTECTED_FIELDS } from './workflow.ts';
+import { documentNumberTaken } from './documentRules.ts';
+import { contractNumberTaken } from './contractRules.ts';
 
 // Excel import in two steps: preview (validate every row, find duplicates, show what would be added or
 // updated and which fields change) and commit (requires the caller to confirm updates explicitly, so
@@ -40,12 +42,12 @@ function importRuleErrors(kind: ImportKind, data: Record<string, any>, match: an
   const errors: string[] = [];
   const numField = numberField(kind);
   if (!match) {
-    const scopeData = kind === 'document' ? { doc_type: data.doc_type ?? 'incoming' } : {};
-    const n = normalizeNumber(data[numField]);
-    const trashed = (kind === 'document' ? store.getTrash().documents : store.getTrash().contracts).find(
-      (r: any) => normalizeNumber(r[numField]) === n && (kind === 'contract' || numberScope('document', r) === numberScope('document', scopeData))
-    );
-    if (trashed) errors.push(`${numField}: số đã thuộc hồ sơ trong thùng rác (không cấp lại)`);
+    // A number held by another record now or in the past (trash, renumbered, purged) is never re-issued
+    const taken =
+      kind === 'document'
+        ? documentNumberTaken(String(data[numField] ?? ''), data.doc_type ?? 'incoming')
+        : contractNumberTaken(String(data[numField] ?? ''));
+    if (taken) errors.push(`${numField}: số đã được cấp cho hồ sơ khác (kể cả hồ sơ đã xoá/đổi số), không cấp lại`);
     if (kind === 'document') {
       const wk = workflowKind(data.doc_type ?? 'incoming');
       if (wk && data.status && !findStage(wk, data.status)) errors.push(`status: "${data.status}" không thuộc quy trình`);

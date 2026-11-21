@@ -1,6 +1,7 @@
 import { Hono, type Context, type Next } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { store } from '../db/store.ts';
+import { RevisionConflictError } from '../db/repository.ts';
 import { authInput, parseInput } from '../utils/validation.ts';
 import { getDatabase, type SqlDatabase } from '../db/database.ts';
 import type { UserAccount, UserRole } from '../types.ts';
@@ -274,11 +275,27 @@ authRouter.post('/login', async (c) => {
   // any password that shipped in source control.
   const usesDefaultPassword = KNOWN_DEFAULT_PASSWORDS.has(password);
   if (needsRehash || (usesDefaultPassword && !account.must_change_password)) {
-    store.updateUser(account.id, {
+    const changes = {
       ...(needsRehash ? { password: await hashPassword(password) } : {}),
       ...(usesDefaultPassword ? { must_change_password: true } : {}),
-    });
-    await store.persistAsync();
+    };
+    // The account row is revision-checked: if another worker changed it meanwhile (lock, reset,
+    // permission), reload and apply on top of the latest version instead of overwriting it
+    for (let attempt = 0; ; attempt++) {
+      try {
+        store.updateUser(account.id, changes);
+        await store.persistAsync();
+        break;
+      } catch (err) {
+        if (!(err instanceof RevisionConflictError) || attempt > 0) throw err;
+        await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
+        const latest = store.getUser(account.id);
+        if (!latest || latest.status !== 'active') {
+          return c.json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.', code: 'ACCOUNT_LOCKED' }, 403);
+        }
+        if (needsRehash && latest.password !== account.password) delete (changes as any).password; // password changed meanwhile
+      }
+    }
   }
 
   const fresh = store.getUser(account.id)!;

@@ -106,7 +106,11 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     db,
     body.doc_type,
     requestedNumber,
-    [...store.getDocuments(), ...store.getTrash().documents].filter((d) => d.doc_type === body.doc_type).map((d) => d.document_number)
+    [
+      ...[...store.getDocuments(), ...store.getTrash().documents].filter((d) => d.doc_type === body.doc_type).map((d) => d.document_number),
+      // numbers reserved by renumbered or purged documents of this register
+      ...[...store.registeredNumbers().keys()].filter((k) => k.startsWith(`doc:${body.doc_type || 'other'}|`)).map((k) => k.slice(k.indexOf('|') + 1).toUpperCase()),
+    ]
   );
   body.document_number = allocation.number;
   if (documentNumberTaken(body.document_number, body.doc_type)) return numberTaken(c, body.document_number);

@@ -204,6 +204,8 @@ export interface UploadRow {
   mime_type: string;
   sha256: string;
   created_at: string;
+  /** Set once the file is attached to a record (migration 0009); never cleared */
+  attached_at?: string | null;
 }
 
 export async function registerUpload(db: any, upload: SavedUpload, userId: string): Promise<void> {

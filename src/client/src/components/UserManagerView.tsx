@@ -94,7 +94,7 @@ export const UserManagerView: React.FC = () => {
     }
     const newStatus = user.status === 'locked' ? 'active' : 'locked';
     try {
-      await api.updateUser(user.id, { status: newStatus });
+      await api.updateUser(user.id, { status: newStatus, expected_revision: user.revision ?? 0 });
       showToast(
         tf(newStatus === 'locked' ? 'usersLockedSuccess' : 'usersUnlockedSuccess', { username: user.username })
       );
@@ -111,7 +111,7 @@ export const UserManagerView: React.FC = () => {
     }
     const nextVal = !Boolean(user.can_access_labor_contracts);
     try {
-      await api.updateUser(user.id, { can_access_labor_contracts: nextVal } as any);
+      await api.updateUser(user.id, { can_access_labor_contracts: nextVal, expected_revision: user.revision ?? 0 } as any);
       showToast(
         tf(nextVal ? 'usersLaborAccessGranted' : 'usersLaborAccessRevoked', { username: user.username })
       );
@@ -128,7 +128,7 @@ export const UserManagerView: React.FC = () => {
     }
     const nextVal = !Boolean(user.can_access_confidential_documents);
     try {
-      await api.updateUser(user.id, { can_access_confidential_documents: nextVal } as any);
+      await api.updateUser(user.id, { can_access_confidential_documents: nextVal, expected_revision: user.revision ?? 0 } as any);
       showToast(tf(nextVal ? 'usersConfidentialGranted' : 'usersConfidentialRevoked', { username: user.username }));
       fetchUsers();
     } catch (err: any) {
@@ -139,7 +139,7 @@ export const UserManagerView: React.FC = () => {
   const handleResetPassword = async () => {
     if (!resetTargetUser) return;
     try {
-      await api.updateUser(resetTargetUser.id, { password: resetPasswordVal });
+      await api.updateUser(resetTargetUser.id, { password: resetPasswordVal, expected_revision: resetTargetUser.revision ?? 0 });
       showToast(tf('usersPasswordResetSuccess', { username: resetTargetUser.username }));
       setResetTargetUser(null);
       setResetPasswordVal('');
@@ -155,6 +155,7 @@ export const UserManagerView: React.FC = () => {
     }
     try {
       await api.updateUser(user.id, {
+        expected_revision: user.revision ?? 0,
         role,
         can_access_labor_contracts: role === 'admin' ? true : Boolean(user.can_access_labor_contracts),
       } as any);

@@ -96,7 +96,7 @@ export const PartnerModal: React.FC<PartnerModalProps> = ({
       };
 
       if (isEditing && partner?.id) {
-        await api.updatePartner(partner.id, payload);
+        await api.updatePartner(partner.id, { ...payload, expected_revision: partner.revision ?? 0 } as any);
       } else {
         await api.createPartner(payload);
       }

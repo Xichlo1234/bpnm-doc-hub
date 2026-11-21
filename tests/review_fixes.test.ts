@@ -201,14 +201,14 @@ describe('B3 — numbers are unique in the database, across isolates', () => {
     await a.flush(dbA);
     b.updateContract(c1.id, { contract_number: 'HĐ-ISO-1' });
     await expect(b.flush(dbB)).rejects.toBeInstanceOf(NumberConflictError);
-    // releasing: renumbering frees the old number for others
+    // numbers are never released: renumbering keeps the old number reserved for good (C5)
     await b.sync(dbB, 'json');
     const old = b.getContract(c2.id)!.contract_number;
     b.updateContract(c2.id, { contract_number: 'HĐ-ISO-2' });
     await b.flush(dbB);
     await a.sync(dbA, 'json');
     a.createContract({ contract_number: old, title: 'reuse', contract_type: 'service', party_a: 'A', party_b: 'B', signed_date: '2026-01-01', start_date: '2026-01-01', status: 'active', value: 0, currency: 'VND' } as any);
-    await a.flush(dbA);
+    await expect(a.flush(dbA)).rejects.toBeInstanceOf(NumberConflictError);
   });
 
   it('registers historical numbers once, keeps duplicates editable and reports them', async () => {

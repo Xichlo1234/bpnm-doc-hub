@@ -18,7 +18,7 @@ import { adminRouter } from './routes/admin.ts';
 import { importsRouter } from './routes/imports.ts';
 import { store } from './db/store.ts';
 import { getDatabase } from './db/database.ts';
-import { DatabaseNotMigratedError, RevisionConflictError, NumberConflictError } from './db/repository.ts';
+import { DatabaseNotMigratedError, RevisionConflictError, NumberConflictError, FileRetiredError, UsernameTakenError } from './db/repository.ts';
 import { UploadValidationError } from './utils/fileStorage.ts';
 
 export const app = new Hono();
@@ -36,6 +36,17 @@ app.use(
     onError: (c) => c.json({ error: 'Dữ liệu gửi lên quá lớn.', code: 'PAYLOAD_TOO_LARGE' }, 413),
   })
 );
+
+// Maintenance mode (MAINTENANCE_MODE=1 as a Worker variable): every API call except the health check
+// answers 503 without touching the database. This is the safe alternative to rolling back to a build
+// older than the security hardening (see docs/ops/DEPLOY_RUNBOOK.md, "Rollback").
+app.use('/api/*', async (c, next) => {
+  const flag = (c.env as any)?.MAINTENANCE_MODE ?? (typeof process !== 'undefined' ? process.env?.MAINTENANCE_MODE : undefined);
+  if (String(flag ?? '') === '1' && c.req.path !== '/api/health') {
+    return c.json({ error: 'Hệ thống đang bảo trì. Vui lòng thử lại sau.', code: 'MAINTENANCE' }, 503);
+  }
+  await next();
+});
 
 // Database middleware: refreshes the in-memory cache before the request (if another isolate wrote)
 // and commits this request's changes after it. See MemoryStore in db/store.ts.
@@ -119,6 +130,12 @@ app.route('/api/imports', importsRouter);
 app.onError((err, c) => {
   if (err instanceof UploadValidationError) {
     return c.json({ error: err.message, code: err.code, params: err.params }, 400);
+  }
+  if (err instanceof UsernameTakenError) {
+    return c.json({ error: 'Tên đăng nhập đã tồn tại trong hệ thống', code: 'USERNAME_TAKEN' }, 409);
+  }
+  if (err instanceof FileRetiredError) {
+    return c.json({ error: 'Tệp đã bị gỡ khỏi hệ thống, không thể gắn lại.', code: 'FILE_RETIRED' }, 409);
   }
   if (err instanceof NumberConflictError) {
     return c.json(
