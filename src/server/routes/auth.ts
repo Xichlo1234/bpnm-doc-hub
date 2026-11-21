@@ -376,10 +376,24 @@ authRouter.post('/change-password', async (c) => {
     return c.json({ error: 'Vui lòng chọn mật khẩu mới khác mật khẩu hiện tại/mặc định.', code: 'PASSWORD_REUSE' }, 400);
   }
 
-  const updated = store.updateUser(account.id, {
-    password: await hashPassword(new_password),
+  const newHash = await hashPassword(new_password);
+  // Both awaits above (verify, hash) may have let an admin reset the password, lock the account or
+  // revoke its sessions. Only the account exactly as it was verified may be changed; token_version is
+  // derived from the current row, and D1 re-checks the revision inside the commit (write guard).
+  const current = store.getUser(account.id);
+  if (
+    !current ||
+    current.status !== 'active' ||
+    current.password !== account.password ||
+    (current.revision ?? 0) !== (account.revision ?? 0) ||
+    (current.token_version || 0) !== (account.token_version || 0)
+  ) {
+    return c.json({ error: 'Tài khoản vừa được quản trị viên thay đổi. Vui lòng đăng nhập lại.', code: 'ACCOUNT_CHANGED' }, 409);
+  }
+  const updated = store.updateUser(current.id, {
+    password: newHash,
     must_change_password: false,
-    token_version: (account.token_version || 0) + 1,
+    token_version: (current.token_version || 0) + 1,
   })!;
   store.recordAuditLog({
     user_id: user.id,
