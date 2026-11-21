@@ -141,8 +141,9 @@ Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod
 | PR06 | Khắc phục sau thẩm định | https://github.com/Xichlo1234/bpnm-doc-hub/pull/6 |
 | PR07 | Gia cố cuối sau thẩm định lần 2 | https://github.com/Xichlo1234/bpnm-doc-hub/pull/7 |
 | PR08 | Khắc phục NO-GO lần 3 (D1–D5) | https://github.com/Xichlo1234/bpnm-doc-hub/pull/8 |
+| PR09 | Ổn định toàn diện (E1–E7) | https://github.com/Xichlo1234/bpnm-doc-hub/pull/9 |
 
-Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 → PR07 → PR08 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
+Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 → PR07 → PR08 → PR09 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
 
 ---
 
@@ -268,6 +269,47 @@ Tương thích 0001–0003; không sửa 0001–0009. Preflight chặn trước 
 | Playwright: sửa hồ sơ, chuyển bước, quyền người dùng, khoá đối tác | ✔ không lỗi API |
 
 Không chạy gì trên Production, không merge PR nào.
+
+---
+
+## PR09 — Ổn định toàn diện (NO-GO lần 4 trên `2a0e908`, E1–E7)
+Nhánh `pr09-stabilization` → `pr08-final-review-fixes` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/9
+
+### Lỗi → nguyên nhân → file sửa → test → kết quả
+| Lỗi | Nguyên nhân | File sửa | Test (`tests/pr09_stabilization.test.ts`) | Kết quả |
+|---|---|---|---|---|
+| **E1** Đổi mật khẩu ghi đè reset/khoá/thu hồi của admin | Tài khoản đọc trước `await verifyPassword/hashPassword`; `token_version` tính từ bản đã đọc | `routes/auth.ts` (kiểm tra lại mật khẩu, trạng thái, revision, token_version sau các `await`; `token_version` lấy từ bản hiện tại; D1 kiểm revision trong batch → 409); E2 tuần tự hoá request ghi trong isolate | › E1: worker khác reset / khoá / thu hồi phiên trong lúc băm → 409, D1 giữ thay đổi của admin; cùng isolate: reset chờ sau đổi mật khẩu → 409; khoá trước → phiên cũ 401 | ✔ |
+| **E2** Request B commit thay đổi dở dang của request A | Một `MemoryStore` dùng chung cho mọi request trong isolate; `flush` của B (hoặc `sync` đầu request) ghi mọi khác biệt, kể cả của A | `db/store.ts`: `runRequest` — request **ghi** chạy tuần tự trong isolate trên **bản sao riêng** (`fork`), commit một batch, chỉ thay bộ đệm chung khi commit xong và không còn thay đổi chưa ghi; request **đọc** đọc bộ đệm đã commit; lỗi/4xx/5xx → bỏ bản sao. `store` là proxy theo request (AsyncLocalStorage, chạy được trên workerd). GET danh sách tệp cũ không còn ghi ngầm | › E2: A dừng sau khi sửa bản nháp → GET của B không thấy, D1 không có, PATCH của B chờ; A thành công/thất bại → không rò rỉ, không mất/thừa audit | ✔ |
+| **E3** Health trong bảo trì phụ thuộc schema | Middleware DB chạy cả cho `/api/health` | `index.ts`: health bỏ qua DB; bảo trì trả 503 trước DB | › E3: isolate mới trên DB chỉ có 0001–0003: health 200, API 503, **không gọi** `prepare`, không đổi dữ liệu/ledger | ✔ |
+| **E4** D1 commit thành công nhưng báo xung đột và xoá tệp R2 | `concurrentWrite` (worker khác cũng ghi) bị coi là `stale` → `persistAsync` ném 409 → route xoá tệp đã được tham chiếu | `db/store.ts` (3 trạng thái: đã commit / bị từ chối / **không xác định** → `CommitOutcomeUnknownError` 503 `COMMIT_UNKNOWN`; commit thành công cần nạp lại = `reloadNeeded`, vẫn là thành công); `utils/recordRequest.ts` (không xoá khi không xác định); `utils/fileStorage.ts` `discardUpload` chỉ xoá khi D1 **xác nhận** không có tham chiếu | › E4: worker khác ghi bản ghi độc lập xen giữa → 201, tệp còn; timeout sau commit → 503, tệp còn và hiển thị sau nạp lại; timeout trước commit → tệp giữ ở trạng thái chưa gắn (chỉ người tải thấy); batch thử lại báo xung đột sau khi đã commit → tệp vẫn giữ; từ chối thật → xoá tệp; R2 xoá lỗi → giữ bản đăng ký; R2 tải lên lỗi → không tạo hồ sơ | ✔ |
+| **E5** Trùng mã đối tác Unicode | `upper()` của SQLite chỉ in hoa ASCII | `src/shared/partnerCodeKey.mjs` (một định nghĩa dùng chung: NFKC, bỏ mọi khoảng trắng/ký tự vô hình, in hoa) cho ứng dụng, preflight và D1; `migrations/0011` (`code_key` + UNIQUE cho đối tác chưa xoá); `db/store.ts` điền `code_key` khi khởi động, **bỏ trống** cho mã trùng lịch sử (không đổi mã); preflight **CHẶN** nhóm trùng | › E5: `đt`/`ĐT`, khoảng trắng, NFD/NFC, full-width, ký tự vô hình; API 409; 2 worker `đt-9`/`ĐT-9` → D1 từ chối; dữ liệu lịch sử trùng: 0011 áp được, preflight chặn, mã giữ nguyên, cả hai vẫn sửa được | ✔ |
+| **E6** Nhập Excel mất/ghép nhầm dữ liệu | (a) id không tồn tại rơi về khớp theo số; (b) commit tự khớp lại theo số khác với preview; (c) tạo văn bản bỏ cột mở rộng; (d) không phát hiện preview cũ; (e) **giao diện** điền giá trị mặc định cho cột thiếu (ghi đè khi cập nhật), nhận cột chứa chữ "id" là cột id, mặc định sổ "đến" | `utils/importer.ts` (id không tồn tại/đã xoá → lỗi; `preview_token`); `routes/imports.ts` (token sai → 409 `IMPORT_PREVIEW_STALE`; cập nhật bắt buộc token); `db/store.ts` `bulkUpsert*` làm đúng quyết định của preview, không khớp theo số, giữ cột mở rộng; `client/utils/importRows.ts` (khớp đúng tên cột, ô trống không gửi, giữ cột mở rộng, sổ chỉ gửi khi file ghi rõ) | › E6: id sai + số trùng → lỗi, không ghi; cột mở rộng khi tạo VB/HĐ; preview cũ → 409; 2 admin nhập cùng lúc → 1 thành công + 1 409; trùng lịch sử cùng sổ; bộ phân tích phía giao diện | ✔ |
+| **E7** Runbook dựa vào chờ thời gian | Deploy không dừng request đang chạy trên bản cũ; `data_version` đứng yên không phải bằng chứng | `scripts/write-fence.mjs` + `scripts/lib/write-fence-core.mjs`: **rào chắn ghi trong D1** (trigger `RAISE(ABORT)` trên 13 bảng bản cũ ghi), `verify` thử ghi thật và phải bị từ chối; preflight báo rào chắn; `docs/ops/DEPLOY_RUNBOOK.md` viết lại: 10 mục, mỗi bước có PASS/FAIL | › E7: diễn tập trọn quy trình trên DB 0001–0003 (rào chắn chặn mọi ghi kiểu bản cũ, kể cả trong transaction; sao lưu + phục hồi; migrate 0004→0011 khi rào chắn bật; bảo trì; gỡ rào chắn; mở ghi); roll-forward khi migration lỗi giữa chừng; thứ tự runbook | ✔ |
+
+### Lỗi mới phát hiện và đã xử lý
+| Lỗi | Phát hiện khi | Xử lý | Test |
+|---|---|---|---|
+| **Worker không khởi động trên workerd**: `src/server/index.ts` có named export không phải handler (`MAX_REQUEST_BYTES` từ PR #5, `SECURITY_HEADERS` từ PR #1). `wrangler deploy --dry-run` không phát hiện | diễn tập `wrangler dev` | Bỏ `export`; entry chỉ xuất `app` + `default` | › Worker entry |
+| GET danh sách tệp đính kèm của hồ sơ cũ ghi ngầm một hàng `attachments` | kiểm tra "request đọc không được đổi bộ đệm" | Trả bản xem với id cố định; hàng được tạo ở lần đổi tệp đầu tiên (cùng id) | storage.test |
+| Bản ghi bên ngoài request bị mất khi bộ đệm chung cần nạp lại | thiết kế E2 | `sync` ghi thay đổi bên ngoài trước khi nạp lại (chỉ bỏ khi commit trước đó bị từ chối) | review_fixes |
+| `preflight`/`db-migrate` hỏng khi wrangler in thông báo (proxy) trước JSON | diễn tập staging | `parseWranglerJson` | › Worker entry |
+| `write-fence verify` đọc lỗi ở stderr, wrangler in ở stdout | diễn tập staging | Đọc cả stdout/stderr | diễn tập |
+| Giao diện nhập Excel ghi đè trường bằng giá trị mặc định, bỏ cột mở rộng, nhận nhầm cột id | rà soát E6 | `importRows.ts` | › E6 client parser, UAT |
+| Số tiền dạng `1.000.000` thành NaN | test E6 | `parseAmount` | › E6 |
+
+### Migration mới
+`0011_partner_code_key.sql`: `ALTER TABLE partners ADD COLUMN code_key TEXT` + `CREATE UNIQUE INDEX idx_partners_code_key_active ON partners(code_key) WHERE deleted_at IS NULL AND code_key IS NOT NULL`.
+Không sửa 0001–0010; không đổi dòng nào; chạy được khi rào chắn ghi bật.
+
+### Kiểm thử và diễn tập
+| Hạng mục | Kết quả |
+|---|---|
+| `npm ci`, `typecheck`, `test`, `build`, `audit:prod`, `check`, `wrangler deploy --dry-run` | xem `docs/REVIEW_REQUEST.md` (lần chạy cuối) |
+| **Staging cục bộ trên workerd** (`wrangler dev --local`, D1/R2 Miniflare), bắt đầu từ DB chỉ có 0001–0003 + dữ liệu giả lập | bảo trì: health 200, API 503, giao diện 200 · rào chắn `verify` PASS (39 trigger/13 bảng) · export + phục hồi bản sao: số bản ghi khớp · `db-migrate migrate --local` 0004→0011 khi rào chắn bật ✔ · `integrity_check` ok · gỡ rào chắn · mở ghi · **smoke `--write` 72/72** · PATCH đồng thời cùng revision ×3 → `200, 409, 409` · mã đối tác `KH-ĐÔNG`/`kh-đông` → 409; `đt` vs mã cũ `ĐT` → 409 · dòng nhập mơ hồ (cùng số 2 sổ) → lỗi rõ · UAT nhập tệp `.xlsx` thật (cập nhật 1 ô không đổi trường khác, tạo mới giữ cột mở rộng, sổ còn lại không bị đụng) ✔ · Playwright (sửa hồ sơ, chuyển bước, quyền, khoá đối tác) không lỗi API |
+| Staging trên Cloudflare | **chưa có** môi trường/thông tin truy cập staging → chưa thực hiện |
+| Chi phí bản sao theo request | ~56 ms CPU cho 13.000 hồ sơ (chỉ request ghi) |
+
+Không có thao tác nào trên Production. Không merge PR nào.
 
 ---
 

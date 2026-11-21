@@ -47,6 +47,11 @@ Mỗi tệp có SHA-256 trong `file_uploads` / `attachments` để kiểm tra to
    **Không dùng `rclone sync`** vào bucket đang hoạt động (sync xoá tệp ở đích không có trong nguồn).
 3. Thiết lập → Thùng rác → **Chạy đối soát** (`GET /api/admin/storage-check`): không còn tệp thiếu.
 
+## Bản sao lưu trong khung bảo trì chứa trigger rào chắn
+Bản export ở bước 4 của `DEPLOY_RUNBOOK.md` được tạo khi rào chắn ghi đang bật, nên có các trigger
+`write_fence_*`. Khi dùng bản đó để phục hồi, gỡ chúng trên database đích:
+`node scripts/write-fence.mjs off --file <db>` (SQLite) hoặc `--remote` (D1 mới), rồi chạy preflight.
+
 ## Diễn tập phục hồi (trước mỗi lần deploy)
 1. Xuất D1 (mục trên) → nạp vào SQLite cục bộ hoặc database `*-restore`.
 2. `node scripts/preflight.mjs --file <bản phục hồi>`: đủ bảng, ledger đúng, số bản ghi khớp bản gốc.
