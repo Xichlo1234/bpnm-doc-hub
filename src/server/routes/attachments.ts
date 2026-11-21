@@ -17,6 +17,10 @@ import { revisionConflict } from '../utils/validation.ts';
 
 export const attachmentsRouter = new Hono();
 
+function touchRecord(type: AttachmentRecordType, id: string) {
+  return type === 'document' ? store.updateDocument(id, {}) : store.updateContract(id, {});
+}
+
 const RECORD_TYPES = new Set(['document', 'contract']);
 
 function parseType(raw: string | undefined): AttachmentRecordType | null {
@@ -89,7 +93,10 @@ attachmentsRouter.post('/:type/:id', async (c) => {
 
   // The record's primary file follows: first file, or a new version of the primary one
   const isPrimary = !record.file_key || Boolean(replaced && replaced.file_key === record.file_key);
-  const updated = isPrimary ? setPrimaryFile(type, record.id, att) : null;
+  // Every attachment change moves the parent record's revision on, so two workers replacing or
+  // removing files of the same record cannot both commit (record + attachment revisions are checked
+  // in the same D1 batch)
+  const updated = isPrimary ? setPrimaryFile(type, record.id, att) : touchRecord(type, record.id);
   store.recordHistory({
     record_type: type,
     record_id: record.id,
@@ -138,6 +145,8 @@ attachmentsRouter.delete('/:attId', async (c) => {
   if (record.file_key && seriesKeys.has(record.file_key)) {
     const next = store.getAttachments(att.record_type, att.record_id)[0] ?? null;
     updated = setPrimaryFile(att.record_type, att.record_id, next);
+  } else {
+    updated = touchRecord(att.record_type, att.record_id);
   }
   store.recordHistory({
     record_type: att.record_type,

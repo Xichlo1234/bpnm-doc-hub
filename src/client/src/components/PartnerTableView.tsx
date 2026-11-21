@@ -43,7 +43,7 @@ export const PartnerTableView: React.FC<PartnerTableViewProps> = ({
 
   const handleToggleLock = async (p: PartnerRecord) => {
     try {
-      await api.togglePartnerLock(p.id);
+      await api.togglePartnerLock(p);
       onRefreshPartners?.();
     } catch (err) {
       notify.error(tf('partnerToggleLockFailed', { error: String(err) }));
@@ -53,7 +53,7 @@ export const PartnerTableView: React.FC<PartnerTableViewProps> = ({
   const handleDelete = async (p: PartnerRecord) => {
     if (confirm(tf('partnerDeleteConfirm', { code: p.code, name: p.name_vn }))) {
       try {
-        await api.deletePartner(p.id);
+        await api.deletePartner(p.id, p.revision ?? 0);
         onRefreshPartners?.();
       } catch (err) {
         notify.error(tf('partnerDeleteFailed', { error: String(err) }));

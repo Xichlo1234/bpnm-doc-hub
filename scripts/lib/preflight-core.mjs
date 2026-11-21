@@ -13,6 +13,10 @@ export const EXPECTED_AFTER = {
   },
   '0007_numbering_imports_guard.sql': { tables: ['number_sequences', 'import_batches', 'write_guard'] },
   '0008_number_registry.sql': { tables: ['number_registry', 'number_guard'] },
+  '0009_final_hardening.sql': {
+    tables: ['storage_cleanup', 'file_guard'],
+    columns: { partners: ['revision'], users: ['revision'], attachments: ['revision'], file_uploads: ['attached_at'] },
+  },
 };
 
 const normalizeNumber = (v) => String(v ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -83,6 +87,23 @@ export async function runPreflight(query, migrationFiles) {
   report.info.legacy_file_keys = keyRows.filter((r) => !/^(uploads|samples)\/[^/\\]+$/.test(r.file_key) && !/^https?:\/\//i.test(r.file_key)).length;
   report.info.uploads_keys = keyRows.filter((r) => /^uploads\//.test(r.file_key)).length;
   if (tables.has('uploaded_files')) report.info.legacy_d1_files = await count('SELECT COUNT(*) AS n FROM uploaded_files');
+  if (tables.has('storage_cleanup')) {
+    report.info.storage_cleanup_pending = await count("SELECT COUNT(*) AS n FROM storage_cleanup WHERE status = 'pending'");
+    if (report.info.storage_cleanup_pending > 0) report.warnings.push(`${report.info.storage_cleanup_pending} tệp chờ xoá trên R2 (chạy POST /api/admin/storage-cleanup).`);
+  }
+
+  // Usernames must be unique case-insensitively before 0009 adds the unique index
+  const usernames = await q('SELECT id, username FROM users');
+  const byName = new Map();
+  for (const u of usernames) {
+    const k = String(u.username || '').toLowerCase();
+    byName.set(k, [...(byName.get(k) || []), u.id]);
+  }
+  const dupUsers = [...byName.entries()].filter(([, ids]) => ids.length > 1);
+  report.info.duplicate_usernames = dupUsers.map(([name, ids]) => ({ username: name, ids }));
+  if (dupUsers.length && !applied.includes('0009_final_hardening.sql')) {
+    report.blocking.push(`${dupUsers.length} tên đăng nhập trùng (không phân biệt hoa thường): migration 0009 sẽ lỗi. Đổi tên tài khoản trùng trước khi migrate.`);
+  }
 
   // 4. Duplicate business numbers (same normalisation as the app / number_registry)
   const dup = (rows, scopeOf, numOf) => {
@@ -109,6 +130,25 @@ export async function runPreflight(query, migrationFiles) {
     );
   }
   if (tables.has('number_registry')) {
+    // Records whose number is not registered (e.g. written by an older build after a rollback)
+    const reg = new Map((await q('SELECT scope, number_norm, record_id FROM number_registry')).map((r) => [`${r.scope}|${r.number_norm}`, r.record_id]));
+    const unregistered = [];
+    for (const r of docs) {
+      const n = normalizeNumber(r.document_number);
+      if (n && !reg.has(`doc:${r.doc_type || 'other'}|${n}`)) unregistered.push(r.id);
+    }
+    for (const r of cons) {
+      const n = normalizeNumber(r.contract_number);
+      if (n && !reg.has(`contract|${n}`)) unregistered.push(r.id);
+    }
+    report.info.unregistered_numbers = unregistered;
+    const backfilled = (await q("SELECT value FROM meta WHERE key = 'number_registry_backfill'")).length > 0;
+    if (backfilled && unregistered.length > 0) {
+      report.warnings.push(
+        `${unregistered.length} hồ sơ có số chưa đăng ký trong number_registry (thường do chạy bản cũ sau rollback). ` +
+          'Chạy POST /api/admin/number-registry/reconcile (xem trước) rồi ?apply=1.'
+      );
+    }
     report.info.number_registry_rows = await count('SELECT COUNT(*) AS n FROM number_registry');
     report.info.number_registry_backfill = (await q("SELECT value FROM meta WHERE key = 'number_registry_backfill'"))[0]?.value ?? null;
   }

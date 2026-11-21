@@ -139,8 +139,9 @@ Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod
 | PR04 | Giao diện | https://github.com/Xichlo1234/bpnm-doc-hub/pull/4 |
 | PR05 | Kiểm thử & vận hành | https://github.com/Xichlo1234/bpnm-doc-hub/pull/5 |
 | PR06 | Khắc phục sau thẩm định | https://github.com/Xichlo1234/bpnm-doc-hub/pull/6 |
+| PR07 | Gia cố cuối sau thẩm định lần 2 | https://github.com/Xichlo1234/bpnm-doc-hub/pull/7 |
 
-Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
+Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 → PR07 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
 
 ---
 
@@ -186,6 +187,42 @@ Chưa kiểm thử trên Production (không được phép). Preflight chưa ch�
 
 ---
 
+## PR07 — Gia cố cuối sau thẩm định lần 2 (NO-GO trên PR #6)
+Nhánh `pr07-final-hardening` → `pr06-review-fixes` · mã sửa: commit `9f7f41c` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/7
+
+| Lỗi | Đã sửa | Test (`tests/final_hardening.test.ts`) |
+|---|---|---|
+| **C1** Người upload tải lại tệp đã gỡ/xoá vĩnh viễn | Tombstone `storage_cleanup` + `file_uploads.attached_at` (ghi trong batch khi tệp được gắn lần đầu). Quy tắc "tệp riêng của người upload" chỉ áp dụng cho tệp **chưa từng** gắn; tệp chờ xoá/đã xoá chỉ admin, kể cả khi xoá R2 thất bại | xoá vĩnh viễn + R2 lỗi → người upload 403, không gắn lại được (kể cả admin), thử lại thành công; tham chiếu biến mất không tombstone vẫn 403 |
+| **C2** Xung đột D1 khi xoá/khôi phục/cập nhật/tạo lại | Revision kiểm tra trong batch cho **mọi** ghi của văn bản, hợp đồng, đối tác, tài khoản, phiên bản tệp — gồm cả xoá và hàng đã bị worker khác xoá (không "hồi sinh"); upsert theo khoá chính (bỏ `INSERT OR REPLACE` vốn xoá ngầm hàng trùng UNIQUE); cấu hình (danh mục, cài đặt, tiền tệ) kiểm tra theo nội dung đã đọc; khôi phục đối tác trùng mã → 409 | 2 worker: xoá vĩnh viễn vs khôi phục, khôi phục vs xoá vĩnh viễn, sửa đối tác, tạo cùng mã đối tác, sửa cài đặt |
+| **C3** Ghi đè quyền, khoá, mật khẩu, phiên | Cột `users.revision`; admin sửa/xoá tài khoản bắt buộc `expected_revision` (428/409); tên đăng nhập duy nhất (không phân biệt hoa thường) ở D1; đăng nhập tự thử lại 1 lần khi tài khoản vừa bị sửa (không ghi đè khoá/đặt lại mật khẩu) | 2 worker: khoá vs cấp quyền, đặt lại mật khẩu vs đổi mật khẩu; trùng tên đăng nhập; thiếu/cũ revision; khoá từ worker khác cắt phiên ngay |
+| **C4** Thay/xoá phiên bản tệp đồng thời | Mọi thay đổi tệp đính kèm nâng revision hồ sơ cha; hàng `attachments` có revision riêng | 2 worker cùng thay một tệp → chỉ 1 bản "hiện hành"; gỡ vs thay; API nâng revision |
+| **C5** Tái sử dụng số đã cấp | Sổ số **không bao giờ giải phóng**: đổi số, xoá mềm, xoá vĩnh viễn đều giữ số; kiểm tra cả trong bộ nhớ (sổ số nạp từ D1) và trong batch D1; nhập Excel cũng kiểm tra | đổi số rồi tạo lại số cũ → 409 (hồ sơ được quay về số cũ của chính nó); sau xoá vĩnh viễn; worker chưa thấy việc đổi số → D1 chặn |
+| **C6** Xoá nhầm object R2 đang dùng | Xoá hai pha: xoá hồ sơ chỉ xếp hàng (cùng transaction) → dọn dẹp hỏi lại D1 trước khi xoá object; còn tham chiếu → `kept`; lỗi → ghi `attempts/last_error`, thử lại `POST /api/admin/storage-cleanup`; `file_guard` chặn gắn tệp đang chờ xoá | tham chiếu do worker khác thêm → giữ object, không gọi xoá; lỗi được ghi nhận; D1 chặn gắn tệp chờ xoá |
+| **C7** Rollback Production | Chính sách: không rollback dưới mốc an toàn; `MAINTENANCE_MODE=1` (503 cho API, health vẫn chạy) thay cho rollback mã cũ; `POST /api/admin/number-registry/reconcile` (chạy thử/`apply=1`, chỉ thêm, không gán lại); preflight báo số chưa đăng ký, tệp chờ xoá, tên đăng nhập trùng (chặn 0009) | chế độ bảo trì; bản cũ ghi hồ sơ không đăng ký số → preflight phát hiện → reconcile đăng ký, số trùng giữ chủ cũ; preflight chặn 0009 khi trùng tên |
+| Thêm | Nút khoá/mở khoá đối tác gọi endpoint không tồn tại → PATCH có revision; smoke test cập nhật | kiểm tra giao diện Playwright |
+
+**Migration 0009** (chỉ thêm): `partners/users/attachments.revision`, `file_uploads.attached_at` (điền cho tệp đã gắn),
+bảng `storage_cleanup`, `file_guard`, chỉ mục duy nhất `users(username COLLATE NOCASE)`.
+
+**Kiểm thử thực tế (commit `9f7f41c`)**
+| Lệnh | Kết quả |
+|---|---|
+| `npm ci` | ✔ |
+| `npm run typecheck` | ✔ |
+| `npm test` | ✔ 333 test / 30 file |
+| `npm run build` | ✔ |
+| `npx wrangler deploy --dry-run --outdir dist/worker` | ✔ |
+| `npm run audit:prod` | ✔ 0 lỗ hổng |
+| `npm run check` | ✔ |
+| Smoke E2E `--write` trên server **local** (dữ liệu giả lập) | ✔ 72/72 |
+| Playwright: sửa hồ sơ, chuyển bước, bật/tắt quyền người dùng, khoá đối tác | ✔ không lỗi API |
+
+Không chạy gì trên Production. Ghi chú: các mục "Nên sửa" của báo cáo lần 2 không có trong yêu cầu gửi kèm;
+đã xử lý các điểm suy ra từ C1–C7 (cấu hình đồng thời, trùng tên đăng nhập, khôi phục đối tác trùng mã,
+nút khoá đối tác). Cần bản báo cáo đầy đủ để đối chiếu từng mục.
+
+---
+
 ## Quyết định của chủ dự án (sau PR05)
 
 | # | Vấn đề | Quyết định | Trạng thái |
@@ -214,7 +251,7 @@ Chưa kiểm thử trên Production (không được phép). Preflight chưa ch�
    (force-push) — chưa làm.
 2. **Quy tắc văn bản Mật**: hiện tại chỉ admin hoặc tài khoản được cấp cờ mới xem được. Nếu muốn
    người xử lý được giao cũng xem được văn bản Mật đó, cần xác nhận.
-3. **Deploy & migration Production** (0004–0008): chờ phê duyệt.
+3. **Deploy & migration Production** (0004–0009): chờ phê duyệt.
 4. **Ý nghĩa tỷ giá** trong danh mục tiền tệ: đang hiểu là "1 đơn vị = X đơn vị tiền mặc định". Nếu
    công ty dùng quy ước khác (ví dụ VND/1 USD), cần xác nhận để chỉnh công thức quy đổi.
 7. **Tách sâu thêm** `App.tsx`, `DetailPane.tsx`, các bảng dữ liệu và `EditRecordModal.tsx` (chức năng đã ổn, chỉ là dọn mã).

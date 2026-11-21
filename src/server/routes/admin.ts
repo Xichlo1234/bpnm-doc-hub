@@ -4,6 +4,10 @@ import { requireAdmin } from './auth.ts';
 import { getDatabase } from '../db/database.ts';
 import { UPLOADS_DIR } from '../utils/fileStorage.ts';
 import { referencedFileKeys } from '../utils/attachments.ts';
+import { processCleanup, listCleanup } from '../utils/storageCleanup.ts';
+import { getAuthUser } from './auth.ts';
+import { store } from '../db/store.ts';
+import { numberRegisterStatements } from '../db/repository.ts';
 
 export const adminRouter = new Hono();
 adminRouter.use('*', requireAdmin);
@@ -60,13 +64,15 @@ adminRouter.get('/storage-check', async (c) => {
   const { results: uploads } = await db.prepare('SELECT key, uploaded_by, original_name, created_at FROM file_uploads').all<any>();
   const uploadByKey = new Map(uploads.map((u: any) => [u.key, u]));
 
+  const cleanupRows = await listCleanup(db);
+  const retired = new Set(cleanupRows.filter((r) => r.status === 'pending' || r.status === 'deleted').map((r) => r.key));
   const referenced = [...referencedFileKeys()].filter((k) => k.startsWith('uploads/'));
   const referencedSet = new Set(referenced);
   const missing = referenced.filter((k) => !storedKeys.has(k) && !legacyD1Keys.has(k));
 
   const now = Date.now();
   const orphans = stored
-    .filter((o) => !referencedSet.has(o.key))
+    .filter((o) => !referencedSet.has(o.key) && !retired.has(o.key))
     .map((o) => ({ ...o, registration: uploadByKey.get(o.key) ?? null }))
     .filter((o) => {
       const at = Date.parse(o.registration?.created_at || o.uploaded || '');
@@ -80,6 +86,56 @@ adminRouter.get('/storage-check', async (c) => {
     referenced_files: referenced.length,
     missing,
     orphans,
-    ok: missing.length === 0 && orphans.length === 0,
+    cleanup_pending: cleanupRows.filter((r) => r.status === 'pending'),
+    ok: missing.length === 0 && orphans.length === 0 && !cleanupRows.some((r) => r.status === 'pending'),
+  });
+});
+
+// POST /api/admin/storage-cleanup — retries pending deletions (re-checking references first)
+adminRouter.post('/storage-cleanup', async (c) => {
+  const db = await getDatabase(c.env);
+  const result = await processCleanup(db, c.env);
+  const user = getAuthUser(c)!;
+  if (result.deleted.length + result.kept.length + result.failed.length > 0) {
+    store.recordAuditLog({
+      user_id: user.id,
+      username: user.username,
+      action: 'delete',
+      entity_type: 'category',
+      details: `Dọn kho tệp: xoá ${result.deleted.length}, giữ lại ${result.kept.length}, lỗi ${result.failed.length}`,
+    });
+    await store.persistAsync();
+  }
+  return c.json(result);
+});
+
+/**
+ * POST /api/admin/number-registry/reconcile[?apply=1] — after a period in which records may have been
+ * written without registering their numbers (e.g. a rollback to an older build), lists the numbers
+ * of live and trashed records missing from number_registry and the ones registered to another
+ * record. With apply=1 the missing ones are registered (INSERT OR IGNORE). Nothing is ever deleted
+ * or re-assigned: conflicts are only reported for manual review.
+ */
+adminRouter.post('/number-registry/reconcile', async (c) => {
+  const db = await getDatabase(c.env);
+  const apply = c.req.query('apply') === '1';
+  const report = store.numberRegistryReport();
+  if (apply && report.missing.length > 0) {
+    await db.batch(numberRegisterStatements(db, report.missing));
+    store.markNumbersRegistered(report.missing);
+    const user = getAuthUser(c)!;
+    store.recordAuditLog({
+      user_id: user.id,
+      username: user.username,
+      action: 'update',
+      entity_type: 'category',
+      details: `Đối soát sổ số: đăng ký bổ sung ${report.missing.length} số, ${report.conflicts.length} số trùng cần rà soát`,
+    });
+    await store.persistAsync();
+  }
+  return c.json({
+    applied: apply,
+    missing: report.missing.map((e) => ({ scope: e.scope, number: e.display, record_type: e.recordType, record_id: e.recordId })),
+    conflicts: report.conflicts,
   });
 });

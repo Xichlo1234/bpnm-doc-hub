@@ -137,6 +137,7 @@ export const partnersTable: TableSpec = {
     is_locked: optBool,
     deleted_at: optText, // migration 0006
     deleted_by: optText,
+    revision: optNum, // migration 0009
   },
 };
 
@@ -158,6 +159,7 @@ export const usersTable: TableSpec = {
     must_change_password: optBool,
     created_at: text,
     updated_at: text,
+    revision: optNum, // migration 0009
   },
 };
 
@@ -215,6 +217,7 @@ export const attachmentsTable: TableSpec = {
     uploaded_at: text,
     deleted_at: optText,
     deleted_by: optText,
+    revision: optNum, // migration 0009
   },
 };
 
@@ -279,7 +282,11 @@ export function rowFingerprint(spec: TableSpec, record: Record<string, any>): st
 export function bulkUpsertSql(spec: TableSpec): string {
   const cols = columnNames(spec);
   const extracts = cols.map((_, i) => `json_extract(value, '$[${i}]')`).join(', ');
-  return `INSERT OR REPLACE INTO ${spec.name} (${cols.join(', ')}) SELECT ${extracts} FROM json_each(?)`;
+  // An upsert on the primary key only: unlike INSERT OR REPLACE, a clash with another UNIQUE index
+  // (e.g. users' case-insensitive user name, migration 0009) fails the batch instead of silently
+  // deleting the other row.
+  const updates = cols.filter((c) => c !== 'id').map((c) => `${c} = excluded.${c}`).join(', ');
+  return `INSERT INTO ${spec.name} (${cols.join(', ')}) SELECT ${extracts} FROM json_each(?) WHERE true ON CONFLICT(id) DO UPDATE SET ${updates}`;
 }
 
 export function bulkDeleteSql(spec: TableSpec): string {

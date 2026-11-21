@@ -1148,6 +1148,8 @@ export const vi = {
   srvRevisionRequired: "Thiếu phiên bản hồ sơ. Vui lòng tải lại hồ sơ rồi lưu lại.",
   srvStatusInvalid: "Trạng thái \"{status}\" không thuộc quy trình.",
   srvRecordNumberTaken: "Số văn bản/hợp đồng đã được sử dụng. Vui lòng tải lại và chọn số khác.",
+  srvFileRetired: "Tệp đã bị gỡ khỏi hệ thống, không thể gắn lại.",
+  srvMaintenance: "Hệ thống đang bảo trì. Vui lòng thử lại sau.",
 };
 
 export type TranslationKey = keyof typeof vi;

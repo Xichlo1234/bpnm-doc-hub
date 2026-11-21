@@ -3,7 +3,7 @@ import { store } from '../db/store.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
 import { hashPassword, validatePasswordStrength } from '../utils/security.ts';
 import type { UserAccount } from '../types.ts';
-import { userInput, parseInput } from '../utils/validation.ts';
+import { userInput, parseInput, revisionConflict } from '../utils/validation.ts';
 
 const EDITABLE_USER_FIELDS = [
   'name',
@@ -98,6 +98,9 @@ usersRouter.patch('/:id', async (c) => {
   if (!existing) {
     return c.json({ error: 'Không tìm thấy người dùng', code: 'USER_NOT_FOUND' }, 404);
   }
+  // Permissions, lock state and passwords are never overwritten from a stale view
+  const conflict = revisionConflict(c, existing, body.expected_revision);
+  if (conflict) return conflict;
 
   const updates: Partial<UserAccount> = {};
   for (const field of EDITABLE_USER_FIELDS) {
@@ -147,6 +150,8 @@ usersRouter.delete('/:id', async (c) => {
   if (user.username === 'admin') {
     return c.json({ error: 'Không thể xóa tài khoản Quản trị viên gốc', code: 'PRIMARY_ADMIN_DELETE' }, 400);
   }
+  const conflict = revisionConflict(c, user, c.req.query('expected_revision'));
+  if (conflict) return conflict;
 
   const success = store.deleteUser(id);
   if (success) {

@@ -16,6 +16,11 @@ const WRITE = process.argv.includes('--write');
 const TAG = `[SMOKE ${Date.now()}]`;
 // Dates relative to today (Vietnam time) so the script keeps working as time passes
 const daysFromToday = (n) => new Date(Date.now() + 7 * 3600_000 + n * 86400_000).toISOString().slice(0, 10);
+// Current revision of a user/partner (admin edits must send the revision they loaded)
+const revOf = async (token, kind, id) => {
+  const list = (await api(`/api/${kind}`, { token })).data;
+  return (Array.isArray(list) ? list.find((x) => x.id === id) : null)?.revision ?? 0;
+};
 
 const PUBLIC_ONLY = !ADMIN.username || !ADMIN.password;
 if (PUBLIC_ONLY && WRITE) {
@@ -323,7 +328,7 @@ async function writeTests(admin) {
     const res = await api('/api/users', { token: T, method: 'POST', body: { username: staffName, password: initialPw, name: 'Smoke Staff', email: 'smoke@example.com', role: 'user', can_access_labor_contracts: false } });
     expectStatus(res, 201, 'create user');
     staff = res.data;
-    cleanups.push(() => api(`/api/users/${staff.id}`, { token: T, method: 'DELETE' }));
+    cleanups.push(async () => api(`/api/users/${staff.id}?expected_revision=${await revOf(T, 'users', staff.id)}`, { token: T, method: 'DELETE' }));
     assert(staff.password === undefined, 'password returned');
   });
   let staffToken;
@@ -353,7 +358,7 @@ async function writeTests(admin) {
     expectStatus(await api(`/api/files/${labor.file_key}`, { token: staffToken }), 403, 'file');
   });
   await check('granting labor access applies immediately', async () => {
-    expectStatus(await api(`/api/users/${staff.id}`, { token: T, method: 'PATCH', body: { can_access_labor_contracts: true } }), 200, 'grant');
+    expectStatus(await api(`/api/users/${staff.id}`, { token: T, method: 'PATCH', body: { can_access_labor_contracts: true, expected_revision: await revOf(T, 'users', staff.id) } }), 200, 'grant');
     expectStatus(await api(`/api/contracts/${encodeURIComponent(labor.id)}`, { token: staffToken }), 200, 'detail after grant');
     expectStatus(await api(`/api/files/${labor.file_key}`, { token: staffToken }), 200, 'file after grant');
   });
@@ -361,13 +366,13 @@ async function writeTests(admin) {
     expectStatus(await api(`/api/contracts/${encodeURIComponent(contract.id)}`, { token: staffToken, method: 'PATCH', body: { contract_type: 'labor', expected_revision: contract.revision } }), 403, 'convert');
   });
   await check('locking a user cuts off the session', async () => {
-    expectStatus(await api(`/api/users/${staff.id}`, { token: T, method: 'PATCH', body: { status: 'locked' } }), 200, 'lock');
+    expectStatus(await api(`/api/users/${staff.id}`, { token: T, method: 'PATCH', body: { status: 'locked', expected_revision: await revOf(T, 'users', staff.id) } }), 200, 'lock');
     expectStatus(await api('/api/documents', { token: staffToken }), 401, 'locked session');
   });
   await check('root admin cannot be locked or demoted', async () => {
     const users = (await api('/api/users', { token: T })).data;
     const root = users.find((u) => u.username === 'admin');
-    if (root) expectStatus(await api(`/api/users/${root.id}`, { token: T, method: 'PATCH', body: { status: 'locked' } }), 400, 'lock root');
+    if (root) expectStatus(await api(`/api/users/${root.id}`, { token: T, method: 'PATCH', body: { status: 'locked', expected_revision: await revOf(T, 'users', root.id) } }), 400, 'lock root');
   });
   await check('failed logins are throttled', async () => {
     const ghost = { username: `${staffName}_ghost`, password: 'wrong-password-1' };
@@ -381,9 +386,9 @@ async function writeTests(admin) {
     const code = `SMK${Date.now() % 100000}`;
     const res = await api('/api/partners', { token: T, method: 'POST', body: { code, name_vn: `${TAG} Đối tác` } });
     expectStatus(res, 201, 'create partner');
-    cleanups.push(() => api(`/api/partners/${res.data.id}`, { token: T, method: 'DELETE' }));
+    cleanups.push(async () => api(`/api/partners/${res.data.id}?expected_revision=${await revOf(T, 'partners', res.data.id)}`, { token: T, method: 'DELETE' }));
     expectStatus(await api('/api/partners', { token: T, method: 'POST', body: { code, name_vn: 'dup' } }), 400, 'duplicate');
-    expectStatus(await api(`/api/partners/${res.data.id}`, { token: T, method: 'PATCH', body: { notes: 'smoke' } }), 200, 'edit partner');
+    expectStatus(await api(`/api/partners/${res.data.id}`, { token: T, method: 'PATCH', body: { notes: 'smoke', expected_revision: res.data.revision ?? 0 } }), 200, 'edit partner');
   });
   await check('category item add / edit / delete', async () => {
     const add = await api('/api/categories/agencies', { token: T, method: 'POST', body: { item: `${TAG} Cơ quan` } });

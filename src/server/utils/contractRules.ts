@@ -17,7 +17,11 @@ const day = (v: unknown) => (isDate(v) ? String(v).slice(0, 10) : null);
 export function contractNumberTaken(number: string, excludeId?: string): ContractRecord | null {
   const n = normalizeNumber(number);
   if (!n) return null;
-  return [...store.getContracts(), ...store.getTrash().contracts].find((c) => c.id !== excludeId && normalizeNumber(c.contract_number) === n) ?? null;
+  const holder = [...store.getContracts(), ...store.getTrash().contracts].find((c) => c.id !== excludeId && normalizeNumber(c.contract_number) === n);
+  if (holder) return holder;
+  // Numbers once held by a renumbered or purged contract stay reserved (number_registry)
+  const owner = store.numberOwnerOf(`contract|${n}`);
+  return owner && owner !== excludeId ? ({ id: owner, contract_number: number } as ContractRecord) : null;
 }
 
 /** Checks the contract's milestones: start ≤ end, signing not after the end, liquidation/termination after signing. */

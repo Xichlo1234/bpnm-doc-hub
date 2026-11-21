@@ -50,9 +50,10 @@ const snapshot = (raw: any) => ({
   uploaded_files: raw.prepare('SELECT * FROM uploaded_files ORDER BY key').all(),
 });
 const withoutNewColumns = (rows: any[], cols: string[]) => rows.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => !cols.includes(k))));
-const NEW_COLUMNS = ['deleted_at', 'deleted_by', 'can_access_confidential_documents', 'recipient_user_id'];
+// columns added by 0005, 0006 and 0009 (users.revision / partners.revision)
+const NEW_COLUMNS = ['deleted_at', 'deleted_by', 'can_access_confidential_documents', 'recipient_user_id', 'revision_added_0009'];
 
-describe('Migrations 0004–0008 on a production-like database', () => {
+describe('Migrations 0004–0009 on a production-like database', () => {
   it('preflight (read-only) reports pending migrations, legacy data and duplicate numbers', async () => {
     const { raw } = productionLikeDb();
     const before = snapshot(raw);
@@ -76,7 +77,7 @@ describe('Migrations 0004–0008 on a production-like database', () => {
     expect(writes.every((s) => /^\s*(SELECT|PRAGMA)/i.test(s))).toBe(true);
   });
 
-  it('applies on top of 0001–0003 without changing existing rows, and the app starts on it', async () => {
+  it('applies on top of 0001–0003 without changing existing business rows, and the app starts on it', async () => {
     const { raw } = productionLikeDb();
     const before = snapshot(raw);
     applyLocalMigrations(raw); // all migrations, as `wrangler d1 migrations apply` would
@@ -84,7 +85,8 @@ describe('Migrations 0004–0008 on a production-like database', () => {
     expect(ledger).toEqual(ALL);
     const after = snapshot(raw);
     for (const t of ['documents', 'contracts', 'users', 'notifications'] as const) {
-      expect(withoutNewColumns(after[t], NEW_COLUMNS), t).toEqual(before[t]);
+      const added = t === 'users' ? [...NEW_COLUMNS, 'revision'] : NEW_COLUMNS;
+      expect(withoutNewColumns(after[t], added), t).toEqual(before[t]);
     }
     expect(after.uploaded_files).toEqual(before.uploaded_files);
 

@@ -38,8 +38,13 @@ import {
   NumberConflictError,
   numberGuardStatements,
   numberRegisterStatements,
-  numberReleaseStatements,
   hasNumberBackfill,
+  configGuardStatement,
+  fileUseStatements,
+  isFileGuardViolation,
+  FileRetiredError,
+  isUsernameUniqueViolation,
+  UsernameTakenError,
   backfillNumberRegistry,
   type NumberEntry,
   type HistoryEntry,
@@ -78,7 +83,13 @@ export function normalizeVietnamese(str: string): string {
 
 export type LegacySource = 'd1' | 'json';
 export type TrashRecordType = 'document' | 'contract' | 'partner';
-const REVISIONED_TABLES = new Set(['documents', 'contracts']);
+// Every row of these tables carries a revision checked inside the write batch (documents and
+// contracts since 0003; partners, users and attachment versions since 0009)
+const REVISIONED_TABLES = new Set(['documents', 'contracts', 'partners', 'users', 'attachments']);
+// Business numbers (number_registry, 0008)
+const NUMBERED_TABLES = new Set(['documents', 'contracts']);
+// Rows whose file_key points at stored objects
+const FILE_TABLES = new Set(['documents', 'contracts', 'attachments']);
 
 function numberEntry(table: string, record: Record<string, any>): NumberEntry | null {
   const recordType = table === 'contracts' ? 'contract' : 'document';
@@ -168,6 +179,10 @@ export class MemoryStore {
   // Registered number ("scope|norm") of each document/contract as last read or written
   private baseNumbers = new Map<string, Map<string, string | null>>();
   private configSnapshot: Partial<Record<ConfigKey, string>> = {};
+  // Stored text of each config row as last read/written (base for the config write guard)
+  private configRaw: Partial<Record<ConfigKey, string>> = {};
+  // number_registry "scope|norm" → owning record id (numbers are never released)
+  private numberOwners = new Map<string, string>();
   private persistedAuditIds = new Set<string>();
   // Serializes sync/flush so a reload never interleaves with a commit within one isolate
   private dbLock: Promise<unknown> = Promise.resolve();
@@ -270,6 +285,7 @@ export class MemoryStore {
       .filter(([, ids]) => ids.length > 1)
       .map(([key, ids]) => ({ scope: splitKey(key)[0], number: splitKey(key)[1], record_ids: ids }));
     await backfillNumberRegistry(db, entries, duplicates);
+    for (const e of entries) if (!this.numberOwners.has(`${e.scope}|${e.norm}`)) this.numberOwners.set(`${e.scope}|${e.norm}`, e.recordId);
   }
 
   private async reload(db: SqlDatabase) {
@@ -297,6 +313,8 @@ export class MemoryStore {
       this.snapshots.set(spec.name, snap);
       if (REVISIONED_TABLES.has(spec.name)) {
         this.baseRevisions.set(spec.name, new Map(records.map((r) => [r.id, Number(r.revision ?? 0)])));
+      }
+      if (NUMBERED_TABLES.has(spec.name)) {
         this.baseNumbers.set(spec.name, new Map(records.map((r) => [r.id, entryKey(numberEntry(spec.name, r))])));
       }
     }
@@ -306,6 +324,8 @@ export class MemoryStore {
       if (data.config[key] !== undefined) this.configSnapshot[key] = JSON.stringify(data.config[key]);
     }
     this.persistedAuditIds = new Set(this.auditLogs.map((l) => l.id));
+    this.configRaw = { ...data.configRaw };
+    this.numberOwners = new Map(data.numberOwners);
 
     this.version = data.version;
     this.loaded = true;
@@ -350,17 +370,37 @@ export class MemoryStore {
       }
       const removed = [...snap.keys()].filter((id) => !fingerprints.has(id));
       if (changed.length === 0 && removed.length === 0) continue;
-      let numberChanges: { claim: NumberEntry[]; release: NumberEntry[] } | null = null;
-      if (REVISIONED_TABLES.has(spec.name) && changed.length > 0) {
-        // Checked inside the same transaction as the write: a row someone else saved meanwhile aborts it
+      let claims: NumberEntry[] = [];
+      if (REVISIONED_TABLES.has(spec.name)) {
         const base = this.baseRevisions.get(spec.name) ?? new Map<string, number>();
-        statements.push(...revisionGuardStatements(db, spec, changed.map((r) => [r.id, base.has(r.id) ? base.get(r.id)! : null])));
-        // Business numbers: a record that gets a new number (new record, number or type changed)
-        // claims it in number_registry; the database refuses a number another record holds.
-        numberChanges = this.numberChangesFor(spec.name, changed, records);
-        statements.push(...numberGuardStatements(db, numberChanges.claim));
-        statements.push(...numberReleaseStatements(db, numberChanges.release));
-        statements.push(...numberRegisterStatements(db, numberChanges.claim));
+        // Every write of a row moves its revision on, also when the caller did not bump it
+        for (const r of changed) {
+          const before = base.has(r.id) ? base.get(r.id)! : null;
+          if (before === null ? r.revision == null : Number(r.revision ?? 0) === before) {
+            r.revision = (before ?? 0) + 1;
+            fingerprints.set(r.id, rowFingerprint(spec, r));
+          }
+        }
+        // Checked inside the same transaction as the write: a row someone else changed, created or
+        // deleted since this worker read it aborts the whole batch — for updates, creations and
+        // deletions (purge, user/partner removal) alike
+        statements.push(
+          ...revisionGuardStatements(db, spec, [
+            ...changed.map((r): [string, number | null] => [r.id, base.has(r.id) ? base.get(r.id)! : null]),
+            ...removed.filter((id) => base.has(id)).map((id): [string, number | null] => [id, base.get(id)!]),
+          ])
+        );
+      }
+      if (NUMBERED_TABLES.has(spec.name) && changed.length > 0) {
+        // A record that gets a new number (new record, number or type changed) claims it in
+        // number_registry; the database refuses a number another record ever held. Numbers are
+        // never released: renumbering, trash and purge keep them reserved.
+        claims = this.numberClaimsFor(spec.name, changed, records);
+        statements.push(...numberGuardStatements(db, claims), ...numberRegisterStatements(db, claims));
+      }
+      if (FILE_TABLES.has(spec.name) && changed.length > 0) {
+        const keys = [...new Set(changed.map((r) => r.file_key).filter((k): k is string => typeof k === 'string' && k.startsWith('uploads/')))];
+        statements.push(...fileUseStatements(db, keys));
       }
       statements.push(...upsertStatements(db, spec, changed), ...deleteStatements(db, spec, removed));
       pendingSnapshots.push(() => {
@@ -370,9 +410,12 @@ export class MemoryStore {
           for (const r of changed) base.set(r.id, Number(r.revision ?? 0));
           for (const id of removed) base.delete(id);
           this.baseRevisions.set(spec.name, base);
+        }
+        if (NUMBERED_TABLES.has(spec.name)) {
           const nums = this.baseNumbers.get(spec.name) ?? new Map<string, string | null>();
           for (const r of changed) nums.set(r.id, entryKey(numberEntry(spec.name, r)));
           this.baseNumbers.set(spec.name, nums);
+          for (const c of claims) this.numberOwners.set(`${c.scope}|${c.norm}`, c.recordId);
         }
       });
     }
@@ -380,8 +423,13 @@ export class MemoryStore {
     for (const key of CONFIG_KEYS) {
       const json = JSON.stringify(this.configValue(key));
       if (this.configSnapshot[key] !== json) {
-        statements.push(configStatement(db, key, this.configValue(key)));
-        pendingSnapshots.push(() => (this.configSnapshot[key] = json));
+        // Settings/categories/currencies are one row each: refuse to overwrite a version another
+        // worker saved since this one read it
+        statements.push(configGuardStatement(db, key, this.configRaw[key] ?? null), configStatement(db, key, this.configValue(key)));
+        pendingSnapshots.push(() => {
+          this.configSnapshot[key] = json;
+          this.configRaw[key] = json;
+        });
       }
     }
 
@@ -415,35 +463,77 @@ export class MemoryStore {
       // The cache now holds changes the database rejected; discard them on the next request
       this.stale = true;
       if (isNumberGuardViolation(err)) throw new NumberConflictError();
+      if (isFileGuardViolation(err)) throw new FileRetiredError();
+      if (isUsernameUniqueViolation(err)) throw new UsernameTakenError();
       if (isGuardViolation(err)) throw new RevisionConflictError();
       throw err;
     }
   }
 
   /**
-   * Numbers that changed records claim or release. Two records of this cache claiming the same number
-   * in one write is refused here (the registry check only sees committed rows).
+   * Numbers that changed records claim. A number held by another record — in this cache or ever
+   * registered (renumbered, trashed and purged records keep theirs) — is refused before writing;
+   * the database checks it again inside the batch (number_guard) against other workers' writes.
    */
-  private numberChangesFor(table: string, changed: Array<Record<string, any>>, all: Array<Record<string, any>>) {
+  private numberClaimsFor(table: string, changed: Array<Record<string, any>>, all: Array<Record<string, any>>): NumberEntry[] {
     const base = this.baseNumbers.get(table) ?? new Map<string, string | null>();
-    const claim: NumberEntry[] = [];
-    const release: NumberEntry[] = [];
+    const claims: NumberEntry[] = [];
     for (const r of changed) {
       const entry = numberEntry(table, r);
       const key = entryKey(entry);
       const before = base.has(r.id) ? base.get(r.id)! : undefined;
-      if (key === before) continue; // unchanged number (historical duplicates stay editable)
-      if (entry) {
-        const clash = all.find((o) => o.id !== r.id && entryKey(numberEntry(table, o)) === key);
-        if (clash) throw new NumberConflictError(entry.display);
-        claim.push(entry);
-      }
-      if (before) {
-        const [scope, norm] = splitKey(before);
-        release.push({ scope, norm, display: '', recordType: entry?.recordType ?? (table === 'contracts' ? 'contract' : 'document'), recordId: r.id });
+      if (!entry || !key || key === before) continue; // no number, or unchanged (historical duplicates stay editable)
+      const owner = this.numberOwners.get(key);
+      if (owner && owner !== r.id) throw new NumberConflictError(entry.display);
+      const clash = all.find((o) => o.id !== r.id && entryKey(numberEntry(table, o)) === key);
+      if (clash) throw new NumberConflictError(entry.display);
+      claims.push(entry);
+    }
+    return claims;
+  }
+
+  /** Record id that holds a business number ("scope|norm"), or null (number_registry, 0008). */
+  public numberOwnerOf(key: string): string | null {
+    return this.numberOwners.get(key) ?? null;
+  }
+
+  public registeredNumbers(): Map<string, string> {
+    return new Map(this.numberOwners);
+  }
+
+  /** Numbers of live and trashed records missing from the registry, and ones held by another record. */
+  public numberRegistryReport(): {
+    missing: NumberEntry[];
+    conflicts: Array<{ scope: string; number: string; record_id: string; registered_to: string }>;
+  } {
+    const missing: NumberEntry[] = [];
+    const conflicts: Array<{ scope: string; number: string; record_id: string; registered_to: string }> = [];
+    const seen = new Set<string>();
+    for (const [table, map] of [
+      ['documents', this.documents],
+      ['contracts', this.contracts],
+    ] as const) {
+      const byAge = [...(map as Map<string, any>).values()].sort(
+        (a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')) || String(a.id).localeCompare(String(b.id))
+      );
+      for (const r of byAge) {
+        const e = numberEntry(table, r);
+        const key = entryKey(e);
+        if (!e || !key) continue;
+        const owner = this.numberOwners.get(key);
+        if (!owner && !seen.has(key)) {
+          missing.push(e);
+          seen.add(key);
+        } else if ((owner && owner !== r.id) || (!owner && seen.has(key))) {
+          conflicts.push({ scope: e.scope, number: e.display, record_id: r.id, registered_to: owner ?? missing.find((m) => entryKey(m) === key)!.recordId });
+        }
       }
     }
-    return { claim, release };
+    return { missing, conflicts };
+  }
+
+  public markNumbersRegistered(entries: NumberEntry[]) {
+    for (const e of entries) if (!this.numberOwners.has(`${e.scope}|${e.norm}`)) this.numberOwners.set(`${e.scope}|${e.norm}`, e.recordId);
   }
 
   /** Adds a statement to the next flush, in the same transaction as the record changes. */
@@ -946,7 +1036,7 @@ export class MemoryStore {
       version = Math.max(...series.map((a) => a.version)) + 1;
       for (const a of series) if (a.is_current) this.attachments.set(a.id, { ...a, is_current: false });
     }
-    const record: AttachmentRecord = { ...fields, id, series_id: seriesId, version, is_current: true, uploaded_at: new Date().toISOString() };
+    const record: AttachmentRecord = { ...fields, id, series_id: seriesId, version, is_current: true, uploaded_at: new Date().toISOString(), revision: 1 };
     this.attachments.set(id, record);
     return { ...record };
   }
@@ -983,6 +1073,7 @@ export class MemoryStore {
       contract_count: partner.contract_count ?? 0,
       active_contract_count: partner.active_contract_count ?? 0,
       is_locked: partner.is_locked ?? false,
+      revision: 1,
     };
     this.partners.set(id, newPartner);
     return newPartner;
@@ -1319,6 +1410,7 @@ export class MemoryStore {
       can_access_confidential_documents: user.role === 'admin' ? true : Boolean(user.can_access_confidential_documents),
       created_at: now,
       updated_at: now,
+      revision: 1,
     };
     this.users.set(id, newUser);
     return { ...newUser };

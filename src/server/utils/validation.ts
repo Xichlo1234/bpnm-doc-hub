@@ -148,6 +148,8 @@ export const userInput = {
     can_access_labor_contracts: z.boolean().optional(),
     can_access_confidential_documents: z.boolean().optional(),
     password: z.string().max(200).optional(),
+    // The revision the admin loaded (migration 0009): stale edits get 409 instead of overwriting
+    expected_revision: z.number().int().min(0).optional(),
   }),
 };
 

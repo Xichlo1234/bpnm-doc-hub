@@ -127,6 +127,7 @@ export interface PartnerRecord {
   is_locked?: boolean;
   deleted_at?: string | null;
   deleted_by?: string | null;
+  revision?: number;
 }
 
 export type AttachmentRecordType = 'document' | 'contract';
@@ -150,6 +151,7 @@ export interface AttachmentRecord {
   uploaded_at: string;
   deleted_at?: string | null;
   deleted_by?: string | null;
+  revision?: number;
 }
 
 export interface ContractAppendix {
@@ -205,6 +207,8 @@ export interface UserAccount {
   must_change_password?: boolean;
   created_at: string;
   updated_at: string;
+  // Incremented on every save (migration 0009); admin edits send the revision they loaded
+  revision?: number;
 }
 
 export function isLaborContract(
