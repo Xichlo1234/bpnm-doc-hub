@@ -1,3 +1,5 @@
+import { partnerCodeKey } from '../../src/shared/partnerCodeKey.mjs';
+import { FENCE_STATUS_SQL } from './write-fence-core.mjs';
 // Read-only pre-deployment checks for the D1 database (see scripts/preflight.mjs).
 // `query(sql)` must return an array of row objects. Only SELECT / PRAGMA statements are issued.
 
@@ -18,6 +20,7 @@ export const EXPECTED_AFTER = {
     columns: { partners: ['revision'], users: ['revision'], attachments: ['revision'], file_uploads: ['attached_at'] },
   },
   '0010_partner_code_unique.sql': {},
+  '0011_partner_code_key.sql': { columns: { partners: ['code_key'] } },
 };
 
 const normalizeNumber = (v) => String(v ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -28,6 +31,14 @@ export async function runPreflight(query, migrationFiles) {
     return query(sql);
   };
   const report = { blocking: [], warnings: [], info: {} };
+  // Write fence (maintenance window): writes are refused while it is installed
+  try {
+    const fence = await q(FENCE_STATUS_SQL);
+    report.info.write_fence_triggers = fence.length;
+    if (fence.length) report.warnings.push(`Rào chắn ghi đang bật (${fence.length} trigger): mọi ghi bị D1 từ chối. Gỡ bằng scripts/write-fence.mjs off trước khi mở ghi.`);
+  } catch {
+    report.info.write_fence_triggers = null;
+  }
 
   const tables = new Set((await q("SELECT name FROM sqlite_master WHERE type = 'table'")).map((r) => r.name));
   const columns = async (table) => (tables.has(table) ? (await q(`PRAGMA table_info(${table})`)).map((c) => c.name) : []);
@@ -108,18 +119,30 @@ export async function runPreflight(query, migrationFiles) {
 
   // Active partner codes must be unique before 0010 adds the unique index
   const partnerCols = await columns('partners');
-  const partners = await q(`SELECT id, code${partnerCols.includes('deleted_at') ? ', deleted_at' : ''} FROM partners`);
+  const partners = await q(`SELECT id, code${partnerCols.includes('deleted_at') ? ', deleted_at' : ''}${partnerCols.includes('code_key') ? ', code_key' : ''} FROM partners`);
   const byCode = new Map();
   for (const p of partners) {
     if (p.deleted_at) continue;
-    const k = String(p.code ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toUpperCase();
+    const k = partnerCodeKey(p.code);
     if (!k) continue;
     byCode.set(k, [...(byCode.get(k) || []), p.id]);
   }
   const dupPartners = [...byCode.entries()].filter(([, ids]) => ids.length > 1);
   report.info.duplicate_partner_codes = dupPartners.map(([code, ids]) => ({ code, ids }));
-  if (dupPartners.length && !applied.includes('0010_partner_code_unique.sql')) {
-    report.blocking.push(`${dupPartners.length} mã đối tác trùng giữa các đối tác đang hoạt động: migration 0010 sẽ lỗi. Đổi mã hoặc chuyển một đối tác vào thùng rác trước.`);
+  if (dupPartners.length) {
+    // Same key as the application and partners.code_key (0011): case, spaces and Unicode form ignored.
+    // Never resolved automatically: the owner decides which code to change or which partner to trash.
+    report.blocking.push(
+      `${dupPartners.length} nhóm mã đối tác trùng giữa các đối tác đang hoạt động (không phân biệt hoa/thường, khoảng trắng, dạng Unicode): ` +
+        `${dupPartners.map(([k, ids]) => `${k} → ${ids.join(', ')}`).join('; ')}. ` +
+        (applied.includes('0010_partner_code_unique.sql') ? '' : 'Migration 0010 có thể lỗi. ') +
+        'Chủ dự án quyết định đổi mã hoặc chuyển một đối tác vào thùng rác; migration và ứng dụng không tự sửa.'
+    );
+  }
+  if (partnerCols.includes('code_key')) {
+    const missing = partners.filter((p) => !p.deleted_at && p.code && !p.code_key).length;
+    report.info.partner_code_key_missing = missing;
+    if (missing) report.warnings.push(`${missing} đối tác chưa có code_key (ứng dụng tự điền khi khởi động, trừ mã trùng).`);
   }
 
   // 4. Duplicate business numbers (same normalisation as the app / number_registry)
