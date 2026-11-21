@@ -327,3 +327,19 @@ Nền `964e1df5809708e1f9b24ce091e57ec676385170`, nhánh cục bộ `codex/pr08-
 - E3: preflight đối chiếu trực tiếp định nghĩa chỉ mục 0010 trong SQLite. Fixture SQLite xác nhận bản đúng được chấp nhận; hai biến thể có đúng tên nhưng sai khóa hoặc sai điều kiện đều bị chặn.
 - TypeScript server đạt. Vitest **357 bài / 29 tệp** đạt. Smoke E2E localhost trên dữ liệu giả đạt **72/72**, gồm luồng ghi; dọn 7 bản ghi smoke cuối lượt. Audit npm runtime báo **0** cảnh báo.
 - **Tạm giữ xuất bản Production.** HTTP 403 với SheetJS chặn cài đầy đủ, hai suite phụ thuộc SheetJS và build/dry-run đầy đủ. GitHub API trả Forbidden; từ Git refs xác nhận `main` chưa có bản ứng viên. Chưa có bằng chứng CI đạt trên SHA phát hành và chưa xác minh sao lưu/diễn tập phục hồi Production theo runbook.
+
+## PR09 · Ổn định dữ liệu và chuẩn bị cutover · 21/11/2026
+
+Base PR #8: `964e1df`. Nhánh `codex/pr09-stabilization` tiếp nối các commit review cục bộ `6aa541b` và `9e14514`. Mã E1–E7 theo đề bài PR09.
+
+| Mục | Thay đổi | Bằng chứng |
+|---|---|---|
+| E1 | Đổi mật khẩu kiểm tra hash, trạng thái, revision và token_version trong cùng batch, trước khi ghi tài khoản. | `src/server/routes/auth.ts`, `tests/pr09_stabilization.test.ts` · Cả reset và khóa cạnh tranh đều thắng snapshot cũ. |
+| E2 | Tuần tự hóa toàn bộ request dùng MemoryStore trong mỗi isolate. Đợt ghi lỗi bị bỏ trước request kế tiếp. Guard D1 vẫn kiểm tra giữa các isolate. | `src/server/index.ts`, `src/server/db/store.ts` · GET cạnh tranh chỉ đọc dữ liệu đã commit hoặc bản cũ. Đo độ trễ khi tranh chấp thuộc UAT staging. |
+| E3 | Cổng bảo trì đứng trước đọc body và D1. Health là liveness độc lập. | `src/server/index.ts` · Binding lạnh với schema 0001–0003, health 200 và API 503. |
+| E4 | Biên nhận chống nhầm timeout với transaction thất bại. Tách trạng thái commit thành công cần tải lại cache. Reservation đăng ký trước R2 và chỉ cho gắn sau khi lưu. Tombstone bảo vệ rollback. | `src/server/db/repository.ts`, `src/server/utils/storageCleanup.ts`, `src/server/utils/fileStorage.ts` · Fixture commit xen kẽ, mất phản hồi sau commit, D1 reject và R2 put/delete lỗi. Kết quả không xác minh được phải đối soát biên nhận, hồ sơ và khóa tệp trước retry. |
+| E5 | Khóa Unicode riêng với backfill có guard phiên bản, không sửa mã hiển thị. | `migrations/0011_stabilization.sql`, `src/server/utils/partnerCodes.mjs`, `scripts/lib/preflight-core.mjs` · Hai kết nối chỉ ghi được một khóa Unicode tương đương. Xung đột mã cũ chờ quyết định chủ dự án. |
+| E6 | Từ chối ID không tồn tại, đối chiếu sổ, fingerprint gắn với revision và bảo toàn trường mở rộng. | `src/server/utils/importer.ts`, `src/server/routes/imports.ts`, client Excel · Hai preview cạnh tranh không ghi đè nhau; giữ trường mở rộng và suite PR08 nhiều sổ. |
+| E7 | Bổ sung runbook D1 fence, R2 Bucket Locks và cutover sang binding riêng. | `docs/ops/DEPLOY_RUNBOOK.md`, `scripts/cutover-fence.mjs` · SQLite và Wrangler local từ chối ghi nguồn, phục hồi trên đích và áp 0004–0011. Kiểm chứng live D1/R2 vẫn thuộc staging. |
+
+**Xác minh.** 368 bài chạy đạt trên 30 tệp, gồm 11 PR09. Smoke local 72/72 bước, gồm luồng ghi trên dữ liệu giả. TypeScript server/API client đạt. npm audit runtime báo 0. Wrangler dry-run Worker với asset mẫu đạt. Hai suite dùng SheetJS, typecheck toàn bộ, build SPA và dry-run với asset build chưa đạt vì CDN SheetJS 0.20.3 trả HTTP 403. Staging D1/R2 và UAT trình duyệt chưa được kiểm chứng. Xem [checklist](ops/RELEASE_CHECKLIST.md).

@@ -383,6 +383,13 @@ authRouter.post('/change-password', async (c) => {
   const newHash = await hashPassword(new_password);
   if (!matchesVerifiedState(store.getUser(account.id), account)) throw new RevisionConflictError();
 
+  store.queueGuard((db) => db.prepare(
+    `INSERT INTO write_guard (conflict)
+     SELECT 1 WHERE NOT EXISTS (
+       SELECT 1 FROM users WHERE id = ? AND status = 'active' AND password IS ?
+         AND COALESCE(revision, 0) = ? AND COALESCE(token_version, 0) = ?
+     )`,
+  ).bind(account.id, account.password ?? null, account.revision ?? 0, account.token_version ?? 0));
   const updated = store.updateUser(account.id, {
     password: newHash,
     must_change_password: false,

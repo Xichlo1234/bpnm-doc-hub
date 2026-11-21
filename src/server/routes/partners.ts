@@ -6,9 +6,7 @@ import { partnerInput, parseInput, revisionConflict } from '../utils/validation.
 export const partnersRouter = new Hono();
 
 /** Partner codes are stored trimmed and upper-case; uniqueness is among partners not in the trash. */
-export function normalizePartnerCode(code: string): string {
-  return String(code ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toUpperCase();
-}
+import { normalizePartnerCode } from '../utils/partnerCodes.mjs';
 
 export function partnerCodeTaken(code: string, excludeId?: string): boolean {
   const n = normalizePartnerCode(code);

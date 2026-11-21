@@ -68,6 +68,7 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   APPENDIX_NUMBER_TAKEN: 'srvAppendixNumberTaken',
   LINK_TARGET_INVALID: 'srvLinkTargetInvalid',
   IMPORT_HAS_ERRORS: 'srvImportHasErrors',
+  IMPORT_PREVIEW_STALE: 'srvImportPreviewStale',
   IMPORT_CONFIRMATION_REQUIRED: 'srvImportConfirmationRequired',
   PAYLOAD_TOO_LARGE: 'srvPayloadTooLarge',
   REVISION_REQUIRED: 'srvRevisionRequired',

@@ -1,6 +1,8 @@
 // Read-only pre-deployment checks for the D1 database (see scripts/preflight.mjs).
 // `query(sql)` must return an array of row objects. Only SELECT / PRAGMA statements are issued.
 
+import { normalizePartnerCode } from '../../src/server/utils/partnerCodes.mjs';
+
 const READ_ONLY = /^\s*(SELECT|PRAGMA)\b/i;
 
 export const BASE_TABLES = ['documents', 'contracts', 'partners', 'users', 'notifications', 'audit_logs', 'app_config', 'meta'];
@@ -17,6 +19,7 @@ export const EXPECTED_AFTER = {
     tables: ['storage_cleanup', 'file_guard'],
     columns: { partners: ['revision'], users: ['revision'], attachments: ['revision'], file_uploads: ['attached_at'] },
   },
+  '0011_stabilization.sql': { tables: ['request_commits', 'partner_code_keys'], columns: { file_uploads: ['stored_at'] } },
 };
 
 const normalizeNumber = (v) => String(v ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -115,7 +118,7 @@ export async function runPreflight(query, migrationFiles) {
   const byCode = new Map();
   const byIndexCode = new Map();
   for (const p of partners) {
-    const k = String(p.code ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toUpperCase();
+    const k = normalizePartnerCode(p.code);
     if (k) byCode.set(k, [...(byCode.get(k) || []), p.id]);
     // SQLite UNIQUE allows multiple NULLs but compares empty strings as a key.
     if (p.index_code !== null) {
@@ -136,6 +139,15 @@ export async function runPreflight(query, migrationFiles) {
     report.blocking.push('Định nghĩa chỉ mục idx_partners_code_active lệch migration 0010.');
   } else if (!partnerIndex && applied.includes('0010_partner_code_unique.sql')) {
     report.blocking.push('0010_partner_code_unique.sql đã ghi nhận nhưng thiếu chỉ mục idx_partners_code_active.');
+  }
+  if (tables.has('partner_code_keys')) {
+    const ready = (await q("SELECT value FROM meta WHERE key = 'partner_code_keys_ready'")).length > 0;
+    const keys = new Map((await q('SELECT partner_id, code_key FROM partner_code_keys')).map((row) => [row.partner_id, row.code_key]));
+    if (!ready) report.warnings.push('Chưa khởi tạo khóa đối tác Unicode 0011.');
+    else if (keys.size !== [...byCode.values()].flat().length ||
+      [...byCode].some(([key, ids]) => ids.some((id) => keys.get(id) !== key))) {
+      report.blocking.push('Khóa đối tác Unicode 0011 lệch dữ liệu đối tác đang hoạt động.');
+    }
   }
 
   // 4. Duplicate business numbers (same normalisation as the app / number_registry)

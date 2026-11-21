@@ -1,4 +1,14 @@
-# Yêu cầu thẩm định lại lần 4 — BPNM Doc Hub
+# Yêu cầu thẩm định PR09 · Ổn định dữ liệu và cutover
+
+Base `pr08-final-review-fixes` tại `964e1df`. Head `codex/pr09-stabilization`.
+
+Cần xác minh độc lập CAS đổi mật khẩu; vòng đời request; bảo trì trên schema cũ; biên nhận D1 và vòng đời tệp; khóa Unicode; điều kiện cập nhật theo preview; và cutover nguồn sang đích riêng. Bảng ánh xạ lỗi, tệp sửa và test nằm trong [worklog](WORKLOG.md). [Checklist](ops/RELEASE_CHECKLIST.md) ghi các cổng còn thiếu.
+
+368 bài Vitest thực thi đạt, 72/72 smoke local đạt. Hai suite SheetJS và build SPA đang chờ CDN trả được gói đã ghim. UAT staging D1/R2 và kết luận GO còn chờ.
+
+---
+
+## Yêu cầu thẩm định lại lần 4 — BPNM Doc Hub
 
 **Repository:** `Xichlo1234/bpnm-doc-hub` (private)
 **Lần 1:** `93440f3` → NO-GO (B1–B6) → PR #6. **Lần 2:** PR #6 → NO-GO (C1–C7) → PR #7.

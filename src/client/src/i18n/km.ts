@@ -1084,6 +1084,7 @@ export const km: Translations = {
   srvAppendixNumberTaken: "លេខឧបសម្ព័ន្ធ \"{number}\" មានរួចហើយ។",
   srvLinkTargetInvalid: "កំណត់ត្រាភ្ជាប់មិនមាន ឬអ្នកគ្មានសិទ្ធិ។",
   srvImportHasErrors: "មាន {count} ជួរមិនត្រឹមត្រូវ មិនទាន់នាំចូលទេ។",
+  srvImportPreviewStale: 'លទ្ធផលមើលជាមុនបានផ្លាស់ប្តូរ។ សូមពិនិត្យម្តងទៀតមុនបញ្ជាក់។',
   srvImportConfirmationRequired: "{count} ជួរនឹងធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាដែលមាន។ សូមពិនិត្យ និងបញ្ជាក់។",
   importCreateCount: "ថ្មី៖ {count}",
   importUpdateCount: "ធ្វើបច្ចុប្បន្នភាព៖ {count}",

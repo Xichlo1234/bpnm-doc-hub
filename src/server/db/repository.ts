@@ -285,7 +285,7 @@ export function fileUseStatements(db: SqlDatabase, keys: string[]): SqlStatement
   return chunkJson(keys).flatMap((json) => [
     db
       .prepare(
-        "INSERT INTO file_guard (file_retired) SELECT 1 FROM storage_cleanup WHERE key IN (SELECT value FROM json_each(?)) AND status IN ('pending', 'deleted') LIMIT 1"
+        "INSERT INTO file_guard (file_retired) SELECT 1 WHERE EXISTS (SELECT 1 FROM storage_cleanup WHERE key IN (SELECT value FROM json_each(?1)) AND status IN ('pending', 'deleted')) OR EXISTS (SELECT 1 FROM file_uploads WHERE key IN (SELECT value FROM json_each(?1)) AND stored_at IS NULL)"
       )
       .bind(json),
     db.prepare('UPDATE file_uploads SET attached_at = COALESCE(attached_at, ?) WHERE key IN (SELECT value FROM json_each(?))').bind(now, json),
@@ -302,7 +302,16 @@ export function isUsernameUniqueViolation(err: unknown): boolean {
 }
 
 export function isPartnerCodeUniqueViolation(err: unknown): boolean {
-  return /UNIQUE constraint failed: (index 'idx_partners_code_active'|partners\.code)/i.test(String((err as Error)?.message || err));
+  return /UNIQUE constraint failed: (index 'idx_partners_code_active'|partners\.code|partner_code_keys\.code_key)/i.test(String((err as Error)?.message || err));
+}
+
+export function partnerKeyStatements(db: SqlDatabase, ids: string[], keys: Array<[string, string]>): SqlStatement[] {
+  return [
+    ...chunkJson(ids).map((json) => db.prepare('DELETE FROM partner_code_keys WHERE partner_id IN (SELECT value FROM json_each(?))').bind(json)),
+    ...chunkJson(keys).map((json) => db.prepare(
+      "INSERT INTO partner_code_keys (partner_id, code_key) SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]') FROM json_each(?)",
+    ).bind(json)),
+  ];
 }
 
 export class PartnerCodeTakenError extends Error {
@@ -332,8 +341,27 @@ export async function commitChanges(
   statements: SqlStatement[],
   knownVersion: number
 ): Promise<{ version: number; concurrentWrite: boolean }> {
-  const results = await db.batch([...statements, db.prepare(BUMP_VERSION_SQL)]);
-  const version = Number(results[results.length - 1].results[0]?.v ?? 0);
+  const id = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  const receipt = db.prepare(
+    "INSERT INTO request_commits (id, version, created_at) SELECT ?, CAST(value AS INTEGER), ? FROM meta WHERE key = 'data_version' RETURNING version",
+  ).bind(id, now);
+  const prune = db.prepare(
+    'DELETE FROM request_commits WHERE id IN (SELECT id FROM request_commits WHERE created_at < ? ORDER BY created_at LIMIT 64)',
+  ).bind(now - 7 * 86400);
+  let version: number;
+  try {
+    const results = await db.batch([...statements, db.prepare(BUMP_VERSION_SQL), prune, receipt]);
+    version = Number(results.at(-1)?.results[0]?.version ?? 0);
+    if (version <= 0) throw new Error('D1 returned no commit receipt');
+  } catch (error) {
+    // A transport timeout does not tell us whether D1 committed. A receipt is written in
+    // the same atomic batch; a positive read confirms success without replaying the writes.
+    const committed = await db.prepare('SELECT version FROM request_commits WHERE id = ?')
+      .bind(id).first<{ version: number }>().catch(() => null);
+    if (!committed) throw error;
+    version = Number(committed.version);
+  }
   return { version, concurrentWrite: version !== knownVersion + 1 };
 }
 

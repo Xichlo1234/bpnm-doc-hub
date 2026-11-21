@@ -26,17 +26,6 @@ export const app = new Hono();
 // No CORS middleware: the SPA is served from the same origin as the API, so cross-origin
 // access is intentionally not allowed.
 
-// Request size cap: uploads are ≤5MB and Excel imports ≤5,000 rows, so 12MB is ample. Bigger bodies are
-// refused before they are read or validated.
-export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
-app.use(
-  '/api/*',
-  bodyLimit({
-    maxSize: MAX_REQUEST_BYTES,
-    onError: (c) => c.json({ error: 'Dữ liệu gửi lên quá lớn.', code: 'PAYLOAD_TOO_LARGE' }, 413),
-  })
-);
-
 // Maintenance mode (MAINTENANCE_MODE=1 as a Worker variable): every API call except the health check
 // answers 503 without touching the database. This is the safe alternative to rolling back to a build
 // older than the security hardening (see docs/ops/DEPLOY_RUNBOOK.md, "Rollback").
@@ -51,6 +40,17 @@ app.use('/api/*', async (c, next) => {
   await next();
 });
 
+// Request size cap: uploads are ≤5MB and Excel imports ≤5,000 rows, so 12MB is ample. Bigger bodies are
+// refused before they are read or validated.
+export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
+app.use(
+  '/api/*',
+  bodyLimit({
+    maxSize: MAX_REQUEST_BYTES,
+    onError: (c) => c.json({ error: 'Dữ liệu gửi lên quá lớn.', code: 'PAYLOAD_TOO_LARGE' }, 413),
+  })
+);
+
 // Database middleware: refreshes the in-memory cache before the request (if another isolate wrote)
 // and commits this request's changes after it. See MemoryStore in db/store.ts.
 app.use('/api/*', async (c, next) => {
@@ -62,9 +62,17 @@ app.use('/api/*', async (c, next) => {
 
   const env = c.env as any;
   const db = await getDatabase(env);
-  await store.sync(db, env?.DB ? 'd1' : 'json');
-  await next();
-  await store.flush(db);
+  await store.runRequest(async () => {
+    try {
+      await store.sync(db, env?.DB ? 'd1' : 'json');
+      await next();
+      if (c.res.status >= 400) store.discardPending();
+      else await store.flush(db);
+    } catch (error) {
+      store.discardPending();
+      throw error;
+    }
+  });
 });
 
 // Browser hardening for every response. The CSP allows only same-origin scripts; inline styles are

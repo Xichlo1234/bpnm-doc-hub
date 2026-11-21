@@ -1,15 +1,13 @@
 import { Hono } from 'hono';
 import {
-  saveUploadedFile,
   getStoredFile,
   getMimeType,
   isSafeFileKey,
   isActiveContentType,
-  registerUpload,
-  discardUpload,
   getUploadRow,
   UploadValidationError,
 } from '../utils/fileStorage.ts';
+import { saveRegisteredUpload } from '../utils/recordRequest.ts';
 import { store } from '../db/store.ts';
 import { getDatabase } from '../db/database.ts';
 import { getAuthUser } from './auth.ts';
@@ -41,7 +39,6 @@ filesRouter.post('/upload', async (c) => {
   if (!canUploadFiles(user)) {
     return c.json({ error: 'Bạn không có quyền tải tệp lên.', code: 'UPLOAD_FORBIDDEN' }, 403);
   }
-  let uploadedKey: string | null = null;
   try {
     const formData = await c.req.formData();
     const file = formData.get('file');
@@ -50,9 +47,8 @@ filesRouter.post('/upload', async (c) => {
       return c.json({ error: 'Vui lòng chọn tệp để tải lên', code: 'FILE_REQUIRED' }, 400);
     }
 
-    const uploaded = await saveUploadedFile(file as File, c.env);
-    uploadedKey = uploaded.file_key;
-    await registerUpload(await getDatabase(c.env), uploaded, user!.id);
+    const db = await getDatabase(c.env);
+    const uploaded = await saveRegisteredUpload(db, file as File, c.env, user!.id);
     return c.json({
       success: true,
       file_key: uploaded.file_key,
@@ -66,8 +62,6 @@ filesRouter.post('/upload', async (c) => {
     if (err instanceof UploadValidationError) {
       return c.json({ error: err.message, code: err.code, params: err.params }, 400);
     }
-    // The object was stored but could not be registered: remove it rather than leave an orphan
-    if (uploadedKey) await discardUpload(await getDatabase(c.env), uploadedKey, c.env);
     console.error('File upload error:', err);
     return c.json({ error: 'Không thể lưu tệp tải lên', code: 'FILE_SAVE_FAILED' }, 500);
   }

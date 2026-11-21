@@ -110,31 +110,40 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
         const rowNum = idx + 2; // Excel 1-based, row 1 is header
         const keys = Object.keys(r);
 
-        const findVal = (patterns: string[]) => {
-          for (const key of keys) {
-            const cleanKey = key.toLowerCase();
-            if (patterns.some(p => cleanKey.includes(p))) {
-              return String(r[key]).trim();
-            }
-          }
-          return '';
+        const consumed = new Set<string>();
+        const supplied = new Set<string>();
+        const findVal = (field: string, patterns: string[]) => {
+          const full = [field, ...patterns];
+          const key = keys.find(key => full.includes(key.trim().toLowerCase())) ?? keys.find(key => {
+            const clean = key.trim().toLowerCase();
+            return patterns.some(pattern => pattern === 'id' ? clean.startsWith('id (') : clean.includes(pattern));
+          });
+          if (key === undefined) return '';
+          consumed.add(key);
+          supplied.add(field);
+          return String(r[key] ?? '').trim();
         };
 
+        const parsedRow = (fields: Record<string, unknown>) => ({
+          ...Object.fromEntries(keys.filter(key => !consumed.has(key)).map(key => [key, r[key]])),
+          ...Object.fromEntries(Object.entries(fields).filter(([field]) => supplied.has(field))),
+        });
+
         if (type === 'contract') {
-          const id = findVal(['id', 'mã định danh']); // i18n-data
-          const contract_number = findVal(['số hợp đồng', 'so hop dong', 'contract_number']); // i18n-data
-          const title = findVal(['tên', 'nội dung', 'title']); // i18n-data
-          const party_a = findVal(['bên a', 'party_a']) || 'Công ty Cổ phần đầu tư quốc tế Sambo Gold - SGII'; // i18n-data
-          const party_b = findVal(['bên b', 'đối tác', 'party_b']); // i18n-data
-          const signed_date = findVal(['ngày ký', 'signed_date']) || new Date().toISOString().substring(0, 10); // i18n-data
-          const start_date = findVal(['ngày bắt đầu', 'ngày hiệu lực', 'start_date']) || signed_date; // i18n-data
-          const end_date = findVal(['ngày hết hạn', 'end_date']) || null; // i18n-data
-          const valStr = findVal(['giá trị', 'value']).replace(/[^\d.-]/g, ''); // i18n-data
+          const id = findVal('id', ['id', 'mã định danh']); // i18n-data
+          const contract_number = findVal('contract_number', ['số hợp đồng', 'so hop dong', 'contract_number']); // i18n-data
+          const title = findVal('title', ['tên', 'nội dung', 'title']); // i18n-data
+          const party_a = findVal('party_a', ['bên a', 'party_a']) || 'Công ty Cổ phần đầu tư quốc tế Sambo Gold - SGII'; // i18n-data
+          const party_b = findVal('party_b', ['bên b', 'đối tác', 'party_b']); // i18n-data
+          const signed_date = findVal('signed_date', ['ngày ký', 'signed_date']) || new Date().toISOString().substring(0, 10); // i18n-data
+          const start_date = findVal('start_date', ['ngày bắt đầu', 'ngày hiệu lực', 'start_date']) || signed_date; // i18n-data
+          const end_date = findVal('end_date', ['ngày hết hạn', 'end_date']) || null; // i18n-data
+          const valStr = findVal('value', ['giá trị', 'value']).replace(/[^\d.-]/g, ''); // i18n-data
           const value = valStr ? Number(valStr) || 0 : 0;
-          const currency = findVal(['loại tiền', 'tiền tệ', 'currency']) || 'USD'; // i18n-data
-          const department = findVal(['phòng ban', 'bộ phận', 'department']) || 'HCNS'; // i18n-data
-          const status = findVal(['trạng thái', 'status']) || 'active'; // i18n-data
-          const notes = findVal(['ghi chú', 'notes']) || null; // i18n-data
+          const currency = findVal('currency', ['loại tiền', 'tiền tệ', 'currency']) || 'USD'; // i18n-data
+          const department = findVal('department', ['phòng ban', 'bộ phận', 'department']) || 'HCNS'; // i18n-data
+          const status = findVal('status', ['trạng thái', 'status']) || 'active'; // i18n-data
+          const notes = findVal('notes', ['ghi chú', 'notes']) || null; // i18n-data
 
           if (!contract_number && !id) {
             errors.push({ row: rowNum, error: t.excelMissingContractNumber });
@@ -144,7 +153,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
           if (id) updateCount++;
           else newCount++;
 
-          parsed.push({
+          parsed.push(parsedRow({
             id: id || undefined,
             contract_number,
             title: title || 'Hợp đồng cập nhật qua Excel', // i18n-data
@@ -158,23 +167,23 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             department,
             status,
             notes,
-          });
+          }));
         } else {
           // Document import parsing
-          const id = findVal(['id', 'mã định danh']); // i18n-data
-          const document_number = findVal(['số văn bản', 'số công văn', 'document_number']); // i18n-data
-          const title = findVal(['trích yếu', 'tiêu đề', 'title']); // i18n-data
-          const doc_type = (findVal(['loại', 'doc_type']) || 'incoming').toLowerCase(); // i18n-data
-          const issuer = findVal(['cơ quan', 'nơi gửi', 'issuer']); // i18n-data
-          const recipient = findVal(['nơi nhận', 'recipient']); // i18n-data
-          const signer = findVal(['người ký', 'signer']); // i18n-data
-          const department = findVal(['phòng ban', 'bộ phận', 'department']); // i18n-data
-          const handler = findVal(['người xử lý', 'handler']); // i18n-data
-          const issue_date = findVal(['ngày ban hành', 'ngày văn bản', 'issue_date']) || new Date().toISOString().substring(0, 10); // i18n-data
-          const due_date = findVal(['hạn xử lý', 'due_date']) || null; // i18n-data
-          const urgency_level = findVal(['độ khẩn', 'urgency']) || 'Thường'; // i18n-data
-          const status = findVal(['trạng thái', 'status']) || 'Đang xử lý'; // i18n-data
-          const directive = findVal(['chỉ đạo', 'directive']) || null; // i18n-data
+          const id = findVal('id', ['id', 'mã định danh']); // i18n-data
+          const document_number = findVal('document_number', ['số văn bản', 'số công văn', 'document_number']); // i18n-data
+          const title = findVal('title', ['trích yếu', 'tiêu đề', 'title']); // i18n-data
+          const doc_type = (findVal('doc_type', ['loại', 'doc_type']) || 'incoming').toLowerCase(); // i18n-data
+          const issuer = findVal('issuer', ['cơ quan', 'nơi gửi', 'issuer']); // i18n-data
+          const recipient = findVal('recipient', ['nơi nhận', 'recipient']); // i18n-data
+          const signer = findVal('signer', ['người ký', 'signer']); // i18n-data
+          const department = findVal('department', ['phòng ban', 'bộ phận', 'department']); // i18n-data
+          const handler = findVal('handler', ['người xử lý', 'handler']); // i18n-data
+          const issue_date = findVal('issue_date', ['ngày ban hành', 'ngày văn bản', 'issue_date']) || new Date().toISOString().substring(0, 10); // i18n-data
+          const due_date = findVal('due_date', ['hạn xử lý', 'due_date']) || null; // i18n-data
+          const urgency_level = findVal('urgency_level', ['độ khẩn', 'urgency']) || 'Thường'; // i18n-data
+          const status = findVal('status', ['trạng thái', 'status']) || 'Đang xử lý'; // i18n-data
+          const directive = findVal('directive', ['chỉ đạo', 'directive']) || null; // i18n-data
 
           if (!document_number && !id) {
             errors.push({ row: rowNum, error: t.excelMissingDocumentNumber });
@@ -184,7 +193,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
           if (id) updateCount++;
           else newCount++;
 
-          parsed.push({
+          parsed.push(parsedRow({
             id: id || undefined,
             document_number,
             title: title || 'Văn bản nhập từ Excel', // i18n-data
@@ -199,7 +208,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             urgency_level,
             status,
             directive,
-          });
+          }));
         }
       });
 
@@ -229,10 +238,10 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   };
 
   const handleConfirmImport = async () => {
-    if (previewRows.length === 0) return;
+    if (previewRows.length === 0 || !serverPreview) return;
     setIsLoading(true);
     try {
-      const res = await onImportConfirm(previewRows, { confirmUpdates: acceptUpdates, fileName: selectedFile?.name });
+      const res = await onImportConfirm(previewRows, { confirmUpdates: acceptUpdates, fileName: selectedFile?.name, previewFingerprint: serverPreview.preview_fingerprint });
       setResultMsg(tf('excelImportSuccess', { added: res.added, updated: res.updated }));
       setTimeout(() => {
         onSuccess();
@@ -240,6 +249,13 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
       }, 1500);
     } catch (err: any) {
       notify.error(tf('excelSaveFailed', { error: err?.message || String(err) }));
+      setAcceptUpdates(false);
+      setServerPreview(null);
+      try {
+        setServerPreview(await api.previewImport(type, previewRows));
+      } catch (previewError) {
+        setPreviewError(String(previewError));
+      }
     } finally {
       setIsLoading(false);
     }

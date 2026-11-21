@@ -17,6 +17,7 @@ export interface PreviewRow {
   key: string;
   action: 'create' | 'update' | 'unchanged' | 'duplicate_in_file' | 'error';
   id?: string;
+  expected_revision?: number;
   changes?: Record<string, [unknown, unknown]>;
   errors?: string[];
   data?: Record<string, any>;
@@ -93,11 +94,15 @@ function matchRow(kind: ImportKind, raw: any, existing: any[]): { match: any | n
       }
       return { match: byId };
     }
+    return { match: null, error: 'id: hồ sơ không tồn tại hoặc đã vào thùng rác' };
   }
   const n = normalizeNumber(raw?.[field]);
   if (!n) return { match: null };
   const sameNumber = existing.filter((r) => normalizeNumber(r[field]) === n);
-  if (kind === 'contract') return { match: sameNumber[0] ?? null };
+  if (kind === 'contract') {
+    if (sameNumber.length > 1) return { match: null, error: 'id: số hợp đồng có nhiều hồ sơ; cần ghi rõ id hợp lệ' };
+    return { match: sameNumber[0] ?? null };
+  }
 
   const registerOf = (record: { doc_type?: string }) => record.doc_type || 'incoming';
   const candidates = raw?.doc_type ? sameNumber.filter((r) => registerOf(r) === raw.doc_type) : sameNumber;
@@ -141,13 +146,19 @@ export function previewImport(kind: ImportKind, rawRows: unknown[]): ImportPrevi
       Object.fromEntries(Object.entries(data).filter(([k]) => !IGNORED.has(k)))
     );
     return Object.keys(changes).length === 0
-      ? { index, key, action: 'unchanged', id: match.id }
-      : { index, key, action: 'update', id: match.id, changes, data };
+      ? { index, key, action: 'unchanged', id: match.id, expected_revision: match.revision ?? 0 }
+      : { index, key, action: 'update', id: match.id, expected_revision: match.revision ?? 0, changes, data };
   });
 
   const summary = { total: rows.length, create: 0, update: 0, unchanged: 0, duplicate_in_file: 0, error: 0 };
   for (const r of rows) summary[r.action]++;
   return { rows, summary };
+}
+
+export async function previewFingerprint(kind: ImportKind, preview: ImportPreview): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify([kind, preview.rows]));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
 }
 
 /** Rows to write: new records plus, only when confirmed, updates. */

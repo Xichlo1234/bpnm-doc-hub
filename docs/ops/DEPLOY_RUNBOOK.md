@@ -3,6 +3,26 @@
 > CI, công cụ AI và người không có phê duyệt **không** được deploy, migrate hay ghi dữ liệu Production.
 > Người thực hiện: chủ dự án hoặc người được uỷ quyền có quyền Cloudflare.
 
+## Cổng triển khai PR09 — chuyển sang D1/R2 riêng
+
+Từ PR09, dùng quy trình ở mục này cho lần chuyển đổi đầu tiên. Các mục 0–7 bên dưới ghi lại quy trình PR08 và lệnh tham chiếu; không dùng lệnh migrate tại chỗ trên D1 nguồn cho lần chuyển đổi PR09. Giữ nguồn được bảo vệ qua hết cửa sổ xác minh.
+
+| Bước | Thao tác trên môi trường được duyệt | PASS / FAIL |
+|---|---|---|
+| 1. Xác định nguồn | Xác nhận Deployment ID, SHA, toàn bộ route (kể cả workers.dev), Worker khác, tác vụ, token S3/API và binding cùng ghi D1/R2 nguồn. Thử toàn bộ quy trình dưới đây trên tài nguyên staging độc lập, với schema 0001–0003 và fixture giả. | PASS khi có danh sách đường ghi và bằng chứng staging. FAIL khi có tác nhân ghi chưa được xác định hoặc thiếu quyền khóa nguồn. |
+| 2. Đóng ứng dụng | Đưa phiên bản bảo trì lên **100%** lưu lượng Cloudflare Workers. Dừng tác vụ/đường ghi ngoài Worker đã kiểm kê. Xác nhận mọi tài liệu/ghi API trả 503, health GET/HEAD trả 200. | PASS khi deployment và route khớp. Đây là kiểm tra mức phục vụ; request cũ đang chạy vẫn có thể tồn tại. |
+| 3. Khóa tại lưu trữ | Áp dụng R2 Bucket Locks đã diễn tập, bao phủ tất cả key ứng dụng có thể ghi/xóa. Khóa bảo vệ thao tác xóa/ghi đè và hoàn tất upload đang chờ theo tài liệu nhà cung cấp; D1 vẫn phải khóa để một key mới không thể được đưa vào hồ sơ. Từ bản schema nguồn đã xác minh, tạo SQL `node scripts/cutover-fence.mjs --fence source-schema.sqlite`. Chủ dự án áp dụng SQL guard trên **D1 nguồn** bằng quy trình D1 SQL đã thử ở staging. Guard BEFORE INSERT/UPDATE/DELETE đồng nhất cho mọi bảng ứng dụng. Việc tạo trigger cùng giao dịch D1 là mốc cắt ghi. | PASS khi đối chiếu định nghĩa toàn bộ trigger với file SQL, lần thử ghi bằng bản Worker cũ lên fixture bị D1 từ chối, mẫu ghi đè/xóa qua cả S3 và Worker binding bị R2 chặn, và đối chiếu không có tính năng DDL ngoài quy trình. FAIL nếu D1/R2 staging không thể chứng minh bảo vệ. Thời gian chờ và `data_version` chỉ là bằng chứng phụ. |
+| 4. Chụp bản sao | Sau khi hai khóa có hiệu lực, lưu exact export + bookmark D1 và manifest R2. Tạo D1 đích và R2 đích riêng. Khôi phục đúng đối tượng, kiểm tra toàn vẹn, đếm bản ghi và xác minh checksum/khả năng đọc tệp được hồ sơ tham chiếu. Sao lưu nguồn lưu riêng với quyền hạn phù hợp. | PASS khi số liệu bằng nguồn sau fence và mọi key có tham chiếu tồn tại. FAIL thì giữ bảo trì; không cắt sang đích. |
+| 5. Nâng schema đích | Xác nhận UUID/database và bucket name là **đích**, và chỉ bản mới có binding tới đích. Nếu export mang theo trigger cutover, tạo lệnh gỡ định danh chính xác bằng `node scripts/cutover-fence.mjs --unfence target-copy.sqlite` và áp dụng **chỉ trên đích**. Dùng cấu hình Wrangler riêng với binding đích để apply 0004–0011. Chạy preflight, kiểm tra toàn vẹn và chạy lần khởi tạo khóa Unicode trên staging trước. | PASS khi ledger và schema hợp lệ, không còn trùng hoặc khóa đích sai. Nếu mã đối tác lịch sử trùng, dừng và trình danh sách để chủ dự án quyết định. |
+| 6. Cắt sang bản mới | Triển khai đúng SHA đã duyệt 100% với binding **đích**. Xác minh health, phân quyền, truy cập hồ sơ và tệp mẫu; theo dõi commit có biên nhận, số bản ghi và lỗi. Mở ghi sau khi các kiểm tra đạt. | PASS khi UAT staging/kiểm tra đọc trước mở đạt và chỉ target nhận các ghi được duyệt. |
+| 7. Khôi phục | Trước khi mở ghi target, có thể quay về nguồn theo kế hoạch riêng được duyệt, gỡ đúng guard/lock sau khi đổi đường phục vụ và kiểm tra lại. Sau khi target nhận ghi, giữ bảo trì và sửa tiến hoặc đối soát phần chênh rồi diễn tập phục hồi; không chuyển ngược trực tiếp về nguồn cũ. | FAIL nếu thiếu bản sao, quyền rollback, số liệu đối soát hoặc quyết định khi có ghi ở target. |
+
+Tài liệu nhà cung cấp: [Workers deployments](https://developers.cloudflare.com/workers/configuration/versions-and-deployments/deployments/) · [D1 SQL](https://developers.cloudflare.com/d1/sql-api/sql-statements/) · [R2 Bucket Locks](https://developers.cloudflare.com/r2/buckets/bucket-locks/).
+
+Kiểm thử SQLite chỉ xác nhận trigger và quy trình khôi phục bản sao cục bộ. Kết quả live D1/R2, trigger batch của D1, khóa R2 qua binding, quyền môi trường và biên bản cutover vẫn là cổng staging bắt buộc.
+
+## Runbook PR08 lưu để tham chiếu
+
 ## 0. Điều kiện bắt đầu (dừng nếu thiếu bất kỳ mục nào)
 - [ ] PR #1 → #8 đã được duyệt và merge vào `main` theo thứ tự; CI trên `main` xanh.
 - [ ] Ghi lại SHA sẽ triển khai: `git rev-parse HEAD` (trên `main` đã merge) = `__________`.

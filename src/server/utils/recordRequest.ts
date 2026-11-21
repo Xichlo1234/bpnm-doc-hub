@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
-import { saveUploadedFile, registerUpload, discardUpload, validateUpload, type SavedUpload } from './fileStorage.ts';
-import { getDatabase } from '../db/database.ts';
+import { registerUpload, saveUploadedFile, validateUpload, type SavedUpload } from './fileStorage.ts';
+import { discardUpload } from './storageCleanup.ts';
+import { getDatabase, type SqlDatabase } from '../db/database.ts';
 
 /**
  * Reads a create-record request that is either JSON or multipart (fields + optional `file`).
@@ -24,6 +25,13 @@ export async function readRecordRequest(c: Context): Promise<{ body: Record<stri
   return { body: body && typeof body === 'object' && !Array.isArray(body) ? body : {}, file: null };
 }
 
+/** Registers the pending key before sending bytes. Publish the key only after storage succeeds. */
+export async function saveRegisteredUpload(db: SqlDatabase, file: File, env: any, userId: string): Promise<SavedUpload> {
+  const upload = await saveUploadedFile(file, env, (reserved) => registerUpload(db, reserved, userId));
+  await db.prepare('UPDATE file_uploads SET stored_at = ? WHERE key = ?').bind(new Date().toISOString(), upload.file_key).run();
+  return upload;
+}
+
 /** Stores and registers an attachment; returns the record fields plus a rollback for failures. */
 export async function storeAttachment(
   c: Context,
@@ -34,15 +42,9 @@ export async function storeAttachment(
   sha256: string;
   rollback: () => Promise<void>;
 }> {
-  const uploaded = await saveUploadedFile(file, c.env);
   const db = await getDatabase(c.env);
+  const uploaded = await saveRegisteredUpload(db, file, c.env, userId);
   const rollback = () => discardUpload(db, uploaded.file_key, c.env);
-  try {
-    await registerUpload(db, uploaded, userId);
-  } catch (err) {
-    await rollback();
-    throw err;
-  }
   return {
     fields: { file_key: uploaded.file_key, file_name: uploaded.file_name, file_size: uploaded.file_size, file_type: uploaded.file_type },
     sha256: uploaded.sha256,
