@@ -14,11 +14,14 @@ export interface ImportPreviewRow {
 export interface ImportPreview {
   rows: ImportPreviewRow[];
   summary: { total: number; create: number; update: number; unchanged: number; duplicate_in_file: number; error: number };
+  preview_token: string;
 }
 export interface ImportCommitOptions {
   /** The user reviewed the preview and accepts updating existing records */
   confirmUpdates?: boolean;
   fileName?: string;
+  /** preview_token of the preview the user confirmed; the server refuses a commit on changed data */
+  previewToken?: string;
 }
 export const TOKEN_KEY = 'sgii_auth_token';
 
@@ -332,7 +335,7 @@ export const api = {
     const res = await customFetch(`${API_BASE}/contracts/bulk-import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contracts, confirm_updates: options.confirmUpdates === true, file_name: options.fileName }),
+      body: JSON.stringify({ contracts, confirm_updates: options.confirmUpdates === true, preview_token: options.previewToken, file_name: options.fileName }),
     });
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as any;
@@ -647,7 +650,7 @@ export const api = {
     const res = await customFetch(`${API_BASE}/documents/bulk-import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documents, confirm_updates: options.confirmUpdates === true, file_name: options.fileName }),
+      body: JSON.stringify({ documents, confirm_updates: options.confirmUpdates === true, preview_token: options.previewToken, file_name: options.fileName }),
     });
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as any;

@@ -42,7 +42,11 @@ export function importCommitHandler(kind: ImportKind) {
         400
       );
     }
-    if (preview.summary.update > 0 && body?.confirm_updates !== true) {
+    // The commit applies exactly what the user saw: same rows, same matched records, same revisions
+    if (typeof body?.preview_token === 'string' && body.preview_token !== preview.preview_token) {
+      return c.json({ error: 'Dữ liệu đã thay đổi sau khi xem trước. Vui lòng xem trước lại rồi xác nhận.', code: 'IMPORT_PREVIEW_STALE', preview }, 409);
+    }
+    if (preview.summary.update > 0 && (body?.confirm_updates !== true || typeof body?.preview_token !== 'string')) {
       return c.json(
         {
           error: `${preview.summary.update} dòng sẽ cập nhật hồ sơ đã có. Vui lòng xem trước và xác nhận.`,

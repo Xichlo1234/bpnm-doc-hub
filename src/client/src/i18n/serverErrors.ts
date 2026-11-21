@@ -75,6 +75,9 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   RECORD_NUMBER_TAKEN: 'srvRecordNumberTaken',
   FILE_RETIRED: 'srvFileRetired',
   MAINTENANCE: 'srvMaintenance',
+  COMMIT_UNKNOWN: 'srvCommitUnknown',
+  ACCOUNT_CHANGED: 'srvAccountChanged',
+  IMPORT_PREVIEW_STALE: 'srvImportPreviewStale',
   LOGIN_RETRY: 'srvLoginRetry',
 };
 

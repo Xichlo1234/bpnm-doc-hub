@@ -1,3 +1,4 @@
+import { parseImportRows } from '../utils/importRows';
 import React, { useState } from 'react';
 import { notify } from '../context/ToastContext.tsx';
 import { X, UploadCloud, AlertCircle, CheckCircle2, FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
@@ -101,107 +102,11 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
         return;
       }
 
-      const parsed: any[] = [];
-      const errors: Array<{ row: number; error: string }> = [];
-      let newCount = 0;
-      let updateCount = 0;
-
-      rawRows.forEach((r, idx) => {
-        const rowNum = idx + 2; // Excel 1-based, row 1 is header
-        const keys = Object.keys(r);
-
-        const findVal = (patterns: string[]) => {
-          for (const key of keys) {
-            const cleanKey = key.toLowerCase();
-            if (patterns.some(p => cleanKey.includes(p))) {
-              return String(r[key]).trim();
-            }
-          }
-          return '';
-        };
-
-        if (type === 'contract') {
-          const id = findVal(['id', 'mã định danh']); // i18n-data
-          const contract_number = findVal(['số hợp đồng', 'so hop dong', 'contract_number']); // i18n-data
-          const title = findVal(['tên', 'nội dung', 'title']); // i18n-data
-          const party_a = findVal(['bên a', 'party_a']) || 'Công ty Cổ phần đầu tư quốc tế Sambo Gold - SGII'; // i18n-data
-          const party_b = findVal(['bên b', 'đối tác', 'party_b']); // i18n-data
-          const signed_date = findVal(['ngày ký', 'signed_date']) || new Date().toISOString().substring(0, 10); // i18n-data
-          const start_date = findVal(['ngày bắt đầu', 'ngày hiệu lực', 'start_date']) || signed_date; // i18n-data
-          const end_date = findVal(['ngày hết hạn', 'end_date']) || null; // i18n-data
-          const valStr = findVal(['giá trị', 'value']).replace(/[^\d.-]/g, ''); // i18n-data
-          const value = valStr ? Number(valStr) || 0 : 0;
-          const currency = findVal(['loại tiền', 'tiền tệ', 'currency']) || 'USD'; // i18n-data
-          const department = findVal(['phòng ban', 'bộ phận', 'department']) || 'HCNS'; // i18n-data
-          const status = findVal(['trạng thái', 'status']) || 'active'; // i18n-data
-          const notes = findVal(['ghi chú', 'notes']) || null; // i18n-data
-
-          if (!contract_number && !id) {
-            errors.push({ row: rowNum, error: t.excelMissingContractNumber });
-            return;
-          }
-
-          if (id) updateCount++;
-          else newCount++;
-
-          parsed.push({
-            id: id || undefined,
-            contract_number,
-            title: title || 'Hợp đồng cập nhật qua Excel', // i18n-data
-            party_a,
-            party_b: party_b || 'Đối tác', // i18n-data
-            signed_date,
-            start_date,
-            end_date: end_date && end_date !== 'null' ? end_date : null,
-            value,
-            currency,
-            department,
-            status,
-            notes,
-          });
-        } else {
-          // Document import parsing
-          const id = findVal(['id', 'mã định danh']); // i18n-data
-          const document_number = findVal(['số văn bản', 'số công văn', 'document_number']); // i18n-data
-          const title = findVal(['trích yếu', 'tiêu đề', 'title']); // i18n-data
-          const doc_type = (findVal(['loại', 'doc_type']) || 'incoming').toLowerCase(); // i18n-data
-          const issuer = findVal(['cơ quan', 'nơi gửi', 'issuer']); // i18n-data
-          const recipient = findVal(['nơi nhận', 'recipient']); // i18n-data
-          const signer = findVal(['người ký', 'signer']); // i18n-data
-          const department = findVal(['phòng ban', 'bộ phận', 'department']); // i18n-data
-          const handler = findVal(['người xử lý', 'handler']); // i18n-data
-          const issue_date = findVal(['ngày ban hành', 'ngày văn bản', 'issue_date']) || new Date().toISOString().substring(0, 10); // i18n-data
-          const due_date = findVal(['hạn xử lý', 'due_date']) || null; // i18n-data
-          const urgency_level = findVal(['độ khẩn', 'urgency']) || 'Thường'; // i18n-data
-          const status = findVal(['trạng thái', 'status']) || 'Đang xử lý'; // i18n-data
-          const directive = findVal(['chỉ đạo', 'directive']) || null; // i18n-data
-
-          if (!document_number && !id) {
-            errors.push({ row: rowNum, error: t.excelMissingDocumentNumber });
-            return;
-          }
-
-          if (id) updateCount++;
-          else newCount++;
-
-          parsed.push({
-            id: id || undefined,
-            document_number,
-            title: title || 'Văn bản nhập từ Excel', // i18n-data
-            doc_type: ['incoming', 'outgoing', 'internal', 'decision'].includes(doc_type) ? doc_type : 'incoming',
-            issuer,
-            recipient,
-            signer,
-            department,
-            handler,
-            issue_date,
-            due_date,
-            urgency_level,
-            status,
-            directive,
-          });
-        }
-      });
+      const { rows: parsed, errors, newCount, updateCount } = parseImportRows(
+        type,
+        rawRows,
+        type === 'contract' ? t.excelMissingContractNumber : t.excelMissingDocumentNumber
+      );
 
       setPreviewRows(parsed);
       setValidationErrors(errors);
@@ -232,7 +137,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
     if (previewRows.length === 0) return;
     setIsLoading(true);
     try {
-      const res = await onImportConfirm(previewRows, { confirmUpdates: acceptUpdates, fileName: selectedFile?.name });
+      const res = await onImportConfirm(previewRows, { confirmUpdates: acceptUpdates, previewToken: serverPreview?.preview_token, fileName: selectedFile?.name });
       setResultMsg(tf('excelImportSuccess', { added: res.added, updated: res.updated }));
       setTimeout(() => {
         onSuccess();

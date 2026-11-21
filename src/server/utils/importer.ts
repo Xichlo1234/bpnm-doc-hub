@@ -25,6 +25,22 @@ export interface PreviewRow {
 export interface ImportPreview {
   rows: PreviewRow[];
   summary: { total: number; create: number; update: number; unchanged: number; duplicate_in_file: number; error: number };
+  /** Fingerprint of what this preview decided against which record revisions; the commit must match it */
+  preview_token: string;
+}
+
+/** Stable 53-bit hash (cyrb53) as hex. Detects change, not an adversary: the commit re-validates anyway. */
+function hash(text: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
 }
 
 const numberField = (kind: ImportKind) => (kind === 'document' ? 'document_number' : 'contract_number');
@@ -85,14 +101,16 @@ function importRuleErrors(kind: ImportKind, data: Record<string, any>, match: an
  */
 function matchRow(kind: ImportKind, raw: any, existing: any[]): { match: any | null; error?: string } {
   const field = numberField(kind);
-  if (raw?.id) {
+  if (raw?.id !== undefined && raw?.id !== null && String(raw.id).trim() !== '') {
     const byId = existing.find((r) => r.id === raw.id);
-    if (byId) {
-      if (kind === 'document' && raw.doc_type && raw.doc_type !== byId.doc_type) {
-        return { match: null, error: 'id: thuộc sổ khác với loại văn bản trong dòng (doc_type)' };
-      }
-      return { match: byId };
+    // An id that matches no live record is never "corrected" to a record with the same number
+    if (!byId) return { match: null, error: 'id: không tồn tại hoặc hồ sơ đã ở thùng rác — xoá cột id để tạo mới' };
+    if (kind === 'document' && raw.doc_type && raw.doc_type !== byId.doc_type) {
+      return { match: null, error: 'id: thuộc sổ khác với loại văn bản trong dòng (doc_type)' };
     }
+    const n = normalizeNumber(raw?.[field]);
+    if (n && n !== normalizeNumber(byId[field])) return { match: null, error: `${field}: không khớp với hồ sơ của id này (không đổi số qua nhập Excel)` };
+    return { match: byId };
   }
   const n = normalizeNumber(raw?.[field]);
   if (!n) return { match: null };
@@ -140,14 +158,21 @@ export function previewImport(kind: ImportKind, rawRows: unknown[]): ImportPrevi
 
   const summary = { total: rows.length, create: 0, update: 0, unchanged: 0, duplicate_in_file: 0, error: 0 };
   for (const r of rows) summary[r.action]++;
-  return { rows, summary };
+  const byId = new Map(existing.map((r) => [r.id, r]));
+  const preview_token = hash(
+    JSON.stringify(rows.map((r) => [r.index, r.action, r.id ?? null, r.id ? byId.get(r.id)?.revision ?? 0 : null, r.changes ?? null, r.data ?? null]))
+  );
+  return { rows, summary, preview_token };
 }
 
 /** Rows to write: new records plus, only when confirmed, updates. */
-export function rowsToCommit(preview: ImportPreview): Array<Record<string, any>> {
+export function rowsToCommit(preview: ImportPreview): Array<{ action: 'create' | 'update'; id?: string; data: Record<string, any> }> {
   return preview.rows
     .filter((r) => r.action === 'create' || r.action === 'update')
-    .map((r) => (r.action === 'update' ? { ...r.data, id: r.id } : r.data!));
+    .map((r) => {
+      const { id: _ignored, ...data } = r.data ?? {};
+      return r.action === 'update' ? { action: 'update' as const, id: r.id!, data } : { action: 'create' as const, data };
+    });
 }
 
 /** The import_batches row, written in the same D1 batch as the imported records (see store.queueStatement). */

@@ -1152,6 +1152,10 @@ export const vi = {
   srvMaintenance: "Hệ thống đang bảo trì. Vui lòng thử lại sau.",
   srvLoginRetry: "Tài khoản vừa được cập nhật. Vui lòng đăng nhập lại.",
   srvPartnerCodeTakenConcurrent: "Mã đối tác đã được dùng cho đối tác khác.",
+  srvCommitUnknown: "Không xác nhận được việc lưu dữ liệu. Vui lòng tải lại trang để kiểm tra trước khi thử lại.",
+  srvAccountChanged: "Tài khoản vừa được quản trị viên thay đổi. Vui lòng đăng nhập lại.",
+  srvImportPreviewStale: "Dữ liệu đã thay đổi sau khi xem trước. Vui lòng xem trước lại rồi xác nhận.",
+  srvPartnerCodeKeyConflict: "Mã đối tác trùng với mã đã có (khác chữ hoa/thường, khoảng trắng hoặc dạng Unicode).",
 };
 
 export type TranslationKey = keyof typeof vi;

@@ -302,7 +302,7 @@ describe('D4 — Excel import identifies documents by register', () => {
     const rows = [{ document_number: 'SỐ-CHUNG-01', doc_type: 'outgoing', notes: 'cập nhật sổ đi' }];
     const preview = await json(await as('admin_root', '/api/documents/import/preview', send('POST', { rows })));
     expect(preview.rows[0]).toMatchObject({ action: 'update', id: out.id });
-    await as('admin_root', '/api/documents/bulk-import', send('POST', { rows, confirm_updates: true }));
+    await as('admin_root', '/api/documents/bulk-import', send('POST', { rows, confirm_updates: true, preview_token: preview.preview_token }));
     expect(store.getDocument(out.id)!.notes).toBe('cập nhật sổ đi');
     expect(store.getDocument(inc.id)!.notes ?? null).toBeNull();
 
@@ -339,7 +339,9 @@ describe('D4 — Excel import identifies documents by register', () => {
     expect(preview.summary.update).toBe(0);
     expect(preview.summary.unchanged).toBe(exported.length);
     // a partial row updates only its columns
-    await as('admin_root', '/api/documents/bulk-import', send('POST', { rows: [{ id: doc.id, document_number: doc.document_number, notes: 'chỉ ghi chú' }], confirm_updates: true }));
+    const partial = [{ id: doc.id, document_number: doc.document_number, notes: 'chỉ ghi chú' }];
+    const pp = await json(await as('admin_root', '/api/documents/import/preview', send('POST', { rows: partial })));
+    await as('admin_root', '/api/documents/bulk-import', send('POST', { rows: partial, confirm_updates: true, preview_token: pp.preview_token }));
     const after = store.getDocument(doc.id)! as any;
     expect(after.notes).toBe('chỉ ghi chú');
     expect(after['Cột riêng']).toBe('giữ lại');

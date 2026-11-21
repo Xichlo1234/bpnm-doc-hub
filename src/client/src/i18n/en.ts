@@ -1154,4 +1154,8 @@ export const en: Translations = {
   srvMaintenance: "The system is under maintenance. Please try again later.",
   srvLoginRetry: "The account was just updated. Please sign in again.",
   srvPartnerCodeTakenConcurrent: "This partner code is already used by another partner.",
+  srvCommitUnknown: "The save could not be confirmed. Reload the page to check before trying again.",
+  srvAccountChanged: "An administrator just changed this account. Please sign in again.",
+  srvImportPreviewStale: "The data changed after the preview. Preview again, then confirm.",
+  srvPartnerCodeKeyConflict: "The partner code matches an existing one (case, spaces or Unicode form differ).",
 };
