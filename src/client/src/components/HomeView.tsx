@@ -6,6 +6,7 @@ import type { TranslationKey } from '../i18n/index.ts';
 import { parseSystemDate } from '../utils/dateTime.ts';
 import type { UnifiedItem } from './ItemList.tsx';
 import type { NavFilter } from './Sidebar.tsx';
+import { WorkspaceCalendar } from './WorkspaceCalendar.tsx';
 import '../../styles/home.css';
 
 interface HomeViewProps {
@@ -51,7 +52,6 @@ export function HomeView({ name, documents, contracts, isLoading, hasError, coun
   const locale = LOCALES[language];
   const dateFormatter = new Intl.DateTimeFormat(locale, { timeZone: VN_TIME, day: 'numeric', month: 'short', year: 'numeric' });
   const numberFormatter = new Intl.NumberFormat(locale);
-  const today = new Intl.DateTimeFormat(locale, { timeZone: VN_TIME, dateStyle: 'full' }).format(new Date());
   const dataUnavailable = isLoading || hasError;
 
   const recent = useMemo(() => {
@@ -72,7 +72,7 @@ export function HomeView({ name, documents, contracts, isLoading, hasError, coun
       <div className="home-content">
         <section className="home-hero" aria-labelledby="home-title">
           <div className="home-hero-copy">
-            <span className="home-date"><CalendarDays size={15} aria-hidden="true" /> {today}</span>
+            <WorkspaceCalendar />
             <h1 id="home-title">{t.homeTitle}</h1>
             {name && <p>{tf('homeWelcome', { name })}</p>}
             <div className="home-hero-actions">

@@ -41,28 +41,21 @@ export function useDocumentTitle(
   const { t } = useLanguage();
 
   useEffect(() => {
+    let label = t.pageTitleHome;
     if (viewMode === 'home') {
-      document.title = `${t.homeNav} | BPNM Doc Hub`;
+      label = t.homeNav;
     } else if (viewMode === 'partners') {
-      document.title = `${t.pageTitlePartners} | BPNM Doc Hub`;
+      label = t.pageTitlePartners;
     } else if (viewMode === 'settings') {
-      document.title = `${t.pageTitleSettings} | BPNM Doc Hub`;
+      label = t.pageTitleSettings;
     } else if (viewMode === 'contract_table') {
-      document.title = tableSelectedContract
-        ? `${tableSelectedContract.contract_number} - ${tableSelectedContract.title} | BPNM Doc Hub`
-        : `${t.pageTitleContracts} | BPNM Doc Hub`;
+      label = tableSelectedContract ? `${tableSelectedContract.contract_number} - ${tableSelectedContract.title}` : t.pageTitleContracts;
     } else if (viewMode === 'doc_table') {
-      document.title = tableSelectedDocument
-        ? `${tableSelectedDocument.document_number} - ${tableSelectedDocument.title} | BPNM Doc Hub`
-        : `${t.pageTitleDocuments} | BPNM Doc Hub`;
+      label = tableSelectedDocument ? `${tableSelectedDocument.document_number} - ${tableSelectedDocument.title}` : t.pageTitleDocuments;
     } else if (selectedItem) {
-      if (selectedItem.kind === 'contract') {
-        document.title = `${selectedItem.data.contract_number} - ${selectedItem.data.title} | BPNM Doc Hub`;
-      } else {
-        document.title = `${selectedItem.data.document_number} - ${selectedItem.data.title} | BPNM Doc Hub`;
-      }
-    } else {
-      document.title = `BPNM Doc Hub - ${t.pageTitleHome}`;
+      const number = selectedItem.kind === 'contract' ? selectedItem.data.contract_number : selectedItem.data.document_number;
+      label = `${number} - ${selectedItem.data.title}`;
     }
+    document.title = `BPMN | ${label}`;
   }, [viewMode, selectedItem, tableSelectedContract, tableSelectedDocument, t]);
 }
