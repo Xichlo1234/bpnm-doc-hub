@@ -4,6 +4,7 @@ import { requireAdmin, getAuthUser } from './auth.ts';
 import { getDatabase } from '../db/database.ts';
 import { referencedFileKeys } from '../utils/attachments.ts';
 import { enqueueCleanupStatement, processCleanup } from '../utils/storageCleanup.ts';
+import { partnerCodeTaken } from './partners.ts';
 
 // Trash (soft-deleted records). Admin only: deleting is admin-only too.
 export const trashRouter = new Hono();
@@ -24,8 +25,7 @@ trashRouter.post('/:type/:id/restore', async (c) => {
   if (type === 'partner') {
     // A new partner may have taken this code while it was in the trash
     const trashed = store.getPartner(id, { includeDeleted: true });
-    const clash = trashed && store.getPartners().find((p) => p.id !== id && p.code.trim().toUpperCase() === trashed.code.trim().toUpperCase());
-    if (clash) {
+    if (trashed && partnerCodeTaken(trashed.code, id)) {
       return c.json({ error: `Mã đối tác '${trashed!.code}' đã được dùng cho đối tác khác.`, code: 'PARTNER_CODE_TAKEN', params: { code: trashed!.code } }, 409);
     }
   }

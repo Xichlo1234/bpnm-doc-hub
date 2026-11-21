@@ -45,6 +45,8 @@ import {
   FileRetiredError,
   isUsernameUniqueViolation,
   UsernameTakenError,
+  isPartnerCodeUniqueViolation,
+  PartnerCodeTakenError,
   backfillNumberRegistry,
   type NumberEntry,
   type HistoryEntry,
@@ -402,7 +404,9 @@ export class MemoryStore {
         const keys = [...new Set(changed.map((r) => r.file_key).filter((k): k is string => typeof k === 'string' && k.startsWith('uploads/')))];
         statements.push(...fileUseStatements(db, keys));
       }
-      statements.push(...upsertStatements(db, spec, changed), ...deleteStatements(db, spec, removed));
+      // Deletions first: a row that frees a unique value (partner code, user name) must be gone before
+      // another row takes it in the same batch
+      statements.push(...deleteStatements(db, spec, removed), ...upsertStatements(db, spec, changed));
       pendingSnapshots.push(() => {
         this.snapshots.set(spec.name, fingerprints);
         if (REVISIONED_TABLES.has(spec.name)) {
@@ -465,6 +469,7 @@ export class MemoryStore {
       if (isNumberGuardViolation(err)) throw new NumberConflictError();
       if (isFileGuardViolation(err)) throw new FileRetiredError();
       if (isUsernameUniqueViolation(err)) throw new UsernameTakenError();
+      if (isPartnerCodeUniqueViolation(err)) throw new PartnerCodeTakenError();
       if (isGuardViolation(err)) throw new RevisionConflictError();
       throw err;
     }
@@ -544,6 +549,9 @@ export class MemoryStore {
   /** Kept for route handlers: persists this request's changes before the response is built. */
   public async persistAsync() {
     await this.flush();
+    // Another request's failed commit discards the cache (stale): this request's changes were not
+    // written either, so it must not report success
+    if (this.stale) throw new RevisionConflictError();
   }
 
   // Document operations
@@ -668,8 +676,12 @@ export class MemoryStore {
       if (item.id && this.documents.has(item.id)) {
         existing = this.documents.get(item.id);
       } else if (item.document_number) {
+        // Same register only: incoming and outgoing documents may share a number
         existing = Array.from(this.documents.values()).find(
-          d => !d.deleted_at && d.document_number.trim().toLowerCase() === item.document_number!.trim().toLowerCase()
+          (d) =>
+            !d.deleted_at &&
+            (d.doc_type || 'incoming') === (item.doc_type || 'incoming') &&
+            normalizeNumber(d.document_number) === normalizeNumber(item.document_number)
         );
       }
 
@@ -923,7 +935,7 @@ export class MemoryStore {
     const rec = map.get(id);
     if (!rec || rec.deleted_at) return null;
     const now = new Date().toISOString();
-    const updated = { ...rec, deleted_at: now, deleted_by: userId, ...(type !== 'partner' ? { revision: (rec.revision ?? 0) + 1 } : {}) };
+    const updated = { ...rec, deleted_at: now, deleted_by: userId, revision: (rec.revision ?? 0) + 1 };
     map.set(id, updated);
     return updated;
   }
@@ -932,7 +944,7 @@ export class MemoryStore {
     const map = this.trashMap(type);
     const rec = map.get(id);
     if (!rec || !rec.deleted_at) return null;
-    const updated = { ...rec, deleted_at: null, deleted_by: null, ...(type !== 'partner' ? { revision: (rec.revision ?? 0) + 1 } : {}) };
+    const updated = { ...rec, deleted_at: null, deleted_by: null, revision: (rec.revision ?? 0) + 1 };
     map.set(id, updated);
     return updated;
   }
@@ -1034,7 +1046,7 @@ export class MemoryStore {
       seriesId = previous.series_id;
       const series = Array.from(this.attachments.values()).filter((a) => a.series_id === seriesId);
       version = Math.max(...series.map((a) => a.version)) + 1;
-      for (const a of series) if (a.is_current) this.attachments.set(a.id, { ...a, is_current: false });
+      for (const a of series) if (a.is_current) this.attachments.set(a.id, { ...a, is_current: false, revision: (a.revision ?? 0) + 1 });
     }
     const record: AttachmentRecord = { ...fields, id, series_id: seriesId, version, is_current: true, uploaded_at: new Date().toISOString(), revision: 1 };
     this.attachments.set(id, record);
@@ -1047,7 +1059,7 @@ export class MemoryStore {
     const now = new Date().toISOString();
     // Removing an attachment removes the whole series (all its versions)
     for (const v of this.attachments.values()) {
-      if (v.series_id === a.series_id && !v.deleted_at) this.attachments.set(v.id, { ...v, deleted_at: now, deleted_by: userId });
+      if (v.series_id === a.series_id && !v.deleted_at) this.attachments.set(v.id, { ...v, deleted_at: now, deleted_by: userId, revision: (v.revision ?? 0) + 1 });
     }
     return { ...this.attachments.get(id)! };
   }
@@ -1064,9 +1076,11 @@ export class MemoryStore {
   }
 
   public createPartner(partner: Omit<PartnerRecord, 'id'>): PartnerRecord {
-    let id = 'partner-' + (partner.code ? partner.code.toLowerCase().replace(/[^a-z0-9]/g, '') : Date.now().toString(36));
-    // A partner in the trash may still hold this id
-    if (this.partners.has(id)) id = `${id}-${Date.now().toString(36)}`;
+    // Random suffix: ids never collide between workers; a clash on the code itself is reported as
+    // PARTNER_CODE_TAKEN by the database (migration 0010)
+    const slug = partner.code ? partner.code.toLowerCase().replace(/[^a-z0-9]/g, '') : 'x';
+    let id = `partner-${slug}-${Math.random().toString(36).slice(2, 8)}`;
+    while (this.partners.has(id)) id = `partner-${slug}-${Math.random().toString(36).slice(2, 8)}`;
     const newPartner: PartnerRecord = {
       ...partner,
       id,
@@ -1082,7 +1096,7 @@ export class MemoryStore {
   public updatePartner(id: string, partial: Partial<PartnerRecord>): PartnerRecord | null {
     const p = this.partners.get(id);
     if (!p) return null;
-    const updated: PartnerRecord = { ...p, ...partial };
+    const updated: PartnerRecord = { ...p, ...partial, revision: (p.revision ?? 0) + 1 };
     this.partners.set(id, updated);
     return updated;
   }
@@ -1424,6 +1438,8 @@ export class MemoryStore {
       ...existing,
       ...updates,
       updated_at: new Date().toISOString(),
+      // the revision the client will see is the one committed (migration 0009)
+      revision: (existing.revision ?? 0) + 1,
     };
     this.users.set(id, updated);
     return { ...updated };

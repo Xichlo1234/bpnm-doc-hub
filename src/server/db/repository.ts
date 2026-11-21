@@ -301,6 +301,16 @@ export function isUsernameUniqueViolation(err: unknown): boolean {
   return /UNIQUE constraint failed: (users\.username|index 'idx_users_username_nocase')/i.test(String((err as Error)?.message || err));
 }
 
+export function isPartnerCodeUniqueViolation(err: unknown): boolean {
+  return /UNIQUE constraint failed: (index 'idx_partners_code_active'|partners\.code)/i.test(String((err as Error)?.message || err));
+}
+
+export class PartnerCodeTakenError extends Error {
+  constructor() {
+    super('Partner code already in use');
+  }
+}
+
 export class UsernameTakenError extends Error {
   constructor() {
     super('Username already exists');

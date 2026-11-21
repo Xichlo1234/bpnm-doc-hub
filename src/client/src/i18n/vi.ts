@@ -1150,6 +1150,8 @@ export const vi = {
   srvRecordNumberTaken: "Số văn bản/hợp đồng đã được sử dụng. Vui lòng tải lại và chọn số khác.",
   srvFileRetired: "Tệp đã bị gỡ khỏi hệ thống, không thể gắn lại.",
   srvMaintenance: "Hệ thống đang bảo trì. Vui lòng thử lại sau.",
+  srvLoginRetry: "Tài khoản vừa được cập nhật. Vui lòng đăng nhập lại.",
+  srvPartnerCodeTakenConcurrent: "Mã đối tác đã được dùng cho đối tác khác.",
 };
 
 export type TranslationKey = keyof typeof vi;

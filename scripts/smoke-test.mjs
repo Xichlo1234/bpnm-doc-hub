@@ -387,7 +387,7 @@ async function writeTests(admin) {
     const res = await api('/api/partners', { token: T, method: 'POST', body: { code, name_vn: `${TAG} Đối tác` } });
     expectStatus(res, 201, 'create partner');
     cleanups.push(async () => api(`/api/partners/${res.data.id}?expected_revision=${await revOf(T, 'partners', res.data.id)}`, { token: T, method: 'DELETE' }));
-    expectStatus(await api('/api/partners', { token: T, method: 'POST', body: { code, name_vn: 'dup' } }), 400, 'duplicate');
+    expectStatus(await api('/api/partners', { token: T, method: 'POST', body: { code, name_vn: 'dup' } }), 409, 'duplicate');
     expectStatus(await api(`/api/partners/${res.data.id}`, { token: T, method: 'PATCH', body: { notes: 'smoke', expected_revision: res.data.revision ?? 0 } }), 200, 'edit partner');
   });
   await check('category item add / edit / delete', async () => {

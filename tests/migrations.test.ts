@@ -53,7 +53,23 @@ const withoutNewColumns = (rows: any[], cols: string[]) => rows.map((r) => Objec
 // columns added by 0005, 0006 and 0009 (users.revision / partners.revision)
 const NEW_COLUMNS = ['deleted_at', 'deleted_by', 'can_access_confidential_documents', 'recipient_user_id', 'revision_added_0009'];
 
-describe('Migrations 0004–0009 on a production-like database', () => {
+describe('Migrations 0004–0010 on a production-like database', () => {
+  it('0010: preflight blocks while active partners share a code; applying would fail; resolved data migrates', async () => {
+    const { raw } = productionLikeDb();
+    raw.exec(`INSERT INTO partners (id, code, name_vn) VALUES ('pa', 'TRUNG', 'A'), ('pb', ' trung', 'B')`);
+    const before = snapshot(raw);
+    const report = await runPreflight(async (sql: string) => raw.prepare(sql).all(), ALL);
+    expect(report.blocking.join()).toMatch(/mã đối tác trùng/);
+    expect(snapshot(raw)).toEqual(before);
+    expect(() => applyLocalMigrations(raw)).toThrow(/UNIQUE/);
+    // the failed run left 0010 unapplied and changed no partner row
+    expect(raw.prepare("SELECT COUNT(*) AS n FROM d1_migrations WHERE name = '0010_partner_code_unique.sql'").get().n).toBe(0);
+    expect(raw.prepare("SELECT id, code FROM partners WHERE id IN ('pa','pb') ORDER BY id").all()).toEqual([{ id: 'pa', code: 'TRUNG' }, { id: 'pb', code: ' trung' }]);
+    raw.exec("UPDATE partners SET code = 'TRUNG-2' WHERE id = 'pb'"); // the approved manual fix
+    applyLocalMigrations(raw);
+    expect((await runPreflight(async (sql: string) => raw.prepare(sql).all(), ALL)).blocking).toEqual([]);
+  });
+
   it('preflight (read-only) reports pending migrations, legacy data and duplicate numbers', async () => {
     const { raw } = productionLikeDb();
     const before = snapshot(raw);
