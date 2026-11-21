@@ -1152,4 +1152,6 @@ export const en: Translations = {
   srvRecordNumberTaken: "This document/contract number is already in use. Reload and choose another number.",
   srvFileRetired: "This file was removed from the system and cannot be attached again.",
   srvMaintenance: "The system is under maintenance. Please try again later.",
+  srvLoginRetry: "The account was just updated. Please sign in again.",
+  srvPartnerCodeTakenConcurrent: "This partner code is already used by another partner.",
 };

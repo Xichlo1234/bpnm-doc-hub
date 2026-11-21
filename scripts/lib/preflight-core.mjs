@@ -17,6 +17,7 @@ export const EXPECTED_AFTER = {
     tables: ['storage_cleanup', 'file_guard'],
     columns: { partners: ['revision'], users: ['revision'], attachments: ['revision'], file_uploads: ['attached_at'] },
   },
+  '0010_partner_code_unique.sql': {},
 };
 
 const normalizeNumber = (v) => String(v ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -105,6 +106,22 @@ export async function runPreflight(query, migrationFiles) {
     report.blocking.push(`${dupUsers.length} tên đăng nhập trùng (không phân biệt hoa thường): migration 0009 sẽ lỗi. Đổi tên tài khoản trùng trước khi migrate.`);
   }
 
+  // Active partner codes must be unique before 0010 adds the unique index
+  const partnerCols = await columns('partners');
+  const partners = await q(`SELECT id, code${partnerCols.includes('deleted_at') ? ', deleted_at' : ''} FROM partners`);
+  const byCode = new Map();
+  for (const p of partners) {
+    if (p.deleted_at) continue;
+    const k = String(p.code ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toUpperCase();
+    if (!k) continue;
+    byCode.set(k, [...(byCode.get(k) || []), p.id]);
+  }
+  const dupPartners = [...byCode.entries()].filter(([, ids]) => ids.length > 1);
+  report.info.duplicate_partner_codes = dupPartners.map(([code, ids]) => ({ code, ids }));
+  if (dupPartners.length && !applied.includes('0010_partner_code_unique.sql')) {
+    report.blocking.push(`${dupPartners.length} mã đối tác trùng giữa các đối tác đang hoạt động: migration 0010 sẽ lỗi. Đổi mã hoặc chuyển một đối tác vào thùng rác trước.`);
+  }
+
   // 4. Duplicate business numbers (same normalisation as the app / number_registry)
   const dup = (rows, scopeOf, numOf) => {
     const m = new Map();
@@ -130,23 +147,46 @@ export async function runPreflight(query, migrationFiles) {
     );
   }
   if (tables.has('number_registry')) {
-    // Records whose number is not registered (e.g. written by an older build after a rollback)
+    // Classify number_registry state:
+    //  - historical duplicates recorded by the one-time backfill → warning (known, records editable)
+    //  - a number registered to record X but now also carried by another record Y that is not one of
+    //    those historical duplicates → BLOCKING (a duplicate was created after the registry existed,
+    //    e.g. by an older build after a rollback)
+    //  - a number nobody registered and nobody else holds → warning (reconcile can register it)
     const reg = new Map((await q('SELECT scope, number_norm, record_id FROM number_registry')).map((r) => [`${r.scope}|${r.number_norm}`, r.record_id]));
+    const backfillRow = (await q("SELECT value FROM meta WHERE key = 'number_registry_backfill'"))[0]?.value ?? null;
+    const backfilled = backfillRow !== null;
+    const known = new Set();
+    if (backfillRow) {
+      try {
+        for (const d of JSON.parse(backfillRow).duplicates || []) for (const id of d.record_ids || []) known.add(`${d.scope}|${d.number}|${id}`);
+      } catch {
+        report.warnings.push('meta.number_registry_backfill không đọc được.');
+      }
+    }
     const unregistered = [];
-    for (const r of docs) {
-      const n = normalizeNumber(r.document_number);
-      if (n && !reg.has(`doc:${r.doc_type || 'other'}|${n}`)) unregistered.push(r.id);
-    }
-    for (const r of cons) {
-      const n = normalizeNumber(r.contract_number);
-      if (n && !reg.has(`contract|${n}`)) unregistered.push(r.id);
-    }
+    const dangerous = [];
+    const check = (scope, number, id) => {
+      const n = normalizeNumber(number);
+      if (!n) return;
+      const owner = reg.get(`${scope}|${n}`);
+      if (!owner) unregistered.push(id);
+      else if (owner !== id && !known.has(`${scope}|${n}|${id}`)) dangerous.push({ scope, number: n, record_id: id, registered_to: owner });
+    };
+    for (const r of docs) check(`doc:${r.doc_type || 'other'}`, r.document_number, r.id);
+    for (const r of cons) check('contract', r.contract_number, r.id);
     report.info.unregistered_numbers = unregistered;
-    const backfilled = (await q("SELECT value FROM meta WHERE key = 'number_registry_backfill'")).length > 0;
+    report.info.registry_conflicts = dangerous;
     if (backfilled && unregistered.length > 0) {
       report.warnings.push(
         `${unregistered.length} hồ sơ có số chưa đăng ký trong number_registry (thường do chạy bản cũ sau rollback). ` +
           'Chạy POST /api/admin/number-registry/reconcile (xem trước) rồi ?apply=1.'
+      );
+    }
+    if (dangerous.length > 0) {
+      report.blocking.push(
+        `${dangerous.length} hồ sơ mang số đã đăng ký cho hồ sơ khác (trùng số phát sinh sau khi có number_registry). ` +
+          'Không deploy/mở ghi cho tới khi rà soát và đổi số thủ công.'
       );
     }
     report.info.number_registry_rows = await count('SELECT COUNT(*) AS n FROM number_registry');

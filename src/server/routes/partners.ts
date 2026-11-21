@@ -5,6 +5,16 @@ import { partnerInput, parseInput, revisionConflict } from '../utils/validation.
 
 export const partnersRouter = new Hono();
 
+/** Partner codes are stored trimmed and upper-case; uniqueness is among partners not in the trash. */
+export function normalizePartnerCode(code: string): string {
+  return String(code ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+export function partnerCodeTaken(code: string, excludeId?: string): boolean {
+  const n = normalizePartnerCode(code);
+  return store.getPartners().some((p) => p.id !== excludeId && normalizePartnerCode(p.code) === n);
+}
+
 // GET /api/partners
 partnersRouter.get('/', (c) => {
   const partners = store.getPartners();
@@ -27,17 +37,14 @@ partnersRouter.post('/', requireAdmin, async (c) => {
   if (!parsed.ok) return parsed.response;
   const body: any = parsed.data;
 
-  // Check duplicate code (case-insensitive)
-  const existing = store.getPartners().find(
-    p => p.code.trim().toUpperCase() === body.code.trim().toUpperCase()
-  );
-  if (existing) {
-    return c.json({ error: `Mã đối tác '${body.code}' đã tồn tại trong hệ thống`, code: 'PARTNER_CODE_TAKEN', params: { code: body.code } }, 400);
+  // Duplicate code among active partners (the database enforces it too, migration 0010)
+  if (partnerCodeTaken(body.code)) {
+    return c.json({ error: `Mã đối tác '${body.code}' đã tồn tại trong hệ thống`, code: 'PARTNER_CODE_TAKEN', params: { code: body.code } }, 409);
   }
 
   const currentUser = getAuthUser(c);
   const newPartner = store.createPartner({
-    code: body.code.trim().toUpperCase(),
+    code: normalizePartnerCode(body.code),
     name_vn: body.name_vn.trim(),
     name_en: body.name_en?.trim() || null,
     category: body.category?.trim() || 'Đối tác',
@@ -74,6 +81,13 @@ partnersRouter.patch('/:id', requireAdmin, async (c) => {
   const { expected_revision, ...changes } = parsed.data as Record<string, any>;
   const conflict = revisionConflict(c, store.getPartner(id), expected_revision);
   if (conflict) return conflict;
+  if (typeof changes.code === 'string') {
+    changes.code = normalizePartnerCode(changes.code);
+    if (!changes.code) return c.json({ error: 'Mã đối tác là bắt buộc', code: 'VALIDATION_FAILED', params: { fields: 'code' } }, 400);
+    if (partnerCodeTaken(changes.code, id)) {
+      return c.json({ error: `Mã đối tác '${changes.code}' đã tồn tại trong hệ thống`, code: 'PARTNER_CODE_TAKEN', params: { code: changes.code } }, 409);
+    }
+  }
   const updated = store.updatePartner(id, changes);
   if (!updated) {
     return c.json({ error: 'Partner not found', code: 'PARTNER_NOT_FOUND' }, 404);

@@ -78,23 +78,51 @@ function importRuleErrors(kind: ImportKind, data: Record<string, any>, match: an
   return errors;
 }
 
+/**
+ * The record a row refers to. Documents are identified by (doc_type, normalised number) — incoming
+ * and outgoing registers may legitimately share a number — or by a valid id. A row without doc_type
+ * whose number exists in several registers is ambiguous and is reported, never guessed.
+ */
+function matchRow(kind: ImportKind, raw: any, existing: any[]): { match: any | null; error?: string } {
+  const field = numberField(kind);
+  if (raw?.id) {
+    const byId = existing.find((r) => r.id === raw.id);
+    if (byId) {
+      if (kind === 'document' && raw.doc_type && raw.doc_type !== byId.doc_type) {
+        return { match: null, error: 'id: thuộc sổ khác với loại văn bản trong dòng (doc_type)' };
+      }
+      return { match: byId };
+    }
+  }
+  const n = normalizeNumber(raw?.[field]);
+  if (!n) return { match: null };
+  const sameNumber = existing.filter((r) => normalizeNumber(r[field]) === n);
+  if (kind === 'contract') return { match: sameNumber[0] ?? null };
+  if (raw?.doc_type) return { match: sameNumber.find((r) => r.doc_type === raw.doc_type) ?? null };
+  if (sameNumber.length > 1) {
+    return { match: null, error: `doc_type: số "${raw[field]}" có ở nhiều sổ (${[...new Set(sameNumber.map((r) => r.doc_type))].join(', ')}), cần ghi rõ loại văn bản` };
+  }
+  return { match: sameNumber[0] ?? null };
+}
+
 export function previewImport(kind: ImportKind, rawRows: unknown[]): ImportPreview {
   const field = numberField(kind);
-  const existing = kind === 'document' ? store.getDocuments() : store.getContracts();
-  const byNumber = new Map(existing.map((r: any) => [norm(r[field]), r]));
-  const byId = new Map(existing.map((r: any) => [r.id, r]));
+  const existing: any[] = kind === 'document' ? store.getDocuments() : store.getContracts();
   const schema = (kind === 'document' ? documentInput : contractInput).bulk.element;
   const seen = new Set<string>();
 
   const rows: PreviewRow[] = rawRows.map((raw: any, index) => {
     const key = String(raw?.[field] ?? raw?.id ?? '').trim();
-    const match = (raw?.id && byId.get(raw.id)) || byNumber.get(norm(raw?.[field])) || null;
+    const { match, error: matchError } = matchRow(kind, raw, existing);
+    if (matchError) return { index, key, action: 'error', errors: [matchError] };
     const parsed = schema.safeParse(withoutUnchangedLinks(raw, match));
     if (!parsed.success) {
       return { index, key, action: 'error', errors: parsed.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || '-'}: ${i.message}`) };
     }
     const data = parsed.data as Record<string, any>;
     if (!key) return { index, key, action: 'error', errors: [`${field}: bắt buộc`] };
+    // A new document without doc_type goes to the incoming register (the import's default)
+    if (kind === 'document' && !match && !data.doc_type) data.doc_type = 'incoming';
     const dedupeKey = `${kind === 'document' ? numberScope('document', { doc_type: data.doc_type ?? match?.doc_type }) : 'contract'}|${normalizeNumber(key)}`;
     if (seen.has(dedupeKey)) return { index, key, action: 'duplicate_in_file' };
     seen.add(dedupeKey);

@@ -42,7 +42,7 @@ describe('Partners REST API (Full CRUD)', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newPartner),
     });
-    expect(resDup.status).toBe(400);
+    expect(resDup.status).toBe(409);
 
     // 3. PATCH /api/partners/:id updates partner info
     const updateRes = await app.request(`/api/partners/${created.id}`, {

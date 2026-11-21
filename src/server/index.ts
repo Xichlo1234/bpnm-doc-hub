@@ -18,7 +18,7 @@ import { adminRouter } from './routes/admin.ts';
 import { importsRouter } from './routes/imports.ts';
 import { store } from './db/store.ts';
 import { getDatabase } from './db/database.ts';
-import { DatabaseNotMigratedError, RevisionConflictError, NumberConflictError, FileRetiredError, UsernameTakenError } from './db/repository.ts';
+import { DatabaseNotMigratedError, RevisionConflictError, NumberConflictError, FileRetiredError, UsernameTakenError, PartnerCodeTakenError } from './db/repository.ts';
 import { UploadValidationError } from './utils/fileStorage.ts';
 
 export const app = new Hono();
@@ -130,6 +130,9 @@ app.route('/api/imports', importsRouter);
 app.onError((err, c) => {
   if (err instanceof UploadValidationError) {
     return c.json({ error: err.message, code: err.code, params: err.params }, 400);
+  }
+  if (err instanceof PartnerCodeTakenError) {
+    return c.json({ error: 'Mã đối tác đã được dùng cho đối tác khác.', code: 'PARTNER_CODE_TAKEN', params: { code: '' } }, 409);
   }
   if (err instanceof UsernameTakenError) {
     return c.json({ error: 'Tên đăng nhập đã tồn tại trong hệ thống', code: 'USERNAME_TAKEN' }, 409);

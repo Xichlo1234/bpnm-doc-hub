@@ -258,45 +258,61 @@ authRouter.post('/login', async (c) => {
     return c.json({ error: 'Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút.', code: 'TOO_MANY_ATTEMPTS' }, 429);
   }
 
-  const account = store.getUserByUsername(trimmedUser);
-  // Unknown usernames still pay for a PBKDF2 run so response time does not reveal which exist
-  const { ok, needsRehash } = await verifyPassword(password, account?.password ?? (await dummyPasswordHash()));
-  if (!account || !ok) {
-    await recordLoginFailure(db, throttleKey);
-    return c.json({ error: 'Tên đăng nhập hoặc mật khẩu không chính xác.', code: 'INVALID_CREDENTIALS' }, 401);
-  }
-  await clearLoginFailures(db, throttleKey);
-
-  if (account.status === 'locked') {
-    return c.json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.', code: 'ACCOUNT_LOCKED' }, 403);
-  }
-
-  // Upgrade legacy plaintext passwords to PBKDF2 on first successful login, and force a change of
-  // any password that shipped in source control.
-  const usesDefaultPassword = KNOWN_DEFAULT_PASSWORDS.has(password);
-  if (needsRehash || (usesDefaultPassword && !account.must_change_password)) {
-    const changes = {
-      ...(needsRehash ? { password: await hashPassword(password) } : {}),
-      ...(usesDefaultPassword ? { must_change_password: true } : {}),
-    };
-    // The account row is revision-checked: if another worker changed it meanwhile (lock, reset,
-    // permission), reload and apply on top of the latest version instead of overwriting it
-    for (let attempt = 0; ; attempt++) {
-      try {
-        store.updateUser(account.id, changes);
-        await store.persistAsync();
-        break;
-      } catch (err) {
-        if (!(err instanceof RevisionConflictError) || attempt > 0) throw err;
-        await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
-        const latest = store.getUser(account.id);
-        if (!latest || latest.status !== 'active') {
-          return c.json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.', code: 'ACCOUNT_LOCKED' }, 403);
-        }
-        if (needsRehash && latest.password !== account.password) delete (changes as any).password; // password changed meanwhile
-      }
+  // Verification and the account update it may trigger (rehash of a legacy password, forcing a
+  // change of a published default password) must agree with the committed account row. If another
+  // worker changes the account in between (password reset, lock, session revocation via
+  // token_version), the batch is refused (RevisionConflictError); then everything is re-done from
+  // the reloaded row — the password is verified again against the *new* hash, the status re-checked —
+  // and no token is ever issued from the earlier verification.
+  let accountId: string | null = null;
+  const stillTheVerifiedAccount = (verified: { id: string; password?: string | null; revision?: number | null }) => {
+    const now = store.getUser(verified.id);
+    return Boolean(now && now.status !== 'locked' && now.password === verified.password && (now.revision ?? 0) === (verified.revision ?? 0));
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const account = store.getUserByUsername(trimmedUser);
+    // Unknown usernames still pay for a PBKDF2 run so response time does not reveal which exist
+    const { ok, needsRehash } = await verifyPassword(password, account?.password ?? (await dummyPasswordHash()));
+    if (!account || !ok) {
+      await recordLoginFailure(db, throttleKey);
+      return c.json({ error: 'Tên đăng nhập hoặc mật khẩu không chính xác.', code: 'INVALID_CREDENTIALS' }, 401);
+    }
+    if (account.status === 'locked') {
+      return c.json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.', code: 'ACCOUNT_LOCKED' }, 403);
+    }
+    const usesDefaultPassword = KNOWN_DEFAULT_PASSWORDS.has(password);
+    if (!needsRehash && !(usesDefaultPassword && !account.must_change_password)) {
+      // verifyPassword awaited: another request in this isolate may have reset the password or locked
+      // the account meanwhile. Only the row as it is now may produce a token.
+      if (!stillTheVerifiedAccount(account)) continue;
+      accountId = account.id;
+      break;
+    }
+    const newHash = needsRehash ? await hashPassword(password) : null;
+    // The cache may have moved during the awaits above: re-check, then update without awaiting
+    const current = store.getUser(account.id);
+    if (!stillTheVerifiedAccount(account)) continue;
+    try {
+      store.updateUser(account.id, {
+        ...(newHash ? { password: newHash } : {}),
+        ...(usesDefaultPassword ? { must_change_password: true } : {}),
+      });
+      await store.persistAsync();
+      const written = store.getUser(account.id);
+      if (!written || written.status === 'locked' || written.password !== (newHash ?? account.password)) continue;
+      accountId = account.id;
+      break;
+    } catch (err) {
+      if (!(err instanceof RevisionConflictError)) throw err;
+      await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
     }
   }
+  if (!accountId) {
+    // The account kept changing under this login: refuse safely, the user can simply retry
+    return c.json({ error: 'Tài khoản vừa được cập nhật. Vui lòng đăng nhập lại.', code: 'LOGIN_RETRY' }, 409);
+  }
+  await clearLoginFailures(db, throttleKey);
+  const account = { id: accountId };
 
   const fresh = store.getUser(account.id)!;
   const userProfile = toUserProfile(fresh);

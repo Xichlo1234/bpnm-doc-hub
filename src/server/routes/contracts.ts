@@ -102,6 +102,11 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
 
   const attachment = request.file ? await storeAttachment(c, request.file, currentUser.id) : null;
   if (attachment) Object.assign(body, attachment.fields);
+  // A concurrent request may have taken the number while the file was being stored
+  if (contractNumberTaken(body.contract_number)) {
+    await attachment?.rollback();
+    return numberTaken(c, body.contract_number);
+  }
   const newContract = store.createContract(body);
   await syncPrimaryAttachment(db, 'contract', null, newContract, currentUser.id);
   store.recordHistory({ record_type: 'contract', record_id: newContract.id, action: 'create', user: currentUser, before: null, after: newContract });
@@ -137,6 +142,10 @@ async function updateContractHandler(c: Context) {
   if (body.file_key !== undefined && !(await canAttachFile(await getDatabase(c.env), currentUser, body.file_key, existing.file_key))) {
     return c.json({ error: 'Bạn không có quyền gắn tệp này vào hồ sơ.', code: 'FILE_ATTACH_FORBIDDEN' }, 403);
   }
+  // Another request of this worker may have saved the contract during the await above: check the
+  // revision again against the live cache, then change it without awaiting in between
+  const recheck = revisionConflict(c, store.getContract(id), expected_revision);
+  if (recheck) return recheck;
   if (body.contract_number !== undefined && contractNumberTaken(body.contract_number, id)) return numberTaken(c, body.contract_number);
   const dateError = checkContractDates({ ...existing, ...body });
   if (dateError) return ruleResponse(c, dateError);

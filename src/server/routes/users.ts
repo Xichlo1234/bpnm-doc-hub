@@ -122,6 +122,9 @@ usersRouter.patch('/:id', async (c) => {
     updates.must_change_password = currentUser?.id !== id;
   }
 
+  // hashPassword awaited above: another request may have changed the account meanwhile
+  const recheck = revisionConflict(c, store.getUser(id), body.expected_revision);
+  if (recheck) return recheck;
   const updated = store.updateUser(id, updates)!;
 
   store.recordAuditLog({

@@ -5,7 +5,7 @@ import * as path from 'path';
 import { app } from '../src/server/index.ts';
 import { store, MemoryStore } from '../src/server/db/store.ts';
 import { getDatabase, applyLocalMigrations, __createNodeDatabaseForTests } from '../src/server/db/database.ts';
-import { importLegacyDataset, NumberConflictError, RevisionConflictError, FileRetiredError, UsernameTakenError } from '../src/server/db/repository.ts';
+import { importLegacyDataset, NumberConflictError, RevisionConflictError, FileRetiredError, UsernameTakenError, PartnerCodeTakenError } from '../src/server/db/repository.ts';
 import { withSeedDefaults } from '../src/server/db/persistence.ts';
 import * as fileStorage from '../src/server/utils/fileStorage.ts';
 import { processCleanup } from '../src/server/utils/storageCleanup.ts';
@@ -133,8 +133,9 @@ describe('C2 — delete / restore / update / re-create across workers', () => {
     a.createPartner({ code: 'NEWP', name_vn: 'A' } as any);
     b.createPartner({ code: 'NEWP', name_vn: 'B' } as any);
     await a.flush(dbA);
-    await expect(b.flush(dbB)).rejects.toBeInstanceOf(RevisionConflictError);
-    expect(rawA.prepare("SELECT name_vn FROM partners WHERE id = 'partner-newp'").get().name_vn).toBe('A');
+    // the database refuses a second active partner with this code (migration 0010)
+    await expect(b.flush(dbB)).rejects.toBeInstanceOf(PartnerCodeTakenError);
+    expect(rawA.prepare("SELECT name_vn FROM partners WHERE code = 'NEWP'").all()).toEqual([{ name_vn: 'A' }]);
   });
 
   it('settings/categories: a stale config write is refused', async () => {

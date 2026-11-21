@@ -4,7 +4,7 @@ import { requireAdmin } from './auth.ts';
 import { getDatabase } from '../db/database.ts';
 import { UPLOADS_DIR } from '../utils/fileStorage.ts';
 import { referencedFileKeys } from '../utils/attachments.ts';
-import { processCleanup, listCleanup } from '../utils/storageCleanup.ts';
+import { processCleanup, listCleanup, cleanupCounts, type CleanupStatus } from '../utils/storageCleanup.ts';
 import { getAuthUser } from './auth.ts';
 import { store } from '../db/store.ts';
 import { numberRegisterStatements } from '../db/repository.ts';
@@ -64,8 +64,10 @@ adminRouter.get('/storage-check', async (c) => {
   const { results: uploads } = await db.prepare('SELECT key, uploaded_by, original_name, created_at FROM file_uploads').all<any>();
   const uploadByKey = new Map(uploads.map((u: any) => [u.key, u]));
 
-  const cleanupRows = await listCleanup(db);
-  const retired = new Set(cleanupRows.filter((r) => r.status === 'pending' || r.status === 'deleted').map((r) => r.key));
+  const { results: retiredRows } = await db.prepare("SELECT key FROM storage_cleanup WHERE status IN ('pending', 'deleted')").all<{ key: string }>();
+  const retired = new Set(retiredRows.map((r) => r.key));
+  const cleanup = await cleanupCounts(db);
+  const pendingSample = await listCleanup(db, 'pending', 100, 0);
   const referenced = [...referencedFileKeys()].filter((k) => k.startsWith('uploads/'));
   const referencedSet = new Set(referenced);
   const missing = referenced.filter((k) => !storedKeys.has(k) && !legacyD1Keys.has(k));
@@ -86,15 +88,27 @@ adminRouter.get('/storage-check', async (c) => {
     referenced_files: referenced.length,
     missing,
     orphans,
-    cleanup_pending: cleanupRows.filter((r) => r.status === 'pending'),
-    ok: missing.length === 0 && orphans.length === 0 && !cleanupRows.some((r) => r.status === 'pending'),
+    cleanup,
+    cleanup_pending: pendingSample,
+    ok: missing.length === 0 && orphans.length === 0 && cleanup.pending === 0,
   });
+});
+
+// GET /api/admin/storage-cleanup?status=pending&limit=100&offset=0 — the backlog, paged, with totals
+adminRouter.get('/storage-cleanup', async (c) => {
+  const db = await getDatabase(c.env);
+  const raw = c.req.query('status');
+  const status = raw === 'pending' || raw === 'deleted' || raw === 'kept' ? (raw as CleanupStatus) : undefined;
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '100', 10) || 100, 1), 500);
+  const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
+  return c.json({ counts: await cleanupCounts(db), limit, offset, rows: await listCleanup(db, status, limit, offset) });
 });
 
 // POST /api/admin/storage-cleanup — retries pending deletions (re-checking references first)
 adminRouter.post('/storage-cleanup', async (c) => {
   const db = await getDatabase(c.env);
-  const result = await processCleanup(db, c.env);
+  const processed = await processCleanup(db, c.env);
+  const result = { ...processed, remaining: await cleanupCounts(db) };
   const user = getAuthUser(c)!;
   if (result.deleted.length + result.kept.length + result.failed.length > 0) {
     store.recordAuditLog({
