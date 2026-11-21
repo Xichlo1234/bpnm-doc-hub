@@ -148,7 +148,20 @@ export interface StatusChangePlan {
  */
 export function planStatusChange(current: DocumentRecord, changes: Record<string, any>, overrideReason?: string | null): StatusChangePlan {
   const kind: WorkflowKind | null = workflowKind(changes.doc_type ?? current.doc_type);
-  if (!kind || changes.status === undefined) return { changed: false, override: false };
+  if (!kind) return { changed: false, override: false };
+  if (changes.status === undefined) {
+    // No status change, but the fields the current step requires may not be removed (handler,
+    // signer, number), and a document moved to another register must have a status valid there.
+    const merged = { ...current, ...changes };
+    const stage = findStage(kind, merged.status);
+    const typeChanged = changes.doc_type !== undefined && changes.doc_type !== current.doc_type;
+    if (!stage) {
+      return typeChanged ? { error: statusInvalid(merged.status), changed: false, override: false } : { changed: false, override: false };
+    }
+    const touched = missingForStage(stage.code, merged).filter((f) => typeChanged || f in changes);
+    if (touched.length > 0) return { error: fieldsRequired(touched), changed: false, override: false };
+    return { changed: false, override: false };
+  }
   const target = findStage(kind, changes.status);
   if (!target) return { error: statusInvalid(changes.status), changed: false, override: false };
   const kindChanged = workflowKind(current.doc_type) !== kind;

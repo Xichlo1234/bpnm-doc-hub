@@ -101,9 +101,20 @@ export async function processCleanup(
   return result;
 }
 
-export async function listCleanup(db: SqlDatabase, status?: CleanupStatus): Promise<CleanupRow[]> {
+export async function listCleanup(db: SqlDatabase, status?: CleanupStatus, limit = 500, offset = 0): Promise<CleanupRow[]> {
   const stmt = status
-    ? db.prepare('SELECT * FROM storage_cleanup WHERE status = ? ORDER BY enqueued_at DESC LIMIT 500').bind(status)
-    : db.prepare('SELECT * FROM storage_cleanup ORDER BY enqueued_at DESC LIMIT 500');
+    ? db.prepare('SELECT * FROM storage_cleanup WHERE status = ? ORDER BY enqueued_at DESC, key LIMIT ? OFFSET ?').bind(status, limit, offset)
+    : db.prepare('SELECT * FROM storage_cleanup ORDER BY enqueued_at DESC, key LIMIT ? OFFSET ?').bind(limit, offset);
   return (await stmt.all<CleanupRow>()).results;
+}
+
+/** Backlog size per status (the whole table, not one page). */
+export async function cleanupCounts(db: SqlDatabase): Promise<Record<CleanupStatus, number> & { failing: number }> {
+  const { results } = await db.prepare('SELECT status, COUNT(*) AS n, SUM(CASE WHEN last_error IS NOT NULL THEN 1 ELSE 0 END) AS failing FROM storage_cleanup GROUP BY status').all<any>();
+  const counts = { pending: 0, deleted: 0, kept: 0, failing: 0 } as Record<CleanupStatus, number> & { failing: number };
+  for (const r of results) {
+    counts[r.status as CleanupStatus] = Number(r.n);
+    if (r.status === 'pending') counts.failing = Number(r.failing || 0);
+  }
+  return counts;
 }
