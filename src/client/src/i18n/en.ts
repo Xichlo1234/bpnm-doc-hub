@@ -1084,6 +1084,7 @@ export const en: Translations = {
   srvAppendixNumberTaken: "Appendix number \"{number}\" already exists.",
   srvLinkTargetInvalid: "The linked record does not exist or you cannot access it.",
   srvImportHasErrors: "{count} rows are invalid; nothing was imported.",
+  srvImportPreviewStale: 'The preview has changed. Review it again before confirming.',
   srvImportConfirmationRequired: "{count} rows would update existing records. Please review and confirm.",
   importCreateCount: "New: {count}",
   importUpdateCount: "Updates: {count}",

@@ -47,6 +47,22 @@ export async function isRetired(db: SqlDatabase, key: string): Promise<boolean> 
   return row?.status === 'pending' || row?.status === 'deleted';
 }
 
+/** Retire only an unattached upload. The tombstone and the attach guard order cleanup
+ * against a D1 batch whose commit response was lost. If D1 is unavailable, keep the object. */
+export async function discardUpload(db: SqlDatabase, key: string, env: any): Promise<void> {
+  try {
+    await db.prepare(
+      `INSERT INTO storage_cleanup (key, status, reason, enqueued_at)
+       SELECT ?1, 'pending', 'upload_rollback', ?2
+       WHERE NOT EXISTS (SELECT 1 FROM file_uploads WHERE key = ?1 AND attached_at IS NOT NULL)
+       ON CONFLICT(key) DO NOTHING`
+    ).bind(key, new Date().toISOString()).run();
+    await processCleanup(db, env, [key]);
+  } catch (error) {
+    console.warn('Upload rollback deferred', error);
+  }
+}
+
 async function stillReferenced(db: SqlDatabase, key: string): Promise<boolean> {
   const row = await db
     .prepare(
@@ -83,10 +99,14 @@ export async function processCleanup(
         continue;
       }
       await remove(row.key, env);
-      await db
-        .prepare("UPDATE storage_cleanup SET status = 'deleted', attempts = attempts + 1, last_error = NULL, last_attempt_at = ?, done_at = ? WHERE key = ? AND status = 'pending'")
-        .bind(now, now, row.key)
-        .run();
+      const saved = db.prepare(
+        "UPDATE storage_cleanup SET status = 'deleted', attempts = attempts + 1, last_error = NULL, last_attempt_at = ?, done_at = ? WHERE key = ? AND status = 'pending'",
+      ).bind(now, now, row.key);
+      if (row.reason === 'upload_rollback') {
+        await db.batch([saved, db.prepare('DELETE FROM file_uploads WHERE key = ? AND attached_at IS NULL').bind(row.key)]);
+      } else {
+        await saved.run();
+      }
       result.deleted.push(row.key);
     } catch (err) {
       const message = String((err as Error)?.message || err).slice(0, 500);

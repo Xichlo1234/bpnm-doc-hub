@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { documentsRouter } from './routes/documents.ts';
 import { contractsRouter } from './routes/contracts.ts';
@@ -26,6 +26,20 @@ export const app = new Hono();
 // No CORS middleware: the SPA is served from the same origin as the API, so cross-origin
 // access is intentionally not allowed.
 
+// Maintenance mode (MAINTENANCE_MODE=1 as a Worker variable): every API call except the health check
+// answers 503 without touching the database. This is the safe alternative to rolling back to a build
+// older than the security hardening (see docs/ops/DEPLOY_RUNBOOK.md, "Rollback").
+app.use('/api/*', async (c, next) => {
+  const flag = (c.env as any)?.MAINTENANCE_MODE ?? (typeof process !== 'undefined' ? process.env?.MAINTENANCE_MODE : undefined);
+  if (String(flag ?? '') === '1') {
+    if (c.req.path === '/api/health' && (c.req.method === 'GET' || c.req.method === 'HEAD')) {
+      return withSecurityHeaders(healthResponse(c));
+    }
+    return c.json({ error: 'Hệ thống đang bảo trì. Vui lòng thử lại sau.', code: 'MAINTENANCE' }, 503);
+  }
+  await next();
+});
+
 // Request size cap: uploads are ≤5MB and Excel imports ≤5,000 rows, so 12MB is ample. Bigger bodies are
 // refused before they are read or validated.
 export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
@@ -36,17 +50,6 @@ app.use(
     onError: (c) => c.json({ error: 'Dữ liệu gửi lên quá lớn.', code: 'PAYLOAD_TOO_LARGE' }, 413),
   })
 );
-
-// Maintenance mode (MAINTENANCE_MODE=1 as a Worker variable): every API call except the health check
-// answers 503 without touching the database. This is the safe alternative to rolling back to a build
-// older than the security hardening (see docs/ops/DEPLOY_RUNBOOK.md, "Rollback").
-app.use('/api/*', async (c, next) => {
-  const flag = (c.env as any)?.MAINTENANCE_MODE ?? (typeof process !== 'undefined' ? process.env?.MAINTENANCE_MODE : undefined);
-  if (String(flag ?? '') === '1' && c.req.path !== '/api/health') {
-    return c.json({ error: 'Hệ thống đang bảo trì. Vui lòng thử lại sau.', code: 'MAINTENANCE' }, 503);
-  }
-  await next();
-});
 
 // Database middleware: refreshes the in-memory cache before the request (if another isolate wrote)
 // and commits this request's changes after it. See MemoryStore in db/store.ts.
@@ -59,9 +62,17 @@ app.use('/api/*', async (c, next) => {
 
   const env = c.env as any;
   const db = await getDatabase(env);
-  await store.sync(db, env?.DB ? 'd1' : 'json');
-  await next();
-  await store.flush(db);
+  await store.runRequest(async () => {
+    try {
+      await store.sync(db, env?.DB ? 'd1' : 'json');
+      await next();
+      if (c.res.status >= 400) store.discardPending();
+      else await store.flush(db);
+    } catch (error) {
+      store.discardPending();
+      throw error;
+    }
+  });
 });
 
 // Browser hardening for every response. The CSP allows only same-origin scripts; inline styles are
@@ -106,8 +117,11 @@ app.use('*', async (c, next) => {
 // Every API route requires a signed session except login/logout/health (see auth.ts)
 app.use('/api/*', authenticate);
 
-// Healthcheck
-app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+function healthResponse(c: Context) {
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+}
+
+app.get('/api/health', healthResponse);
 
 // Mount API subrouters
 app.route('/api/auth', authRouter);

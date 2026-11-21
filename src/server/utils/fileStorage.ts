@@ -152,13 +152,13 @@ async function sha256Hex(data: Uint8Array<ArrayBuffer>): Promise<string> {
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function saveUploadedFile(file: File, env?: any): Promise<SavedUpload> {
+export async function saveUploadedFile(file: File, env?: any, reserve?: (upload: SavedUpload) => Promise<void>): Promise<SavedUpload> {
   validateUpload(file);
   const originalName = file.name || 'document';
   const ext = path.extname(originalName).toLowerCase();
   const baseName = path.basename(originalName, ext).replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9-]/g, '_');
   // Random suffix: two uploads in the same millisecond with the same name must not overwrite each other
-  const storedName = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}_${baseName}${ext || '.bin'}`;
+  const storedName = `${Date.now()}_${crypto.randomUUID()}_${baseName}${ext || '.bin'}`;
   const fileKey = `uploads/${storedName}`;
 
   const arrayBuffer = await file.arrayBuffer();
@@ -167,6 +167,12 @@ export async function saveUploadedFile(file: File, env?: any): Promise<SavedUplo
   const mimeType = getMimeType(storedName);
   const sha256 = await sha256Hex(uint8);
 
+  const uploaded = { file_key: fileKey, file_name: originalName, file_size: file.size, file_type: mimeType, sha256 };
+  if (env?.DB && !env.BUCKET) throw new Error('Chưa cấu hình R2 (binding BUCKET) để lưu tệp.');
+  // A timeout can occur after R2 stored the bytes. Keep a registration for reconciliation
+  // even if the response from the object store never reaches this request.
+  await reserve?.(uploaded);
+
   if (env?.BUCKET) {
     // Production: Cloudflare R2
     await env.BUCKET.put(fileKey, uint8, {
@@ -174,21 +180,13 @@ export async function saveUploadedFile(file: File, env?: any): Promise<SavedUplo
       customMetadata: { filename: encodeURIComponent(originalName), sha256 },
       sha256,
     });
-  } else if (env?.DB) {
-    throw new Error('Chưa cấu hình R2 (binding BUCKET) để lưu tệp.');
   } else {
     // Local dev / tests: data/uploads on disk
     ensureUploadsDir();
     fs.writeFileSync(path.join(UPLOADS_DIR, storedName), Buffer.from(uint8));
   }
 
-  return {
-    file_key: fileKey,
-    file_name: originalName,
-    file_size: file.size,
-    file_type: mimeType,
-    sha256,
-  };
+  return uploaded;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,12 +204,13 @@ export interface UploadRow {
   created_at: string;
   /** Set once the file is attached to a record (migration 0009); never cleared */
   attached_at?: string | null;
+  stored_at?: string | null;
 }
 
 export async function registerUpload(db: any, upload: SavedUpload, userId: string): Promise<void> {
   await db
     .prepare(
-      'INSERT OR REPLACE INTO file_uploads (key, uploaded_by, original_name, size, mime_type, sha256, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO file_uploads (key, uploaded_by, original_name, size, mime_type, sha256, created_at, stored_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)'
     )
     .bind(upload.file_key, userId, upload.file_name, upload.file_size, upload.file_type, upload.sha256, new Date().toISOString())
     .run();
@@ -219,25 +218,6 @@ export async function registerUpload(db: any, upload: SavedUpload, userId: strin
 
 export async function getUploadRow(db: any, key: string): Promise<UploadRow | null> {
   return (await db.prepare('SELECT * FROM file_uploads WHERE key = ?').bind(key).first()) ?? null;
-}
-
-/**
- * Rolls back an upload whose record could not be saved: removes the stored object, then its
- * file_uploads row. If removing the object fails, the row is kept so the storage check still lists
- * the file (with its uploader) instead of losing track of it.
- */
-export async function discardUpload(db: any, key: string, env?: any): Promise<void> {
-  try {
-    await deleteStoredFile(key, env);
-  } catch (err) {
-    console.warn('Rollback: could not delete stored file', key, err);
-    return;
-  }
-  try {
-    await db.prepare('DELETE FROM file_uploads WHERE key = ?').bind(key).run();
-  } catch (err) {
-    console.warn('Rollback: could not delete upload registration', key, err);
-  }
 }
 
 /** Removes a stored object (used to roll back an upload whose record could not be saved). */

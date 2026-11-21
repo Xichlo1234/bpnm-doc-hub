@@ -107,18 +107,18 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
     await attachment?.rollback();
     return numberTaken(c, body.contract_number);
   }
-  const newContract = store.createContract(body);
-  await syncPrimaryAttachment(db, 'contract', null, newContract, currentUser.id);
-  store.recordHistory({ record_type: 'contract', record_id: newContract.id, action: 'create', user: currentUser, before: null, after: newContract });
-  audit(c, newContract, 'create', `Tạo hợp đồng ${newContract.contract_number} - ${newContract.title}`);
-
   try {
+    const newContract = store.createContract(body);
+    await syncPrimaryAttachment(db, 'contract', null, newContract, currentUser.id);
+    store.recordHistory({ record_type: 'contract', record_id: newContract.id, action: 'create', user: currentUser, before: null, after: newContract });
+    audit(c, newContract, 'create', `Tạo hợp đồng ${newContract.contract_number} - ${newContract.title}`);
+
     await store.persistAsync();
+    return c.json(newContract, 201);
   } catch (err) {
     await attachment?.rollback();
     throw err;
   }
-  return c.json(newContract, 201);
 });
 
 // PUT /api/contracts/:id (Admin Only) and PATCH (Admin, or labor managers for labor contracts)

@@ -11,6 +11,7 @@ import {
   isLaborContract,
 } from '../types.ts';
 import { calculateUrgency, calculateDocumentDeadline } from '../utils/urgency.ts';
+import { normalizePartnerCode } from '../utils/partnerCodes.mjs';
 import {
   type SystemSettings,
   type PersistedDataset,
@@ -47,6 +48,7 @@ import {
   UsernameTakenError,
   isPartnerCodeUniqueViolation,
   PartnerCodeTakenError,
+  partnerKeyStatements,
   backfillNumberRegistry,
   type NumberEntry,
   type HistoryEntry,
@@ -169,10 +171,12 @@ export class MemoryStore {
   private pendingHistory: HistoryEntry[] = [];
   // Extra statements that must commit together with this request's record changes (e.g. import log)
   private pendingStatements: Array<(db: SqlDatabase) => SqlStatement> = [];
+  private pendingGuards: Array<(db: SqlDatabase) => SqlStatement> = [];
 
   private db: SqlDatabase | null = null;
   private loaded = false;
   private stale = false;
+  private reloadRequired = false;
   private version = 0;
   // Fingerprints of what the database holds, per table and record id
   private snapshots = new Map<string, Map<string, string>>();
@@ -188,6 +192,34 @@ export class MemoryStore {
   private persistedAuditIds = new Set<string>();
   // Serializes sync/flush so a reload never interleaves with a commit within one isolate
   private dbLock: Promise<unknown> = Promise.resolve();
+  // Route handlers mutate this store synchronously between awaits. Serialize their entire
+  // lifetime, not just individual database calls, so a different request cannot see or
+  // flush an incomplete change set.
+  private requestTail: Promise<void> = Promise.resolve();
+
+  public async runRequest<T>(fn: () => Promise<T>): Promise<T> {
+    const previous = this.requestTail;
+    let release!: () => void;
+    this.requestTail = new Promise<void>((resolve) => { release = resolve; });
+    await previous;
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  }
+
+  public discardPending() {
+    this.stale ||= this.pendingStatements.length > 0 ||
+      this.pendingGuards.length > 0 ||
+      this.pendingHistory.length > 0 ||
+      this.auditLogs.some((log) => !this.persistedAuditIds.has(log.id)) ||
+      CONFIG_KEYS.some((key) => this.configSnapshot[key] !== JSON.stringify(this.configValue(key))) ||
+      this.cachedTables().some(([spec, rows]) => {
+        const previous = this.snapshots.get(spec.name);
+        return rows.length !== previous?.size || rows.some((row) => previous.get(row.id) !== rowFingerprint(spec, row));
+      });
+  }
 
   /** Test helper: replaces the cached data with the seed dataset; the next flush persists it. */
   public reset() {
@@ -196,8 +228,10 @@ export class MemoryStore {
     this.attachments.clear();
     this.pendingHistory = [];
     this.pendingStatements = [];
+    this.pendingGuards = [];
     // The reset dataset replaces whatever a failed commit left behind
     this.stale = false;
+    this.reloadRequired = false;
   }
 
   private applyDataset(data: Omit<PersistedDataset, 'audit_logs'>) {
@@ -251,10 +285,12 @@ export class MemoryStore {
         }
         await this.reload(db);
         await this.ensureNumberRegistry(db);
+        await this.ensurePartnerKeys(db);
         return;
       }
-      if (this.stale) {
+      if (this.stale || this.reloadRequired) {
         await this.reload(db);
+        await this.ensurePartnerKeys(db);
         return;
       }
       // Changes made outside a request (tests, scripts) are written before checking for others'
@@ -263,6 +299,32 @@ export class MemoryStore {
         await this.reload(db);
       }
     });
+  }
+
+  private activePartnerKeys(records: PartnerRecord[]): Array<[string, string]> {
+    return records.flatMap((partner) => {
+      const key = normalizePartnerCode(partner.code);
+      return !partner.deleted_at && key ? [[partner.id, key]] : [];
+    });
+  }
+
+  private async ensurePartnerKeys(db: SqlDatabase) {
+    const marker = () => db.prepare("SELECT 1 FROM meta WHERE key = 'partner_code_keys_ready'").first();
+    if (await marker()) return;
+    try {
+      // The marker, all canonical keys, and the dataset version guard are atomic. During a
+      // concurrent first start, only the isolate whose snapshot is still current may backfill.
+      await db.batch([
+        db.prepare("INSERT INTO write_guard (conflict) SELECT 1 FROM meta WHERE key = 'data_version' AND CAST(value AS INTEGER) <> ?").bind(this.version),
+        db.prepare("INSERT INTO meta (key, value) VALUES ('partner_code_keys_ready', '1')"),
+        ...partnerKeyStatements(db, [], this.activePartnerKeys([...this.partners.values()])),
+      ]);
+    } catch (error) {
+      if (await marker()) return;
+      this.stale = true;
+      if (isPartnerCodeUniqueViolation(error)) throw new PartnerCodeTakenError();
+      throw error;
+    }
   }
 
   /** One-time registration of existing numbers after migration 0008 (see backfillNumberRegistry). */
@@ -306,6 +368,7 @@ export class MemoryStore {
     this.attachments = new Map(data.attachments.map((a: AttachmentRecord) => [a.id, a]));
     this.pendingHistory = [];
     this.pendingStatements = [];
+    this.pendingGuards = [];
 
     this.snapshots.clear();
     this.baseRevisions.clear();
@@ -332,6 +395,7 @@ export class MemoryStore {
     this.version = data.version;
     this.loaded = true;
     this.stale = false;
+    this.reloadRequired = false;
   }
 
   private cachedTables(): Array<[TableSpec, Array<Record<string, any>>]> {
@@ -358,7 +422,8 @@ export class MemoryStore {
   private async flushUnlocked(db: SqlDatabase) {
     if (!this.loaded || this.stale) return;
 
-    const statements: SqlStatement[] = [];
+    const guards = this.pendingGuards;
+    const statements: SqlStatement[] = guards.map((guard) => guard(db));
     const pendingSnapshots: Array<() => void> = [];
 
     for (const [spec, records] of this.cachedTables()) {
@@ -403,6 +468,9 @@ export class MemoryStore {
       if (FILE_TABLES.has(spec.name) && changed.length > 0) {
         const keys = [...new Set(changed.map((r) => r.file_key).filter((k): k is string => typeof k === 'string' && k.startsWith('uploads/')))];
         statements.push(...fileUseStatements(db, keys));
+      }
+      if (spec === partnersTable) {
+        statements.push(...partnerKeyStatements(db, [...removed, ...changed.map((p) => p.id)], this.activePartnerKeys(changed as PartnerRecord[])));
       }
       // Deletions first: a row that frees a unique value (partner code, user name) must be gone before
       // another row takes it in the same batch
@@ -460,9 +528,10 @@ export class MemoryStore {
     try {
       const { version, concurrentWrite } = await commitChanges(db, statements, this.version);
       pendingSnapshots.forEach((apply) => apply());
+      this.pendingGuards = this.pendingGuards.filter((guard) => !guards.includes(guard));
       this.version = version;
       // Someone else committed in between: our cache misses their rows, reload on next request
-      if (concurrentWrite) this.stale = true;
+      this.reloadRequired ||= concurrentWrite;
     } catch (err) {
       // The cache now holds changes the database rejected; discard them on the next request
       this.stale = true;
@@ -546,12 +615,14 @@ export class MemoryStore {
     this.pendingStatements.push(make);
   }
 
+  public queueGuard(make: (db: SqlDatabase) => SqlStatement) {
+    this.pendingGuards.push(make);
+  }
+
   /** Kept for route handlers: persists this request's changes before the response is built. */
   public async persistAsync() {
-    await this.flush();
-    // Another request's failed commit discards the cache (stale): this request's changes were not
-    // written either, so it must not report success
     if (this.stale) throw new RevisionConflictError();
+    await this.flush();
   }
 
   // Document operations
@@ -664,6 +735,7 @@ export class MemoryStore {
   }
 
   public bulkUpsertDocuments(docsList: Array<Partial<DocumentRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: DocumentRecord | null; after: DocumentRecord }> } {
+    if (docsList.some((item) => item.id && !this.getDocument(item.id))) throw new RevisionConflictError();
     let added = 0;
     let updated = 0;
     const changes: Array<{ id: string; before: DocumentRecord | null; after: DocumentRecord }> = [];
@@ -700,6 +772,7 @@ export class MemoryStore {
       } else {
         const id = item.id || ('doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6));
         const newRecord: DocumentRecord = {
+          ...item,
           id,
           document_number: item.document_number || `CV-${vietnamToday().slice(0, 4)}-${String(this.documents.size + 1).padStart(4, '0')}`,
           title: item.title || 'Văn bản mới',
@@ -849,6 +922,7 @@ export class MemoryStore {
   }
 
   public bulkUpsertContracts(contractsList: Array<Partial<ContractRecord>>): { added: number; updated: number; total: number; changes: Array<{ id: string; before: ContractRecord | null; after: ContractRecord }> } {
+    if (contractsList.some((item) => item.id && !this.getContract(item.id))) throw new RevisionConflictError();
     let added = 0;
     let updated = 0;
     const changes: Array<{ id: string; before: ContractRecord | null; after: ContractRecord }> = [];
@@ -863,7 +937,7 @@ export class MemoryStore {
         existing = this.contracts.get(item.id);
       } else if (item.contract_number) {
         existing = Array.from(this.contracts.values()).find(
-          c => !c.deleted_at && c.contract_number.trim().toLowerCase() === item.contract_number!.trim().toLowerCase()
+          c => !c.deleted_at && normalizeNumber(c.contract_number) === normalizeNumber(item.contract_number)
         );
       }
 
@@ -884,7 +958,6 @@ export class MemoryStore {
         // Create new contract
         const id = item.id || ('con-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6));
         const newRecord: ContractRecord = {
-          id,
           contract_number: item.contract_number || `HĐ-${vietnamToday().slice(0, 4)}-${String(this.contracts.size + 1).padStart(4, '0')}`,
           title: item.title || 'Hợp đồng mới',
           contract_type: item.contract_type || 'service',
@@ -911,6 +984,7 @@ export class MemoryStore {
           created_at: now,
           updated_at: now,
           ...item,
+          id,
           revision: 1,
         };
         newRecord.urgency = calculateUrgency(newRecord.end_date, newRecord.status);

@@ -365,11 +365,19 @@ describe('Optimistic concurrency', () => {
 
   it('bumps revisions on bulk import so open edit forms detect it', async () => {
     const c = store.getContracts()[0];
-    await app.request('/api/contracts/bulk-import', {
+    const rows = [{ id: c.id, contract_number: c.contract_number, notes: 'import' }];
+    const preview = await app.request('/api/contracts/import/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contracts: [{ id: c.id, contract_number: c.contract_number, notes: 'import' }], confirm_updates: true }),
+      body: JSON.stringify({ rows }),
     });
+    const { preview_fingerprint } = await preview.json() as { preview_fingerprint: string };
+    const written = await app.request('/api/contracts/bulk-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contracts: rows, confirm_updates: true, preview_fingerprint }),
+    });
+    expect(written.status).toBe(200);
     expect(store.getContract(c.id)!.revision).toBe((c.revision ?? 0) + 1);
   });
 });

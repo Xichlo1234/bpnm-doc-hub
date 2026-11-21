@@ -60,7 +60,7 @@ export async function canReadFile(db: SqlDatabase, user: AccessSubject | null, k
   if (isAdmin(user)) return true;
   if (retired || refs.past || refs.documents.length > 0 || refs.contracts.length > 0) return false;
   const upload = await getUploadRow(db, key);
-  return Boolean(upload && upload.uploaded_by === user.id && !upload.attached_at);
+  return Boolean(upload?.stored_at && upload.uploaded_by === user.id && !upload.attached_at);
 }
 
 /**
@@ -78,6 +78,7 @@ export async function canAttachFile(
   // A key queued for deletion or deleted can never be attached again, not even by an admin
   const cleanup = key.startsWith('uploads/') ? await getCleanupRow(db, key) : null;
   if (cleanup?.status === 'pending' || cleanup?.status === 'deleted') return false;
+  if (key.startsWith('uploads/') && (await getUploadRow(db, key))?.stored_at === null) return false;
   if (isAdmin(user)) return true;
   return canReadFile(db, user, key);
 }

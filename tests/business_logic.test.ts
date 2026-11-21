@@ -217,7 +217,7 @@ describe('Excel import: preview, confirmation, history', () => {
     expect(store.getContract(existing.id)!.title).toBe(existing.title);
     expect(store.getContracts().some((c) => c.contract_number === 'IMP-NEW-1')).toBe(false);
 
-    const done = await body(await post('/api/contracts/bulk-import', { rows, confirm_updates: true, file_name: 'hop-dong.xlsx' }));
+    const done = await body(await post('/api/contracts/bulk-import', { rows, confirm_updates: true, preview_fingerprint: preview.preview_fingerprint, file_name: 'hop-dong.xlsx' }));
     expect(done).toMatchObject({ added: 1, updated: 1, skipped: 1 });
     expect(store.getContract(existing.id)!.title).toBe('Tên mới');
     expect(store.getContracts().filter((c) => c.contract_number === 'IMP-NEW-1')).toHaveLength(1);

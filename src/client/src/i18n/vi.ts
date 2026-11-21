@@ -1082,6 +1082,7 @@ export const vi = {
   srvAppendixNumberTaken: "Số phụ lục \"{number}\" đã tồn tại.",
   srvLinkTargetInvalid: "Hồ sơ liên kết không tồn tại hoặc bạn không có quyền.",
   srvImportHasErrors: "Có {count} dòng không hợp lệ; chưa nhập dòng nào.",
+  srvImportPreviewStale: 'Kết quả xem trước đã thay đổi. Vui lòng xem lại trước khi xác nhận.',
   srvImportConfirmationRequired: "{count} dòng sẽ cập nhật hồ sơ đã có. Vui lòng xem trước và xác nhận.",
   importCreateCount: "Thêm mới: {count}",
   importUpdateCount: "Cập nhật: {count}",

@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import { store } from '../db/store.ts';
 import { getDatabase } from '../db/database.ts';
 import { requireAdmin, getAuthUser } from './auth.ts';
-import { previewImport, rowsToCommit, importBatchStatement, listImportBatches, type ImportKind } from '../utils/importer.ts';
+import { previewImport, previewFingerprint, rowsToCommit, importBatchStatement, listImportBatches, type ImportKind } from '../utils/importer.ts';
 
 const LABEL: Record<ImportKind, string> = { document: 'văn bản', contract: 'hợp đồng' };
 
@@ -22,7 +22,8 @@ export function importPreviewHandler(kind: ImportKind) {
   return async (c: Context) => {
     const rows = readRows(await c.req.json().catch(() => null), kind);
     if (!rows) return listInvalid(c, kind);
-    return c.json(previewImport(kind, rows));
+    const preview = previewImport(kind, rows);
+    return c.json({ ...preview, preview_fingerprint: await previewFingerprint(kind, preview) });
   };
 }
 
@@ -41,6 +42,12 @@ export function importCommitHandler(kind: ImportKind) {
         { error: `Có ${preview.summary.error} dòng không hợp lệ; chưa nhập dòng nào.`, code: 'IMPORT_HAS_ERRORS', params: { count: String(preview.summary.error) }, preview },
         400
       );
+    }
+    const fingerprint = body?.preview_fingerprint;
+    if ((preview.summary.update > 0 && body?.confirm_updates === true) || fingerprint !== undefined) {
+      if (typeof fingerprint !== 'string' || fingerprint !== await previewFingerprint(kind, preview)) {
+        return c.json({ error: 'Kết quả xem trước đã thay đổi. Vui lòng xem trước lại rồi xác nhận.', code: 'IMPORT_PREVIEW_STALE' }, 409);
+      }
     }
     if (preview.summary.update > 0 && body?.confirm_updates !== true) {
       return c.json(

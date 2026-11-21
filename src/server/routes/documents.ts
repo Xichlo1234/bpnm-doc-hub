@@ -127,30 +127,30 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     return numberTaken(c, body.document_number);
   }
 
-  const newDoc = store.createDocument(body);
-  await syncPrimaryAttachment(db, 'document', null, newDoc, currentUser.id);
-  store.recordHistory({ record_type: 'document', record_id: newDoc.id, action: 'create', user: currentUser, before: null, after: newDoc });
-  store.recordAuditLog({
-    user_id: currentUser.id,
-    username: currentUser.username,
-    action: 'create',
-    entity_type: 'document',
-    entity_id: newDoc.id,
-    entity_title: newDoc.document_number,
-    details: `Tạo văn bản ${newDoc.document_number} - ${newDoc.title}`,
-  });
-
   try {
+    const newDoc = store.createDocument(body);
+    await syncPrimaryAttachment(db, 'document', null, newDoc, currentUser.id);
+    store.recordHistory({ record_type: 'document', record_id: newDoc.id, action: 'create', user: currentUser, before: null, after: newDoc });
+    store.recordAuditLog({
+      user_id: currentUser.id,
+      username: currentUser.username,
+      action: 'create',
+      entity_type: 'document',
+      entity_id: newDoc.id,
+      entity_title: newDoc.document_number,
+      details: `Tạo văn bản ${newDoc.document_number} - ${newDoc.title}`,
+    });
+
     await store.persistAsync();
+    return c.json(
+      { ...withTransitions(newDoc), ...(allocation.reassigned ? { number_reassigned: true, requested_number: requestedNumber } : {}) },
+      201
+    );
   } catch (err) {
     // The record was not saved: do not keep its file
     await attachment?.rollback();
     throw err;
   }
-  return c.json(
-    { ...withTransitions(newDoc), ...(allocation.reassigned ? { number_reassigned: true, requested_number: requestedNumber } : {}) },
-    201
-  );
 });
 
 // PUT/PATCH /api/documents/:id (Admin Only)
