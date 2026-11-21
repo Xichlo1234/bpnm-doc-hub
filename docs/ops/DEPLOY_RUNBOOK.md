@@ -56,7 +56,7 @@ Preflight phải không có `CHẶN:`. Các điều kiện chặn chính:
 - **mã đối tác trùng giữa các đối tác đang hoạt động**: preflight kiểm tra cả khóa SQL 0010
   (`duplicate_partner_index_codes`, gồm khóa rỗng) và mã chuẩn hóa Unicode của ứng dụng
   (`duplicate_partner_codes`), trước và sau migration. Xử lý dữ liệu sau khi được phê duyệt;
-- ledger có 0010 nhưng thiếu chỉ mục UNIQUE có điều kiện `idx_partners_code_active`;
+- ledger có 0010 nhưng thiếu `idx_partners_code_active`, hoặc chỉ mục này có định nghĩa khác migration 0010;
 - `registry_conflicts`: số đã đăng ký cho hồ sơ khác nhưng hồ sơ khác lại đang dùng (do bản cũ ghi sau
   backfill). Rà soát, đổi số thủ công rồi chạy lại preflight.
 
@@ -119,7 +119,7 @@ npx wrangler d1 execute bpnm-doc-hub-db --remote --command "SELECT (SELECT COUNT
 ```
 - [ ] Số bản ghi khớp mục 1 (migration không thêm/xoá dòng nghiệp vụ).
 - [ ] `duplicate_partner_codes`, `duplicate_partner_index_codes`, `registry_conflicts` rỗng.
-- [ ] Chỉ mục UNIQUE có điều kiện của 0010 tồn tại; schema khớp ledger.
+- [ ] Chỉ mục của 0010 đúng biểu thức khóa và điều kiện; schema khớp ledger.
 
 ## 6. Mở ghi
 ```bash

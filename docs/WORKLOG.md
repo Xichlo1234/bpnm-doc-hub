@@ -321,3 +321,9 @@ Nền `964e1df5809708e1f9b24ce091e57ec676385170`, nhánh cục bộ `codex/pr08-
 | Vận hành | Runbook ghi rõ health trong bảo trì và dùng đường dẫn chính xác của bản D1 vừa export khi diễn tập phục hồi. `docs/ops/DEPLOY_RUNBOOK.md`. | Kiểm tra thứ tự khóa ghi và migration vẫn đạt. |
 
 **Kết quả độc lập.** TypeScript phía server và tệp `tests/pr08_hardening.test.ts` đạt. Vitest đạt **356 bài / 29 tệp**, gồm **29 bài PR #8**. `git diff --check` đạt. Cài đặt đầy đủ bị proxy trả HTTP 403 trên tarball SheetJS 0.20.3. Bộ kiểm tra con dùng các phiên bản từ lockfile trong thư mục phụ thuộc riêng; hai suite dùng SheetJS (`excel_import_export`, `contract_filter`) và build/dry-run đầy đủ đang chờ truy cập CDN. Manifest, lockfile, migration và cơ sở dữ liệu Production không đổi.
+
+## Audit trước xuất bản · 21/11/2026
+
+- E3: preflight đối chiếu trực tiếp định nghĩa chỉ mục 0010 trong SQLite. Fixture SQLite xác nhận bản đúng được chấp nhận; hai biến thể có đúng tên nhưng sai khóa hoặc sai điều kiện đều bị chặn.
+- TypeScript server đạt. Vitest **357 bài / 29 tệp** đạt. Smoke E2E localhost trên dữ liệu giả đạt **72/72**, gồm luồng ghi; dọn 7 bản ghi smoke cuối lượt. Audit npm runtime báo **0** cảnh báo.
+- **Tạm giữ xuất bản Production.** HTTP 403 với SheetJS chặn cài đầy đủ, hai suite phụ thuộc SheetJS và build/dry-run đầy đủ. GitHub API trả Forbidden; từ Git refs xác nhận `main` chưa có bản ứng viên. Chưa có bằng chứng CI đạt trên SHA phát hành và chưa xác minh sao lưu/diễn tập phục hồi Production theo runbook.

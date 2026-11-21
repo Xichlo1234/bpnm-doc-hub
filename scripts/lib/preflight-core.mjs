@@ -20,6 +20,8 @@ export const EXPECTED_AFTER = {
 };
 
 const normalizeNumber = (v) => String(v ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+const normalizeIndexSql = (sql) => String(sql ?? '').trim().replace(/;$/, '').replace(/\bIF\s+NOT\s+EXISTS\b/i, '').replace(/\s+/g, '').toLowerCase();
+const PARTNER_INDEX_SQL = 'CREATE UNIQUE INDEX idx_partners_code_active ON partners (upper(trim(code))) WHERE deleted_at IS NULL';
 
 export async function runPreflight(query, migrationFiles) {
   const q = async (sql) => {
@@ -129,9 +131,9 @@ export async function runPreflight(query, migrationFiles) {
       `Có mã đối tác trùng giữa các đối tác đang hoạt động (chuẩn ứng dụng: ${dupPartners.length}, khóa chỉ mục 0010: ${dupIndexCodes.length}). Rà soát và xử lý trước khi vận hành.`
     );
   }
-  const partnerIndex = (await q('PRAGMA index_list(partners)')).find((row) => row.name === 'idx_partners_code_active');
-  if (partnerIndex && (Number(partnerIndex.unique) !== 1 || Number(partnerIndex.partial) !== 1)) {
-    report.blocking.push('Chỉ mục idx_partners_code_active không phải chỉ mục UNIQUE có điều kiện của migration 0010.');
+  const [partnerIndex] = await q("SELECT tbl_name, sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_partners_code_active'");
+  if (partnerIndex && (partnerIndex.tbl_name !== 'partners' || normalizeIndexSql(partnerIndex.sql) !== normalizeIndexSql(PARTNER_INDEX_SQL))) {
+    report.blocking.push('Định nghĩa chỉ mục idx_partners_code_active lệch migration 0010.');
   } else if (!partnerIndex && applied.includes('0010_partner_code_unique.sql')) {
     report.blocking.push('0010_partner_code_unique.sql đã ghi nhận nhưng thiếu chỉ mục idx_partners_code_active.');
   }

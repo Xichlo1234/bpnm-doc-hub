@@ -63,6 +63,16 @@ describe('D1 — one active partner per code, enforced by D1', () => {
     expect(missingIndex.blocking.join()).toMatch(/thiếu chỉ mục idx_partners_code_active/);
   });
 
+  it('preflight rejects a same-name partial unique index with the wrong key or predicate', async () => {
+    const { rawA } = await twoWorkers();
+    const preflight = () => runPreflight(async (sql: string) => rawA.prepare(sql).all(), ALL);
+    expect((await preflight()).blocking).toEqual([]);
+    for (const definition of ['(id) WHERE deleted_at IS NULL', '(upper(trim(code))) WHERE deleted_at IS NOT NULL']) {
+      rawA.exec(`DROP INDEX idx_partners_code_active; CREATE UNIQUE INDEX idx_partners_code_active ON partners ${definition}`);
+      expect((await preflight()).blocking.join()).toMatch(/Định nghĩa chỉ mục idx_partners_code_active lệch migration 0010/);
+    }
+  });
+
   it('create / create from two workers', async () => {
     const { a, b, dbA, dbB, rawA } = await twoWorkers();
     a.createPartner({ code: 'DUP1', name_vn: 'A' } as any);
