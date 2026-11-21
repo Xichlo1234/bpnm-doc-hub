@@ -1,49 +1,55 @@
-# Yêu cầu thẩm định & phê duyệt — BPNM Doc Hub
+# Yêu cầu thẩm định lại — BPNM Doc Hub (sau NO-GO)
 
 **Repository:** `Xichlo1234/bpnm-doc-hub` (private)
-**Nhánh tích hợp (toàn bộ thay đổi):** `claude/vigilant-babbage-xm8dcm` — commit `f280d53`
-**So với mã gốc:** `main` (`f521c0d`, mã nguồn import ban đầu)
-**CI (GitHub Actions):** xanh trên nhánh tích hợp và PR05 (typecheck, 280 test, build, wrangler dry-run, audit phụ thuộc)
+**Bản đã review lần 1:** `93440f32ff57bf6f5e3e29349248454d0fbfeddb` → kết luận NO-GO (B1–B6)
+**Bản sửa lỗi:** nhánh `pr06-review-fixes`, mã sửa tại commit `1394384d46a64ce7b40ceda372fbe12806c566bb`
+(commit sau đó chỉ cập nhật tài liệu này và `docs/WORKLOG.md`)
+**Nhánh tích hợp (toàn bộ):** `claude/vigilant-babbage-xm8dcm` = đầu nhánh `pr06-review-fixes`
+**So với:** `main` (`f521c0d`, mã nguồn import ban đầu)
 
-## Phạm vi cần duyệt — 5 PR xếp chồng, merge theo thứ tự
+## Các PR (xếp chồng, merge theo thứ tự, chưa merge PR nào)
+| PR | Nhánh | Nội dung |
+|---|---|---|
+| [#1](https://github.com/Xichlo1234/bpnm-doc-hub/pull/1) | `pr01-security-rbac` → `main` | Bảo mật & phân quyền (migration 0004, 0005) |
+| [#2](https://github.com/Xichlo1234/bpnm-doc-hub/pull/2) | `pr02-storage` → `pr01` | Lưu trữ D1/R2 (0006) |
+| [#3](https://github.com/Xichlo1234/bpnm-doc-hub/pull/3) | `pr03-business-logic` → `pr02` | Logic nghiệp vụ (0007) |
+| [#4](https://github.com/Xichlo1234/bpnm-doc-hub/pull/4) | `pr04-ui` → `pr03` | Giao diện |
+| [#5](https://github.com/Xichlo1234/bpnm-doc-hub/pull/5) | `pr05-qa-ops` → `pr04` | Kiểm thử & vận hành |
+| **#6** | `pr06-review-fixes` → `pr05` | **Khắc phục B1–B6 + các mục còn lại (0008)** |
 
-| PR | Nhánh | Nội dung | Migration |
-|---|---|---|---|
-| [#1](https://github.com/Xichlo1234/bpnm-doc-hub/pull/1) | `pr01-security-rbac` → `main` | Phân quyền tập trung, văn bản Mật, bảo mật tệp R2, bắt buộc đổi mật khẩu ở backend, thông báo theo người dùng, header bảo mật, gỡ dữ liệu thật khỏi mã triển khai, CI | 0004, 0005 |
-| [#2](https://github.com/Xichlo1234/bpnm-doc-hub/pull/2) | `pr02-storage` → `pr01` | Nhiều tệp/hồ sơ + phiên bản + SHA-256, không tệp mồ côi, thùng rác/khôi phục, lịch sử chỉnh sửa, vị trí hồ sơ giấy, Drive chỉ là liên kết, đối soát D1/R2, sao lưu/phục hồi | 0006 |
-| [#3](https://github.com/Xichlo1234/bpnm-doc-hub/pull/3) | `pr03-business-logic` → `pr02` | Quy trình CV đến/đi, cấp số nguyên tử chống trùng, điều chỉnh sau phát hành, vòng đời hợp đồng (phụ lục, gia hạn, chấm dứt, thanh lý), đa tiền tệ, xem trước nhập Excel, kiểm tra revision trong câu lệnh ghi D1 | 0007 |
-| [#4](https://github.com/Xichlo1234/bpnm-doc-hub/pull/4) | `pr04-ui` → `pr03` | Menu thống nhất (không trùng), Kho lưu trữ, tách biểu mẫu tạo theo nghiệp vụ, bỏ dữ liệu mẫu điền sẵn, toast, responsive | — |
-| [#5](https://github.com/Xichlo1234/bpnm-doc-hub/pull/5) | `pr05-qa-ops` → `pr04` | Quét bảo mật mọi route API, test đồng thời & E2E, sửa 3 lỗi thật, nâng `hono`/`zod`/`vite`, `xlsx` → SheetJS 0.20.3, runbook triển khai | — |
+PR #1–#5 giữ nguyên (không force-push, không viết lại lịch sử). Mọi sửa lỗi nằm trong PR #6.
 
-Migration 0004–0007 **chỉ thêm** (CREATE TABLE IF NOT EXISTS / ADD COLUMN), không sửa/xoá dữ liệu cũ.
+## Đối chiếu lỗi chặn → cách sửa → test
+| Lỗi | Tệp chính | Test |
+|---|---|---|
+| B1 thông báo lộ văn bản Mật khi xoá mềm | `src/server/routes/notifications.ts` (`canSeeNotification`) | `tests/review_fixes.test.ts` › B1 |
+| B2 quyền tải tệp sau xoá mềm/gỡ tệp | `src/server/utils/fileAccess.ts` (`fileReferences`, `canReadFile`) | › B2 |
+| B3 trùng số đa isolate | `migrations/0008_number_registry.sql`, `src/server/db/repository.ts` (`numberGuardStatements`…), `src/server/db/store.ts` (`numberChangesFor`, `ensureNumberRegistry`), `utils/numberKeys.ts` | › B3 (2 kết nối SQLite độc lập) |
+| B4 PATCH/PUT bỏ qua quy trình | `src/server/utils/documentRules.ts` (`planStatusChange`), `utils/workflow.ts` (`findStage`, `missingForStage`), `routes/documents.ts` (`applyDocumentChange`) | › B4 |
+| B5 thiếu revision | `src/server/utils/validation.ts` (`revisionConflict` → 428/409), các route thay đổi hồ sơ; client `services/api.ts` | › B5 (10 endpoint, 2 isolate) |
+| B6 thống kê lộ văn bản Mật | `routes/stats.ts`, `store.getStats(user)` | › B6 |
+| Còn lại (import log cùng transaction, rollback upload, HĐ status NULL, nhập Excel, năm VN, hồ sơ đã xoá) | `routes/imports.ts`, `utils/importer.ts`, `utils/fileStorage.ts` (`discardUpload`), `utils/contractRules.ts` | › Other review items |
+| Migration & rollback | `scripts/preflight.mjs`, `scripts/lib/preflight-core.mjs` | `tests/migrations.test.ts` |
 
-## Quyết định của chủ dự án đã áp dụng
-1. Xoá dữ liệu thật khỏi lịch sử git — **làm sau khi merge** (viết lại lịch sử đổi mã commit của các PR).
-2. Văn bản Mật: chỉ admin và người được cấp quyền.
-3. Tỷ giá: "1 đơn vị = X đơn vị tiền mặc định".
-4. `xlsx` → SheetJS 0.20.3 từ CDN chính thức — **đã làm**, `npm audit --omit=dev` = 0 lỗ hổng.
-5. Migration & deploy Production — **chờ phê duyệt** (yêu cầu này).
+## Kết quả kiểm thử thực tế (commit `1394384`)
+`npm ci` ✔ · `npm run typecheck` ✔ · `npm test` ✔ **310 test / 29 file** · `npm run build` ✔ ·
+`npx wrangler deploy --dry-run --outdir dist/worker` ✔ · `npm run audit:prod` ✔ (0 lỗ hổng) · `npm run check` ✔ ·
+smoke E2E có ghi trên server **local** dữ liệu giả lập ✔ 72/72 · luồng giao diện Playwright ✔.
+Không có kiểm thử nào trên Production.
 
-## Đề nghị người thẩm định kiểm tra
-1. `npm ci && npm run check` → kỳ vọng 280 test đạt, build + dry-run đạt.
-2. `npm run dev:demo` → đăng nhập `admin` / `AdminTest@2026` (dữ liệu giả lập, không phải dữ liệu thật).
-3. Trọng tâm mã nguồn:
-   - Phân quyền: `src/server/utils/access.ts`, `src/server/utils/fileAccess.ts`, `tests/ops_readiness.test.ts`.
-   - Ghi D1 & chống ghi đè: `src/server/db/store.ts` (`flushUnlocked`), `src/server/db/repository.ts` (`revisionGuardStatements`).
-   - Cấp số & quy trình: `src/server/utils/numbering.ts`, `src/server/utils/workflow.ts`.
-   - Migration: `migrations/0004…0007`.
-4. Quy trình triển khai: `docs/ops/DEPLOY_RUNBOOK.md` (sao lưu → migrate → deploy → kiểm tra chỉ đọc → rollback).
-
-## Rủi ro & tồn tại đã biết
-- Lịch sử git còn dữ liệu thật ở commit đầu (sẽ xử lý theo quyết định 1 sau merge).
-- Một số component lớn (`App.tsx`, `DetailPane.tsx`, các bảng, `EditRecordModal.tsx`) chưa tách sâu; chức năng không đổi.
-- Sau triển khai, tài khoản còn dùng mật khẩu mặc định hoặc mật khẩu do admin đặt sẽ bị yêu cầu đổi mật khẩu; người dùng thường không còn thấy văn bản "Mật" cho tới khi được cấp quyền.
-- Phụ thuộc chỉ dùng khi phát triển (wrangler 3, vitest 2…) còn cảnh báo, không đóng gói vào Worker.
+## Rủi ro còn lại (đã biết)
+- Số trùng trong dữ liệu lịch sử Production (nếu có) không tự sửa: hồ sơ cũ nhất giữ số, các hồ sơ khác vẫn sửa được
+  nhưng không đổi sang số đang dùng; danh sách do `npm run preflight:remote` và `meta.number_registry_backfill` cung cấp.
+- Thông báo cũ chưa có người nhận chỉ admin thấy cho tới khi chạy `assign-legacy` (chỉ gán khi khớp duy nhất).
+- Bộ nhớ đệm toàn bộ bảng trong mỗi isolate (thiết kế sẵn có) — phù hợp quy mô hiện tại; danh sách API chưa phân trang.
+- Một số component giao diện lớn chưa tách sâu (không ảnh hưởng chức năng).
+- Lịch sử git còn dữ liệu thật ở commit đầu: xử lý sau khi merge (quyết định 1A).
 
 ## Xin phê duyệt
-- [ ] Duyệt merge PR #1 → #5 theo thứ tự.
-- [ ] Duyệt chạy migration 0004–0007 trên D1 Production (`npm run db:migrate:remote`, có sao lưu tự động).
-- [ ] Duyệt deploy Production theo `docs/ops/DEPLOY_RUNBOOK.md`.
-- [ ] Duyệt viết lại lịch sử git để xoá dữ liệu thật (sau merge).
+- [ ] PR #1 → #6: merge theo thứ tự.
+- [ ] Đọc D1 Production bằng `npm run preflight:remote` (chỉ đọc).
+- [ ] Migration 0004–0008 trên D1 Production theo `docs/ops/DEPLOY_RUNBOOK.md`.
+- [ ] Deploy Production theo runbook (đúng SHA đã merge).
+- [ ] Viết lại lịch sử git để xoá dữ liệu thật (sau merge).
 
-Chi tiết từng hạng mục: `docs/WORKLOG.md`.
+Chi tiết: `docs/WORKLOG.md` (mục PR06), `docs/ops/DEPLOY_RUNBOOK.md`, `docs/ops/BACKUP_RESTORE.md`.

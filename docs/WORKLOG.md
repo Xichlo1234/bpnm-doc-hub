@@ -138,8 +138,51 @@ Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod
 | PR03 | Logic nghiệp vụ | https://github.com/Xichlo1234/bpnm-doc-hub/pull/3 |
 | PR04 | Giao diện | https://github.com/Xichlo1234/bpnm-doc-hub/pull/4 |
 | PR05 | Kiểm thử & vận hành | https://github.com/Xichlo1234/bpnm-doc-hub/pull/5 |
+| PR06 | Khắc phục sau thẩm định | (link PR #6) |
 
-Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
+Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
+
+---
+
+## PR06 — Khắc phục sau thẩm định (review NO-GO trên `93440f3`)
+Nhánh `pr06-review-fixes` → `pr05-qa-ops` · mã sửa: commit `1394384` · (link PR bên dưới)
+
+| Lỗi | Đã sửa | Kiểm thử (tests/review_fixes.test.ts trừ khi ghi khác) |
+|---|---|---|
+| **B1** Lộ thông báo văn bản Mật khi hồ sơ bị xoá mềm | Thông báo chỉ hiện cho đúng người nhận **và** khi người đó còn đọc được hồ sơ đích ngay lúc xem; hồ sơ trong thùng rác/đã xoá vĩnh viễn → chỉ admin; thông báo cũ không có người nhận → chỉ admin; gán người nhận cho thông báo cũ chỉ khi khớp **duy nhất** một tài khoản (`POST /api/notifications/assign-legacy`, mặc định chạy thử) | ẩn khi chuyển Mật / xoá mềm / xoá vĩnh viễn; thu hồi quyền HĐLĐ; thông báo cũ; gán người nhận (trùng tên không gán) |
+| **B2** Quyền tải tệp R2 sau xoá mềm/gỡ tệp | Quyền đọc tệp dựa trên tham chiếu **đang hiệu lực**; tệp chỉ còn tham chiếu cũ (hồ sơ trong thùng rác, tệp đã gỡ) → chỉ admin, người upload **không** lấy lại quyền; tệp mới upload chưa gắn → chỉ người upload/admin; không gắn lại tệp đã gỡ | xoá mềm → 403, khôi phục → 200; gỡ tệp; thay phiên bản; thu hồi quyền; xoá vĩnh viễn không xoá tệp hồ sơ khác dùng |
+| **B3** Trùng số khi nhiều người thao tác | Migration **0008** `number_registry` (khoá chính theo sổ + số chuẩn hoá) kiểm tra trong cùng batch ghi D1 (`number_guard`) → nhiều isolate không thể ghi trùng; áp dụng cho số tự động, số tay, đổi số, nhập Excel; số của hồ sơ trong thùng rác không cấp lại; số trùng lịch sử được ghi nhận (hồ sơ cũ nhất giữ số), báo cáo, vẫn sửa được; năm cấp số theo giờ Việt Nam | 2 kết nối SQLite độc lập cùng số tay → lần ghi thứ 2 bị huỷ; đổi số hợp đồng sang số isolate khác vừa dùng; backfill dữ liệu trùng; không cấp lại số trong thùng rác; năm VN |
+| **B4** Bỏ qua quy trình qua PATCH/PUT | Một bộ quy tắc duy nhất (`planStatusChange`) cho PATCH, PUT, `/transition` và khi tạo mới: không nhảy bước, trạng thái lạ bị từ chối (`STATUS_INVALID`, không tự đổi thành bước đầu), bắt buộc người xử lý/người ký/số; ngoại lệ chỉ khi có `status_override_reason`, ghi lịch sử `status_override` + audit; trạng thái cũ vẫn đọc được | nhảy Dự thảo → Phát hành bị chặn; trạng thái lạ; thiếu người ký/người xử lý; ngoại lệ có lý do; trạng thái lịch sử |
+| **B5** Bỏ qua chống ghi đè khi thiếu revision | `expected_revision` **bắt buộc** (428 `REVISION_REQUIRED`) cho mọi thay đổi hồ sơ: sửa, chuyển bước, phụ lục, liên kết, thanh lý/chấm dứt, tệp đính kèm, liên kết Drive; vẫn kiểm tra lại trong batch D1 (`write_guard`) → 409; client luôn gửi phiên bản đã tải | 10 endpoint thiếu revision → 428; revision cũ → 409 và dữ liệu không đổi; 2 isolate sửa cùng hồ sơ |
+| **B6** Thống kê lộ văn bản Mật | `/api/stats` tính trên đúng tập hồ sơ người dùng được đọc (văn bản Mật, HĐLĐ) | số liệu khớp danh sách theo từng tổ hợp quyền |
+| Nhật ký nhập Excel | Ghi `import_batches` trong **cùng transaction** với dữ liệu nhập | nhập lỗi (trùng số ở D1) → 409, không có dòng nhật ký |
+| Rollback upload | Xoá object R2 rồi xoá bản ghi `file_uploads`; nếu xoá object lỗi thì giữ bản ghi để đối soát | rollback không để lại `file_uploads` |
+| HĐ `status = NULL` | Coi là đang hiệu lực ở mọi nơi (thống kê giá trị, thanh lý/chấm dứt) | thống kê + thanh lý |
+| Nhập Excel vượt quy tắc | Không đổi số, loại văn bản, trạng thái, độ mật, văn bản đã phát hành; không dùng số trong thùng rác; trạng thái phải hợp lệ | xem trước báo lỗi từng dòng |
+| Hồ sơ đã xoá | Lịch sử, tệp đính kèm của hồ sơ trong thùng rác chỉ admin | 404 cho người dùng thường |
+
+**Migration & chuẩn bị Production**
+- `scripts/preflight.mjs` (+ `npm run preflight:remote`): **chỉ đọc** (chặn mọi lệnh không phải SELECT/PRAGMA) — ledger `d1_migrations`,
+  bảng/cột khớp ledger, dữ liệu cũ (revision NULL, HĐ không trạng thái, thông báo chưa có người nhận, file_key cũ), số trùng.
+- `tests/migrations.test.ts`: database giống Production (chỉ 0001–0003 + dữ liệu biên) → preflight không ghi gì → áp 0004–0008 →
+  dữ liệu cũ không đổi → ứng dụng khởi động, đăng ký số, sửa được hồ sơ cũ → mã bản trước (SQL thời 0003) vẫn ghi được (rollback).
+- Runbook viết lại: SHA triển khai, preflight trước/sau, sao lưu D1+R2, diễn tập phục hồi, tiêu chí dừng, rollback;
+  phân biệt smoke chỉ đọc (không tài khoản) với smoke có đăng nhập (ghi audit/phiên); phục hồi R2 không dùng `rclone sync`.
+
+**Kiểm thử thực tế sau sửa (trên commit `1394384`)**
+| Lệnh | Kết quả |
+|---|---|
+| `npm ci` | ✔ |
+| `npm run typecheck` | ✔ |
+| `npm test` | ✔ 310 test / 29 file |
+| `npm run build` | ✔ |
+| `npx wrangler deploy --dry-run --outdir dist/worker` | ✔ |
+| `npm run audit:prod` | ✔ 0 lỗ hổng |
+| `npm run check` | ✔ |
+| Smoke E2E `--write` trên server **local** (dữ liệu giả lập) | ✔ 72/72 |
+| Luồng giao diện (Playwright: sửa hồ sơ, chuyển bước) | ✔ không có lỗi API |
+
+Chưa kiểm thử trên Production (không được phép). Preflight chưa chạy với D1 Production (cần phê duyệt đọc dữ liệu thật).
 
 ---
 
@@ -151,7 +194,7 @@ Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhá
 | 2 | Quyền xem văn bản Mật | **A** — chỉ admin và người được cấp quyền | Đã đúng như mã hiện tại (PR01) |
 | 3 | Ý nghĩa tỷ giá | **A** — "1 đơn vị = X đơn vị tiền mặc định" | Đã đúng như mã hiện tại (PR03) |
 | 4 | Thư viện Excel | **A** — SheetJS 0.20 từ CDN chính thức | **Xong**: `xlsx` 0.20.3; `npm audit --omit=dev` = 0 lỗ hổng; CI siết mức audit lên high; `npm run check` đạt (280 test) |
-| 5 | Migration & deploy Production | Cần **ChatGPT phê duyệt** | Chưa thực hiện. Sau khi được duyệt, làm theo `docs/ops/DEPLOY_RUNBOOK.md` |
+| 5 | Migration & deploy Production | Cần **ChatGPT phê duyệt** | Review lần 1: NO-GO → đã khắc phục ở PR06, chờ review lại. Chưa thực hiện Production |
 
 ## Danh sách kiểm tra cho người review (ChatGPT)
 
@@ -171,7 +214,7 @@ Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 (xếp chồng). Nhá
    (force-push) — chưa làm.
 2. **Quy tắc văn bản Mật**: hiện tại chỉ admin hoặc tài khoản được cấp cờ mới xem được. Nếu muốn
    người xử lý được giao cũng xem được văn bản Mật đó, cần xác nhận.
-3. **Deploy & migration Production** (0004–0007): chờ phê duyệt.
+3. **Deploy & migration Production** (0004–0008): chờ phê duyệt.
 4. **Ý nghĩa tỷ giá** trong danh mục tiền tệ: đang hiểu là "1 đơn vị = X đơn vị tiền mặc định". Nếu
    công ty dùng quy ước khác (ví dụ VND/1 USD), cần xác nhận để chỉnh công thức quy đổi.
 7. **Tách sâu thêm** `App.tsx`, `DetailPane.tsx`, các bảng dữ liệu và `EditRecordModal.tsx` (chức năng đã ổn, chỉ là dọn mã).
