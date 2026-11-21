@@ -139,7 +139,7 @@ Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod
 | PR04 | Giao diện | https://github.com/Xichlo1234/bpnm-doc-hub/pull/4 |
 | PR05 | Kiểm thử & vận hành | https://github.com/Xichlo1234/bpnm-doc-hub/pull/5 |
 | PR06 | Khắc phục sau thẩm định | https://github.com/Xichlo1234/bpnm-doc-hub/pull/6 |
-| PR07 | Gia cố cuối sau thẩm định lần 2 | (link PR #7) |
+| PR07 | Gia cố cuối sau thẩm định lần 2 | https://github.com/Xichlo1234/bpnm-doc-hub/pull/7 |
 
 Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 → PR07 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
 
@@ -188,7 +188,7 @@ Chưa kiểm thử trên Production (không được phép). Preflight chưa ch�
 ---
 
 ## PR07 — Gia cố cuối sau thẩm định lần 2 (NO-GO trên PR #6)
-Nhánh `pr07-final-hardening` → `pr06-review-fixes` · mã sửa: commit `9f7f41c` · (link PR bên dưới)
+Nhánh `pr07-final-hardening` → `pr06-review-fixes` · mã sửa: commit `9f7f41c` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/7
 
 | Lỗi | Đã sửa | Test (`tests/final_hardening.test.ts`) |
 |---|---|---|

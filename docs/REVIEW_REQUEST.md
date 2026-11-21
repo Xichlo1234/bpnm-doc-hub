@@ -17,7 +17,7 @@
 | [#4](https://github.com/Xichlo1234/bpnm-doc-hub/pull/4) | `pr04-ui` → `pr03` | Giao diện | — |
 | [#5](https://github.com/Xichlo1234/bpnm-doc-hub/pull/5) | `pr05-qa-ops` → `pr04` | Kiểm thử & vận hành | — |
 | [#6](https://github.com/Xichlo1234/bpnm-doc-hub/pull/6) | `pr06-review-fixes` → `pr05` | Khắc phục B1–B6 | 0008 |
-| **#7** | `pr07-final-hardening` → `pr06` | **Khắc phục C1–C7** | **0009** |
+| [#7](https://github.com/Xichlo1234/bpnm-doc-hub/pull/7) | `pr07-final-hardening` → `pr06` | **Khắc phục C1–C7** | **0009** |
 
 ## Đối chiếu C1–C7 → mã → test
 | Lỗi | Tệp chính | Test (`tests/final_hardening.test.ts`) |
