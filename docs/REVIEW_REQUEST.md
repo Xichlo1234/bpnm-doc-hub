@@ -3,7 +3,7 @@
 **Repository:** `Xichlo1234/bpnm-doc-hub` (private)
 **Lần 1:** `93440f3` → NO-GO (B1–B6) → PR #6. **Lần 2:** PR #6 → NO-GO (C1–C7) → PR #7.
 **Lần 3:** PR #7 → NO-GO (D1–D5) → sửa ở **PR #8**.
-**Mã sửa lần này:** nhánh `pr08-final-review-fixes`, commit `3c2f9725fefcc675b73850a9cd61fb5de68914df`
+**Mã sửa lần này:** nhánh `pr08-final-review-fixes`, commit `2a0e908551af4ce9e4ad76a669e43fe7e911735a`
 (các commit sau chỉ cập nhật tài liệu)
 **Nhánh tích hợp (toàn bộ):** `claude/vigilant-babbage-xm8dcm` = đầu nhánh `pr08-final-review-fixes`
 **So với:** `main` (`f521c0d`, mã nguồn import ban đầu)
@@ -31,9 +31,10 @@
 | Nên sửa (luồng, Excel, revision, storage_cleanup, preflight, hồi quy) | `utils/documentRules.ts`, `utils/storageCleanup.ts`, `routes/admin.ts`, `scripts/lib/preflight-core.mjs` | `pr08_hardening` › Should-fix + toàn bộ test cũ | ✔ |
 
 Chi tiết từng lỗi, lỗi mới phát hiện và cách xử lý: `docs/WORKLOG.md` › PR08.
+Báo cáo tự chứa cho reviewer: `docs/CHATGPT_REVIEW_PR08.md`.
 
-## Kết quả kiểm thử thực tế (commit `3c2f972`)
-`npm ci` ✔ · `npm run typecheck` ✔ · `npm test` ✔ **358 test / 31 file** · `npm run build` ✔ ·
+## Kết quả kiểm thử thực tế (commit `2a0e908`)
+`npm ci` ✔ · `npm run typecheck` ✔ · `npm test` ✔ **359 test / 31 file** · `npm run build` ✔ ·
 `npx wrangler deploy --dry-run --outdir dist/worker` ✔ · `npm run audit:prod` ✔ (0 lỗ hổng) · `npm run check` ✔ ·
 smoke E2E có ghi trên server **local** dữ liệu giả lập ✔ 72/72 · Playwright ✔. Không có kiểm thử nào trên Production.
 

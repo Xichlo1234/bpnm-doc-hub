@@ -225,7 +225,7 @@ nút khoá đối tác). Cần bản báo cáo đầy đủ để đối chiếu
 ---
 
 ## PR08 — Khắc phục NO-GO lần 3 (D1–D5)
-Nhánh `pr08-final-review-fixes` → `pr07-final-hardening` · mã sửa: commit `3c2f972` · PR: (xem `docs/REVIEW_REQUEST.md`)
+Nhánh `pr08-final-review-fixes` → `pr07-final-hardening` · mã sửa: commit `2a0e908` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/8
 
 | Lỗi | Mã đã sửa | Test (`tests/pr08_hardening.test.ts` trừ khi ghi khác) | Kết quả |
 |---|---|---|---|
@@ -239,7 +239,7 @@ Nhánh `pr08-final-review-fixes` → `pr07-final-hardening` · mã sửa: commit
 | Nên sửa: revision trả về | API sửa tài khoản/đối tác trả revision đã commit (trùng D1) | › Should-fix | ✔ |
 | Nên sửa: tồn đọng `storage_cleanup` | `utils/storageCleanup.ts` `cleanupCounts`, `listCleanup(limit, offset)`; `GET /api/admin/storage-cleanup?status&limit&offset`; POST trả `remaining` | › Should-fix: tổng số + phân trang | ✔ |
 | Nên sửa: preflight sổ số | `scripts/lib/preflight-core.mjs`: số trùng lịch sử → cảnh báo; `registry_conflicts` (số đã đăng ký cho hồ sơ khác, phát sinh sau backfill) → **CHẶN**; `unregistered_numbers` → cảnh báo + reconcile | › Should-fix: lịch sử không chặn, bản cũ ghi trùng sau backfill → chặn | ✔ |
-| Nên sửa: hồi quy | Văn bản Mật, R2, đính kèm, nhật ký, thông báo, sổ số: toàn bộ test cũ vẫn chạy | 358 test | ✔ |
+| Nên sửa: hồi quy | Văn bản Mật, R2, đính kèm, nhật ký, thông báo, sổ số: toàn bộ test cũ vẫn chạy | 359 test | ✔ |
 
 **Lỗi mới phát hiện khi làm PR08 (đã sửa)**
 | Lỗi | Xử lý |
@@ -249,16 +249,17 @@ Nhánh `pr08-final-review-fixes` → `pr07-final-hardening` · mã sửa: commit
 | Id đối tác suy ra từ mã → tạo lại mã đã xoá vĩnh viễn va chạm id cũ | Id ngẫu nhiên `partner-<slug>-<rand>`; test C2 cập nhật kỳ vọng sang `PartnerCodeTakenError` |
 | Một số thao tác (xoá/khôi phục đối tác, gỡ phiên bản tệp) chỉ dựa vào tự nâng revision trong `flush` | Mỗi mutator nâng revision rõ ràng |
 | Smoke/test cũ kỳ vọng 400 khi trùng mã đối tác | Đổi sang 409 (đúng đặc tả mới), không nới kiểm tra |
+| D2 trong cùng isolate: nhánh không cần ghi không kiểm tra lại mật khẩu/trạng thái sau `await verifyPassword` | Kiểm tra lại trên bản hiện tại trước khi cấp token (commit `2a0e908`); test thất bại trên mã cũ, đạt trên mã mới |
 
 **Migration 0010** (chỉ thêm, không sửa dòng nào): `CREATE UNIQUE INDEX IF NOT EXISTS idx_partners_code_active ON partners (upper(trim(code))) WHERE deleted_at IS NULL`.
 Tương thích 0001–0003; không sửa 0001–0009. Preflight chặn trước nếu dữ liệu đang có mã trùng; diễn tập trên DB giả lập Production trong `tests/migrations.test.ts`.
 
-**Kiểm thử thực tế (commit `3c2f972`)**
+**Kiểm thử thực tế (commit `2a0e908`)**
 | Lệnh | Kết quả |
 |---|---|
 | `npm ci` | ✔ |
 | `npm run typecheck` | ✔ |
-| `npm test` | ✔ 358 test / 31 file |
+| `npm test` | ✔ 359 test / 31 file |
 | `npm run build` | ✔ |
 | `npx wrangler deploy --dry-run --outdir dist/worker` | ✔ (`MAINTENANCE_MODE: "0"`) |
 | `npm run audit:prod` | ✔ 0 lỗ hổng |
