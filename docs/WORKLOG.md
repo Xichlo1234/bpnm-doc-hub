@@ -138,14 +138,14 @@ Thêm: `npm run check`, `npm run smoke`, `npm run dev:demo`, `npm run audit:prod
 | PR03 | Logic nghiệp vụ | https://github.com/Xichlo1234/bpnm-doc-hub/pull/3 |
 | PR04 | Giao diện | https://github.com/Xichlo1234/bpnm-doc-hub/pull/4 |
 | PR05 | Kiểm thử & vận hành | https://github.com/Xichlo1234/bpnm-doc-hub/pull/5 |
-| PR06 | Khắc phục sau thẩm định | (link PR #6) |
+| PR06 | Khắc phục sau thẩm định | https://github.com/Xichlo1234/bpnm-doc-hub/pull/6 |
 
 Thứ tự merge: PR01 → PR02 → PR03 → PR04 → PR05 → PR06 (xếp chồng). Nhánh `claude/vigilant-babbage-xm8dcm` = toàn bộ.
 
 ---
 
 ## PR06 — Khắc phục sau thẩm định (review NO-GO trên `93440f3`)
-Nhánh `pr06-review-fixes` → `pr05-qa-ops` · mã sửa: commit `1394384` · (link PR bên dưới)
+Nhánh `pr06-review-fixes` → `pr05-qa-ops` · mã sửa: commit `1394384` · https://github.com/Xichlo1234/bpnm-doc-hub/pull/6
 
 | Lỗi | Đã sửa | Kiểm thử (tests/review_fixes.test.ts trừ khi ghi khác) |
 |---|---|---|

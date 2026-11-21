@@ -15,7 +15,7 @@
 | [#3](https://github.com/Xichlo1234/bpnm-doc-hub/pull/3) | `pr03-business-logic` → `pr02` | Logic nghiệp vụ (0007) |
 | [#4](https://github.com/Xichlo1234/bpnm-doc-hub/pull/4) | `pr04-ui` → `pr03` | Giao diện |
 | [#5](https://github.com/Xichlo1234/bpnm-doc-hub/pull/5) | `pr05-qa-ops` → `pr04` | Kiểm thử & vận hành |
-| **#6** | `pr06-review-fixes` → `pr05` | **Khắc phục B1–B6 + các mục còn lại (0008)** |
+| [#6](https://github.com/Xichlo1234/bpnm-doc-hub/pull/6) | `pr06-review-fixes` → `pr05` | **Khắc phục B1–B6 + các mục còn lại (0008)** |
 
 PR #1–#5 giữ nguyên (không force-push, không viết lại lịch sử). Mọi sửa lỗi nằm trong PR #6.
 
