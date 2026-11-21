@@ -40,6 +40,29 @@ afterEach(() => vi.restoreAllMocks());
 
 // ---------------------------------------------------------------------------
 describe('D1 — one active partner per code, enforced by D1', () => {
+  it('preflight catches blank legacy keys before migration 0010', async () => {
+    const { rawA } = await twoWorkers();
+    rawA.exec(`
+      DROP INDEX idx_partners_code_active;
+      DELETE FROM d1_migrations WHERE name = '0010_partner_code_unique.sql';
+      INSERT INTO partners (id, code) VALUES ('blank-a', ''), ('blank-b', ' ');
+    `);
+    const report = await runPreflight(async (sql: string) => rawA.prepare(sql).all(), ALL);
+    expect(report.blocking.join()).toMatch(/mã đối tác trùng/);
+    expect(report.info.duplicate_partner_index_codes).toEqual([{ code: '', ids: ['blank-a', 'blank-b'] }]);
+  });
+
+  it('preflight catches a missing index and Unicode-equivalent legacy codes after migration 0010', async () => {
+    const { rawA } = await twoWorkers();
+    const preflight = () => runPreflight(async (sql: string) => rawA.prepare(sql).all(), ALL);
+    rawA.exec("INSERT INTO partners (id, code) VALUES ('unicode-a', 'đt-demo'), ('unicode-b', 'ĐT-DEMO')");
+    const duplicates = await preflight();
+    expect(duplicates.blocking.join()).toMatch(/mã đối tác trùng/);
+    rawA.exec("DELETE FROM partners WHERE id = 'unicode-a'; DROP INDEX idx_partners_code_active");
+    const missingIndex = await preflight();
+    expect(missingIndex.blocking.join()).toMatch(/thiếu chỉ mục idx_partners_code_active/);
+  });
+
   it('create / create from two workers', async () => {
     const { a, b, dbA, dbB, rawA } = await twoWorkers();
     a.createPartner({ code: 'DUP1', name_vn: 'A' } as any);
@@ -162,6 +185,24 @@ describe('D2 — a concurrent account change never lets the earlier verification
     await store.flush(await getDatabase());
     const res = await login('user', 'User@123456');
     expect((await json(res)).user.must_change_password).toBe(true);
+  });
+
+  it('does not publish a session or cookie for an account suspended before session issuance finishes', async () => {
+    const security = await import('../src/server/utils/security.ts');
+    const db = await getDatabase();
+    store.updateUser('user_viewer', { password: await hashPassword('FixturePass2026'), must_change_password: false });
+    await store.flush(db);
+    const sign = security.signSessionToken;
+    vi.spyOn(security, 'signSessionToken').mockImplementationOnce(async (...args) => {
+      const token = await sign(...args);
+      await db.prepare("UPDATE users SET status = 'locked', revision = revision + 1 WHERE id = ?").bind('user_viewer').run();
+      await db.prepare("UPDATE meta SET value = CAST(value AS INTEGER) + 1 WHERE key = 'data_version'").run();
+      return token;
+    });
+    const res = await login('user', 'FixturePass2026');
+    expect(res.status).toBe(403);
+    expect(res.headers.get('set-cookie')).toBeNull();
+    expect(await json(res)).toMatchObject({ code: 'ACCOUNT_LOCKED' });
   });
 });
 
@@ -329,6 +370,32 @@ describe('D4 — Excel import identifies documents by register', () => {
     expect(preview.rows[0].action).toBe('error');
   });
 
+  it('requires a valid id when two historical records in one register share a number', async () => {
+    const number = 'SỐ-LỊCH-SỬ-01';
+    const first = store.createDocument({ document_number: number, title: 'Hồ sơ A', doc_type: 'incoming', issue_date: '2025-01-01' } as any);
+    const db = await getDatabase();
+    await store.flush(db);
+    await db.prepare('INSERT INTO documents (id, document_number, title, doc_type, issue_date) VALUES (?,?,?,?,?)')
+      .bind('legacy-same-register', number, 'Hồ sơ B', 'incoming', '2025-01-02').run();
+    await db.prepare("UPDATE meta SET value = CAST(value AS INTEGER) + 1 WHERE key = 'data_version'").run();
+
+    const row = { document_number: number, doc_type: 'incoming', notes: 'Chỉ hồ sơ được chọn' };
+    const preview = await json(await as('admin_root', '/api/documents/import/preview', send('POST', { rows: [row] })));
+    expect(preview.rows[0]).toMatchObject({ action: 'error', errors: [expect.stringContaining('cùng sổ')] });
+    const ambiguous = await as('admin_root', '/api/documents/bulk-import', send('POST', { rows: [row], confirm_updates: true }));
+    expect(ambiguous.status).toBe(400);
+    expect(store.getDocument(first.id)?.notes).toBeFalsy();
+    expect(store.getDocument('legacy-same-register')?.notes).toBeFalsy();
+
+    const selected = await as('admin_root', '/api/documents/bulk-import', send('POST', {
+      rows: [{ ...row, id: 'legacy-same-register' }],
+      confirm_updates: true,
+    }));
+    expect(selected.status).toBe(200);
+    expect(store.getDocument('legacy-same-register')?.notes).toBe(row.notes);
+    expect(store.getDocument(first.id)?.notes).toBeFalsy();
+  });
+
   it('round trip: re-importing an export changes nothing and keeps extra columns', async () => {
     const doc = store.getDocuments()[0];
     store.updateDocument(doc.id, { ['Cột riêng' as any]: 'giữ lại' } as any);
@@ -362,8 +429,9 @@ describe('D5 — maintenance mode stops writes before any database access', () =
         expect(res.status, p).toBe(503);
         expect((await json(res)).code).toBe('MAINTENANCE');
       }
-      expect(spy).not.toHaveBeenCalled();
       expect((await anon('/api/health')).status).toBe(200);
+      expect((await anon('/api/health', { method: 'HEAD' })).status).toBe(200);
+      expect(spy).not.toHaveBeenCalled();
     } finally {
       delete process.env.MAINTENANCE_MODE;
     }

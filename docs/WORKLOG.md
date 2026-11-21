@@ -305,3 +305,19 @@ Không chạy gì trên Production, không merge PR nào.
 7. **Tách sâu thêm** `App.tsx`, `DetailPane.tsx`, các bảng dữ liệu và `EditRecordModal.tsx` (chức năng đã ổn, chỉ là dọn mã).
 5. **Quy trình công văn**: đã giữ nguyên các giá trị trạng thái đang dùng ("Đã gửi" = phát hành,
    "Đã ký - chờ gửi" = đã ký) và thêm "Đã phân công", "Lưu trữ". Nếu muốn đổi tên hiển thị/giá trị lưu, cần quyết định.
+
+---
+
+## Bản vá sau thẩm định PR #8 · E1–E4 · 21/11/2026
+
+Nền `964e1df5809708e1f9b24ce091e57ec676385170`, nhánh cục bộ `codex/pr08-e1-e4`.
+
+| Mã | Đã sửa | Kiểm tra |
+|---|---|---|
+| E1 | Route đăng nhập ký phiên theo snapshot tài khoản đã xác thực. Sau khi ký, đối chiếu trạng thái/hash/revision/phiên giữa snapshot, hàng đã commit và bộ đệm trước khi trả cookie/token. Thử lại từ dữ liệu mới khi có xung đột. Route tự đổi mật khẩu cũng đối chiếu trước khi ghi và dùng cùng đường cấp phiên. `src/server/routes/auth.ts`. | Tài khoản bị khóa trong lúc cấp phiên: 403, không trả cookie. Các test reset/khoá/thu hồi phiên và mật khẩu mặc định vẫn đạt. |
+| E2 | Trong bảo trì, health GET/HEAD trả trực tiếp và vẫn có header bảo mật. Middleware khởi tạo D1 không tham gia. `src/server/index.ts`. | Cả GET/HEAD trả 200 và spy xác nhận không gọi getDatabase; các API nghiệp vụ được thử trả 503. |
+| E3 | Preflight so sánh đồng thời chuẩn Unicode của app và biểu thức khóa SQL 0010, gồm mã rỗng và trường hợp ledger có 0010 nhưng chỉ mục vắng. `scripts/lib/preflight-core.mjs`. | Fixture SQLite cho khóa rỗng, cặp Unicode lịch sử và index vắng đều bị báo chặn; các test migration cũ vẫn đạt. Quy tắc mã và SQL migration giữ nguyên. |
+| E4 | Nhập công văn yêu cầu ID hợp lệ khi còn nhiều hồ sơ trùng số trong cùng sổ. Sau khi xác định được hồ sơ, nhận diện dòng lặp qua ID. `src/server/utils/importer.ts`. | Preview báo mơ hồ, bulk import trả 400; import có ID chỉ sửa hồ sơ được chọn. |
+| Vận hành | Runbook ghi rõ health trong bảo trì và dùng đường dẫn chính xác của bản D1 vừa export khi diễn tập phục hồi. `docs/ops/DEPLOY_RUNBOOK.md`. | Kiểm tra thứ tự khóa ghi và migration vẫn đạt. |
+
+**Kết quả độc lập.** TypeScript phía server và tệp `tests/pr08_hardening.test.ts` đạt. Vitest đạt **356 bài / 29 tệp**, gồm **29 bài PR #8**. `git diff --check` đạt. Cài đặt đầy đủ bị proxy trả HTTP 403 trên tarball SheetJS 0.20.3. Bộ kiểm tra con dùng các phiên bản từ lockfile trong thư mục phụ thuộc riêng; hai suite dùng SheetJS (`excel_import_export`, `contract_filter`) và build/dry-run đầy đủ đang chờ truy cập CDN. Manifest, lockfile, migration và cơ sở dữ liệu Production không đổi.

@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { documentsRouter } from './routes/documents.ts';
 import { contractsRouter } from './routes/contracts.ts';
@@ -42,7 +42,10 @@ app.use(
 // older than the security hardening (see docs/ops/DEPLOY_RUNBOOK.md, "Rollback").
 app.use('/api/*', async (c, next) => {
   const flag = (c.env as any)?.MAINTENANCE_MODE ?? (typeof process !== 'undefined' ? process.env?.MAINTENANCE_MODE : undefined);
-  if (String(flag ?? '') === '1' && c.req.path !== '/api/health') {
+  if (String(flag ?? '') === '1') {
+    if (c.req.path === '/api/health' && (c.req.method === 'GET' || c.req.method === 'HEAD')) {
+      return withSecurityHeaders(healthResponse(c));
+    }
     return c.json({ error: 'Hệ thống đang bảo trì. Vui lòng thử lại sau.', code: 'MAINTENANCE' }, 503);
   }
   await next();
@@ -106,8 +109,11 @@ app.use('*', async (c, next) => {
 // Every API route requires a signed session except login/logout/health (see auth.ts)
 app.use('/api/*', authenticate);
 
-// Healthcheck
-app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+function healthResponse(c: Context) {
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+}
+
+app.get('/api/health', healthResponse);
 
 // Mount API subrouters
 app.route('/api/auth', authRouter);

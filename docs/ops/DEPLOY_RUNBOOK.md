@@ -26,7 +26,8 @@
 | 7 | Sự cố ở bất kỳ bước nào: **giữ bảo trì hoặc sửa tiến**, không rollback về bản dễ tổn thương | Không |
 
 **Vì sao an toàn.** Middleware bảo trì của bản mới chạy *trước* mọi truy cập D1/R2 (có test
-`tests/pr08_hardening.test.ts › D5`): mọi `/api/*` trả `503 MAINTENANCE`, chỉ `/api/health` trả lời.
+`tests/pr08_hardening.test.ts › D5`): các API nghiệp vụ trả `503 MAINTENANCE`; GET/HEAD `/api/health`
+chỉ báo Worker đang hoạt động và trả 200 ngay trong middleware. Cả hai đường đều bỏ qua khởi tạo D1/R2.
 Vì vậy bản mới chạy được trên schema cũ (0001–0003) trong lúc chờ migrate, và Worker cũ (không có
 các bảo vệ ghi) bị thay thế **trước** khi schema đổi.
 
@@ -52,8 +53,10 @@ Nếu đang dùng gradual deployment (`wrangler versions`), đưa bản bảo tr
 Preflight phải không có `CHẶN:`. Các điều kiện chặn chính:
 - ledger `d1_migrations` lệch schema; thiếu 0001–0003; cột đã tồn tại;
 - tên đăng nhập trùng (không phân biệt hoa thường) → 0009 sẽ lỗi;
-- **mã đối tác trùng giữa các đối tác đang hoạt động** (`duplicate_partner_codes`) → 0010 sẽ lỗi.
-  Xử lý bằng cách đổi mã hoặc đưa bản trùng vào thùng rác *sau khi được phê duyệt*; migration không tự sửa;
+- **mã đối tác trùng giữa các đối tác đang hoạt động**: preflight kiểm tra cả khóa SQL 0010
+  (`duplicate_partner_index_codes`, gồm khóa rỗng) và mã chuẩn hóa Unicode của ứng dụng
+  (`duplicate_partner_codes`), trước và sau migration. Xử lý dữ liệu sau khi được phê duyệt;
+- ledger có 0010 nhưng thiếu chỉ mục UNIQUE có điều kiện `idx_partners_code_active`;
 - `registry_conflicts`: số đã đăng ký cho hồ sơ khác nhưng hồ sơ khác lại đang dùng (do bản cũ ghi sau
   backfill). Rà soát, đổi số thủ công rồi chạy lại preflight.
 
@@ -71,15 +74,20 @@ npx wrangler tail --format pretty                       # (tuỳ chọn) chỉ t
 
 ## 3. Sao lưu và diễn tập phục hồi (bắt buộc)
 ```bash
-npx wrangler d1 export bpnm-doc-hub-db --remote --output backups/d1-pre-deploy-$(date +%Y%m%d-%H%M).sql
+mkdir -p backups
+backup_dir="$(mktemp -d backups/d1-pre-deploy.XXXXXX)"
+d1_backup="$backup_dir/d1.sql"
+npx wrangler d1 export bpnm-doc-hub-db --remote --output "$d1_backup"
 npx wrangler d1 time-travel info bpnm-doc-hub-db        # ghi lại bookmark/thời điểm
 ```
 R2: sao chép (không xoá gì) sang bucket sao lưu theo `BACKUP_RESTORE.md`; so số object và tổng dung lượng.
 
 **Diễn tập phục hồi (cục bộ, không đụng Production):**
 ```bash
-rm -f /tmp/restore-check.db && sqlite3 /tmp/restore-check.db < backups/d1-pre-deploy-*.sql
-node scripts/preflight.mjs --file /tmp/restore-check.db    # số bản ghi phải khớp mục 1, không "CHẶN:"
+# Dùng đúng đường dẫn d1_backup vừa export ở trên.
+restore_dir="$(mktemp -d)"
+sqlite3 -bail "$restore_dir/restore-check.db" < "$d1_backup"
+node scripts/preflight.mjs --file "$restore_dir/restore-check.db" # số bản ghi phải khớp mục 1
 ```
 Mở một vài object R2 trong bucket sao lưu (tải được, đúng kích thước). **Dừng** nếu bản phục hồi
 không mở được hoặc số bản ghi lệch.
@@ -110,7 +118,8 @@ npx wrangler d1 execute bpnm-doc-hub-db --remote --command "PRAGMA integrity_che
 npx wrangler d1 execute bpnm-doc-hub-db --remote --command "SELECT (SELECT COUNT(*) FROM documents) d, (SELECT COUNT(*) FROM contracts) c, (SELECT COUNT(*) FROM partners) p, (SELECT COUNT(*) FROM users) u"
 ```
 - [ ] Số bản ghi khớp mục 1 (migration không thêm/xoá dòng nghiệp vụ).
-- [ ] `duplicate_partner_codes`, `registry_conflicts` rỗng.
+- [ ] `duplicate_partner_codes`, `duplicate_partner_index_codes`, `registry_conflicts` rỗng.
+- [ ] Chỉ mục UNIQUE có điều kiện của 0010 tồn tại; schema khớp ledger.
 
 ## 6. Mở ghi
 ```bash

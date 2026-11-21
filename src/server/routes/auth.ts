@@ -86,12 +86,28 @@ function extractBearerToken(c: Context): string | null {
   return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 }
 
-async function issueSession(c: Context, account: UserAccount, secret: string): Promise<string> {
+type AccountState = Pick<UserAccount, 'status' | 'password' | 'revision' | 'token_version'>;
+
+function matchesVerifiedState(current: AccountState | null, verified: AccountState): boolean {
+  return current?.status === 'active' &&
+    current.password === verified.password &&
+    (current.revision ?? 0) === (verified.revision ?? 0) &&
+    (current.token_version ?? 0) === (verified.token_version ?? 0);
+}
+
+async function issueSession(c: Context, db: SqlDatabase, account: UserAccount, secret: string): Promise<string | null> {
   const now = Date.now();
   const token = await signSessionToken(
     { sub: account.id, tv: account.token_version || 0, sid: randomId(), iat: now, exp: now + SESSION_DURATION_MS },
     secret
   );
+  // Signing and other awaited work may overlap an account update. Check the committed row
+  // and the live cache before publishing the token signed for the verified snapshot.
+  const committed = await db.prepare('SELECT status, password, revision, token_version FROM users WHERE id = ?')
+    .bind(account.id)
+    .first<AccountState>();
+  if (!matchesVerifiedState(committed, account) || !matchesVerifiedState(store.getUser(account.id), account)) return null;
+
   setCookie(c, SESSION_COOKIE, token, {
     path: SESSION_COOKIE_PATH,
     httpOnly: true,
@@ -264,11 +280,6 @@ authRouter.post('/login', async (c) => {
   // token_version), the batch is refused (RevisionConflictError); then everything is re-done from
   // the reloaded row — the password is verified again against the *new* hash, the status re-checked —
   // and no token is ever issued from the earlier verification.
-  let accountId: string | null = null;
-  const stillTheVerifiedAccount = (verified: { id: string; password?: string | null; revision?: number | null }) => {
-    const now = store.getUser(verified.id);
-    return Boolean(now && now.status !== 'locked' && now.password === verified.password && (now.revision ?? 0) === (verified.revision ?? 0));
-  };
   for (let attempt = 0; attempt < 2; attempt++) {
     const account = store.getUserByUsername(trimmedUser);
     // Unknown usernames still pay for a PBKDF2 run so response time does not reveal which exist
@@ -281,52 +292,44 @@ authRouter.post('/login', async (c) => {
       return c.json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên.', code: 'ACCOUNT_LOCKED' }, 403);
     }
     const usesDefaultPassword = KNOWN_DEFAULT_PASSWORDS.has(password);
-    if (!needsRehash && !(usesDefaultPassword && !account.must_change_password)) {
-      // verifyPassword awaited: another request in this isolate may have reset the password or locked
-      // the account meanwhile. Only the row as it is now may produce a token.
-      if (!stillTheVerifiedAccount(account)) continue;
-      accountId = account.id;
-      break;
-    }
     const newHash = needsRehash ? await hashPassword(password) : null;
-    // The cache may have moved during the awaits above: re-check, then update without awaiting
-    const current = store.getUser(account.id);
-    if (!stillTheVerifiedAccount(account)) continue;
-    try {
-      store.updateUser(account.id, {
+    if (!matchesVerifiedState(store.getUser(account.id), account)) continue;
+
+    let verified = account;
+    if (newHash || (usesDefaultPassword && !account.must_change_password)) {
+      const updated = store.updateUser(account.id, {
         ...(newHash ? { password: newHash } : {}),
         ...(usesDefaultPassword ? { must_change_password: true } : {}),
       });
-      await store.persistAsync();
-      const written = store.getUser(account.id);
-      if (!written || written.status === 'locked' || written.password !== (newHash ?? account.password)) continue;
-      accountId = account.id;
-      break;
-    } catch (err) {
-      if (!(err instanceof RevisionConflictError)) throw err;
-      await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
+      if (!updated) continue;
+      try {
+        await store.persistAsync();
+      } catch (err) {
+        if (!(err instanceof RevisionConflictError)) throw err;
+        await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
+        continue;
+      }
+      verified = updated;
     }
+
+    await clearLoginFailures(db, throttleKey);
+    const token = await issueSession(c, db, verified, secret);
+    if (!token) {
+      await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
+      continue;
+    }
+
+    const userProfile = toUserProfile(verified);
+    store.recordAuditLog({
+      user_id: userProfile.id,
+      username: userProfile.username,
+      action: 'login',
+      entity_type: 'auth',
+      details: `Đăng nhập thành công với vai trò ${userProfile.role}`,
+    });
+    return c.json({ token, user: userProfile });
   }
-  if (!accountId) {
-    // The account kept changing under this login: refuse safely, the user can simply retry
-    return c.json({ error: 'Tài khoản vừa được cập nhật. Vui lòng đăng nhập lại.', code: 'LOGIN_RETRY' }, 409);
-  }
-  await clearLoginFailures(db, throttleKey);
-  const account = { id: accountId };
-
-  const fresh = store.getUser(account.id)!;
-  const userProfile = toUserProfile(fresh);
-  const token = await issueSession(c, fresh, secret);
-
-  store.recordAuditLog({
-    user_id: userProfile.id,
-    username: userProfile.username,
-    action: 'login',
-    entity_type: 'auth',
-    details: `Đăng nhập thành công với vai trò ${userProfile.role}`,
-  });
-
-  return c.json({ token, user: userProfile });
+  return c.json({ error: 'Tài khoản vừa được cập nhật. Vui lòng đăng nhập lại.', code: 'LOGIN_RETRY' }, 409);
 });
 
 // GET /api/auth/me
@@ -376,8 +379,12 @@ authRouter.post('/change-password', async (c) => {
     return c.json({ error: 'Vui lòng chọn mật khẩu mới khác mật khẩu hiện tại/mặc định.', code: 'PASSWORD_REUSE' }, 400);
   }
 
+  const db = await getDatabase(c.env);
+  const newHash = await hashPassword(new_password);
+  if (!matchesVerifiedState(store.getUser(account.id), account)) throw new RevisionConflictError();
+
   const updated = store.updateUser(account.id, {
-    password: await hashPassword(new_password),
+    password: newHash,
     must_change_password: false,
     token_version: (account.token_version || 0) + 1,
   })!;
@@ -393,7 +400,10 @@ authRouter.post('/change-password', async (c) => {
   await store.persistAsync();
 
   // Every other session was revoked by the token_version bump; hand this one a fresh token.
-  const token = await issueSession(c, updated, secret);
+  const token = await issueSession(c, db, updated, secret);
+  if (!token) {
+    return c.json({ error: 'Tài khoản vừa được cập nhật. Vui lòng đăng nhập lại.', code: 'LOGIN_RETRY' }, 409);
+  }
   return c.json({ token, user: toUserProfile(updated) });
 });
 

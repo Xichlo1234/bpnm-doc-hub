@@ -80,8 +80,8 @@ function importRuleErrors(kind: ImportKind, data: Record<string, any>, match: an
 
 /**
  * The record a row refers to. Documents are identified by (doc_type, normalised number) — incoming
- * and outgoing registers may legitimately share a number — or by a valid id. A row without doc_type
- * whose number exists in several registers is ambiguous and is reported, never guessed.
+ * and outgoing registers may legitimately share a number — or by a valid id. A number may be
+ * ambiguous across registers or within one register because historical duplicates are retained.
  */
 function matchRow(kind: ImportKind, raw: any, existing: any[]): { match: any | null; error?: string } {
   const field = numberField(kind);
@@ -98,11 +98,16 @@ function matchRow(kind: ImportKind, raw: any, existing: any[]): { match: any | n
   if (!n) return { match: null };
   const sameNumber = existing.filter((r) => normalizeNumber(r[field]) === n);
   if (kind === 'contract') return { match: sameNumber[0] ?? null };
-  if (raw?.doc_type) return { match: sameNumber.find((r) => r.doc_type === raw.doc_type) ?? null };
-  if (sameNumber.length > 1) {
-    return { match: null, error: `doc_type: số "${raw[field]}" có ở nhiều sổ (${[...new Set(sameNumber.map((r) => r.doc_type))].join(', ')}), cần ghi rõ loại văn bản` };
+
+  const registerOf = (record: { doc_type?: string }) => record.doc_type || 'incoming';
+  const candidates = raw?.doc_type ? sameNumber.filter((r) => registerOf(r) === raw.doc_type) : sameNumber;
+  if (candidates.length <= 1) return { match: candidates[0] ?? null };
+
+  const registers = new Set(candidates.map(registerOf));
+  if (registers.size > 1) {
+    return { match: null, error: `doc_type: số "${raw[field]}" có ở nhiều sổ (${[...registers].join(', ')}), cần ghi rõ loại văn bản hoặc id` };
   }
-  return { match: sameNumber[0] ?? null };
+  return { match: null, error: `id: số "${raw[field]}" có nhiều hồ sơ trong cùng sổ; cần ghi rõ id hợp lệ` };
 }
 
 export function previewImport(kind: ImportKind, rawRows: unknown[]): ImportPreview {
@@ -123,7 +128,9 @@ export function previewImport(kind: ImportKind, rawRows: unknown[]): ImportPrevi
     if (!key) return { index, key, action: 'error', errors: [`${field}: bắt buộc`] };
     // A new document without doc_type goes to the incoming register (the import's default)
     if (kind === 'document' && !match && !data.doc_type) data.doc_type = 'incoming';
-    const dedupeKey = `${kind === 'document' ? numberScope('document', { doc_type: data.doc_type ?? match?.doc_type }) : 'contract'}|${normalizeNumber(key)}`;
+    const dedupeKey = kind === 'document' && match
+      ? `id:${match.id}`
+      : `${kind === 'document' ? numberScope('document', data) : 'contract'}|${normalizeNumber(key)}`;
     if (seen.has(dedupeKey)) return { index, key, action: 'duplicate_in_file' };
     seen.add(dedupeKey);
     const ruleErrors = importRuleErrors(kind, data, match);

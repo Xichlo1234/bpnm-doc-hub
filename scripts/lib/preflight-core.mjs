@@ -17,7 +17,6 @@ export const EXPECTED_AFTER = {
     tables: ['storage_cleanup', 'file_guard'],
     columns: { partners: ['revision'], users: ['revision'], attachments: ['revision'], file_uploads: ['attached_at'] },
   },
-  '0010_partner_code_unique.sql': {},
 };
 
 const normalizeNumber = (v) => String(v ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -106,20 +105,35 @@ export async function runPreflight(query, migrationFiles) {
     report.blocking.push(`${dupUsers.length} tên đăng nhập trùng (không phân biệt hoa thường): migration 0009 sẽ lỗi. Đổi tên tài khoản trùng trước khi migrate.`);
   }
 
-  // Active partner codes must be unique before 0010 adds the unique index
+  // Check both the index key (SQLite ASCII upper and space trim) and the application's
+  // Unicode-normalized code. Legacy rows can compare differently under these two rules.
   const partnerCols = await columns('partners');
-  const partners = await q(`SELECT id, code${partnerCols.includes('deleted_at') ? ', deleted_at' : ''} FROM partners`);
+  const activePartners = partnerCols.includes('deleted_at') ? ' WHERE deleted_at IS NULL' : '';
+  const partners = await q(`SELECT id, code, upper(trim(code)) AS index_code FROM partners${activePartners}`);
   const byCode = new Map();
+  const byIndexCode = new Map();
   for (const p of partners) {
-    if (p.deleted_at) continue;
     const k = String(p.code ?? '').normalize('NFC').trim().replace(/\s+/g, ' ').toUpperCase();
-    if (!k) continue;
-    byCode.set(k, [...(byCode.get(k) || []), p.id]);
+    if (k) byCode.set(k, [...(byCode.get(k) || []), p.id]);
+    // SQLite UNIQUE allows multiple NULLs but compares empty strings as a key.
+    if (p.index_code !== null) {
+      byIndexCode.set(p.index_code, [...(byIndexCode.get(p.index_code) || []), p.id]);
+    }
   }
   const dupPartners = [...byCode.entries()].filter(([, ids]) => ids.length > 1);
+  const dupIndexCodes = [...byIndexCode.entries()].filter(([, ids]) => ids.length > 1);
   report.info.duplicate_partner_codes = dupPartners.map(([code, ids]) => ({ code, ids }));
-  if (dupPartners.length && !applied.includes('0010_partner_code_unique.sql')) {
-    report.blocking.push(`${dupPartners.length} mã đối tác trùng giữa các đối tác đang hoạt động: migration 0010 sẽ lỗi. Đổi mã hoặc chuyển một đối tác vào thùng rác trước.`);
+  report.info.duplicate_partner_index_codes = dupIndexCodes.map(([code, ids]) => ({ code, ids }));
+  if (dupPartners.length || dupIndexCodes.length) {
+    report.blocking.push(
+      `Có mã đối tác trùng giữa các đối tác đang hoạt động (chuẩn ứng dụng: ${dupPartners.length}, khóa chỉ mục 0010: ${dupIndexCodes.length}). Rà soát và xử lý trước khi vận hành.`
+    );
+  }
+  const partnerIndex = (await q('PRAGMA index_list(partners)')).find((row) => row.name === 'idx_partners_code_active');
+  if (partnerIndex && (Number(partnerIndex.unique) !== 1 || Number(partnerIndex.partial) !== 1)) {
+    report.blocking.push('Chỉ mục idx_partners_code_active không phải chỉ mục UNIQUE có điều kiện của migration 0010.');
+  } else if (!partnerIndex && applied.includes('0010_partner_code_unique.sql')) {
+    report.blocking.push('0010_partner_code_unique.sql đã ghi nhận nhưng thiếu chỉ mục idx_partners_code_active.');
   }
 
   // 4. Duplicate business numbers (same normalisation as the app / number_registry)
