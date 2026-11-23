@@ -9,12 +9,12 @@ const anon = (path: string, init?: RequestInit) => app.fetch(new Request(`http:/
 const withToken = (path: string, token: string, init: RequestInit = {}) =>
   anon(path, { ...init, headers: { ...(init.headers as any), Authorization: `Bearer ${token}` } });
 
-async function login(username: string, password: string) {
-  return anon('/api/auth/login', {
+async function login(username: string, password: string, env?: { STAGING_ALLOW_LOGIN_RETRIES?: string }) {
+  return app.fetch(new Request('http://localhost/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
-  });
+  }), env);
 }
 
 async function uploadFile(name: string, content: string, type = 'application/octet-stream') {
@@ -185,6 +185,20 @@ describe('Security: authentication', () => {
     for (let i = 0; i < 5; i++) {
       expect((await login('admin', 'wrong-password')).status).toBe(401);
     }
+    expect((await login('admin', 'AdminTest@2026')).status).toBe(429);
+  });
+
+  it('checks every staging login even when the old failure counter would block it', async () => {
+    const db = await getDatabase();
+    await db.prepare('INSERT INTO auth_login_failures (key, count, first_at) VALUES (?, ?, ?)')
+      .bind('local|admin', 5, Date.now()).run();
+    const staging = { STAGING_ALLOW_LOGIN_RETRIES: '1' };
+    for (let i = 0; i < 6; i++) {
+      const response = await login('admin', 'wrong-password', staging);
+      expect(response.status).toBe(401);
+      expect(await response.json()).toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    }
+    expect((await login('admin', 'AdminTest@2026', staging)).status).toBe(200);
     expect((await login('admin', 'AdminTest@2026')).status).toBe(429);
   });
 });

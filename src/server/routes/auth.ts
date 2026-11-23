@@ -269,8 +269,9 @@ authRouter.post('/login', async (c) => {
 
   const trimmedUser = String(username).trim();
   const db = await getDatabase(c.env);
-  const throttleKey = loginThrottleKey(c, trimmedUser);
-  if (await isLoginThrottled(db, throttleKey)) {
+  const allowStagingRetries = (c.env as { STAGING_ALLOW_LOGIN_RETRIES?: string } | undefined)?.STAGING_ALLOW_LOGIN_RETRIES === '1';
+  const throttleKey = allowStagingRetries ? null : loginThrottleKey(c, trimmedUser);
+  if (throttleKey && await isLoginThrottled(db, throttleKey)) {
     return c.json({ error: 'Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút.', code: 'TOO_MANY_ATTEMPTS' }, 429);
   }
 
@@ -285,7 +286,7 @@ authRouter.post('/login', async (c) => {
     // Unknown usernames still pay for a PBKDF2 run so response time does not reveal which exist
     const { ok, needsRehash } = await verifyPassword(password, account?.password ?? (await dummyPasswordHash()));
     if (!account || !ok) {
-      await recordLoginFailure(db, throttleKey);
+      if (throttleKey) await recordLoginFailure(db, throttleKey);
       return c.json({ error: 'Tên đăng nhập hoặc mật khẩu không chính xác.', code: 'INVALID_CREDENTIALS' }, 401);
     }
     if (account.status === 'locked') {
@@ -312,7 +313,7 @@ authRouter.post('/login', async (c) => {
       verified = updated;
     }
 
-    await clearLoginFailures(db, throttleKey);
+    if (throttleKey) await clearLoginFailures(db, throttleKey);
     const token = await issueSession(c, db, verified, secret);
     if (!token) {
       await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
