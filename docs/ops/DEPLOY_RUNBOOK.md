@@ -1,4 +1,4 @@
-# Runbook triển khai Production (cần phê duyệt)
+# Runbook triển khai Staging và Production
 
 > CI, công cụ AI và người không có phê duyệt **không** được deploy, migrate hay ghi dữ liệu Production.
 > Người thực hiện: chủ dự án hoặc người được uỷ quyền có quyền Cloudflare.
@@ -13,7 +13,7 @@ Từ PR09, dùng quy trình ở mục này cho lần chuyển đổi đầu tiê
 | 2. Đóng ứng dụng | Đưa phiên bản bảo trì lên **100%** lưu lượng Cloudflare Workers. Dừng tác vụ/đường ghi ngoài Worker đã kiểm kê. Xác nhận mọi tài liệu/ghi API trả 503, health GET/HEAD trả 200. | PASS khi deployment và route khớp. Đây là kiểm tra mức phục vụ; request cũ đang chạy vẫn có thể tồn tại. |
 | 3. Khóa tại lưu trữ | Áp dụng R2 Bucket Locks đã diễn tập, bao phủ tất cả key ứng dụng có thể ghi/xóa. Khóa bảo vệ thao tác xóa/ghi đè và hoàn tất upload đang chờ theo tài liệu nhà cung cấp; D1 vẫn phải khóa để một key mới không thể được đưa vào hồ sơ. Từ bản schema nguồn đã xác minh, tạo SQL `node scripts/cutover-fence.mjs --fence source-schema.sqlite`. Chủ dự án áp dụng SQL guard trên **D1 nguồn** bằng quy trình D1 SQL đã thử ở staging. Guard BEFORE INSERT/UPDATE/DELETE đồng nhất cho mọi bảng ứng dụng. Việc tạo trigger cùng giao dịch D1 là mốc cắt ghi. | PASS khi đối chiếu định nghĩa toàn bộ trigger với file SQL, lần thử ghi bằng bản Worker cũ lên fixture bị D1 từ chối, mẫu ghi đè/xóa qua cả S3 và Worker binding bị R2 chặn, và đối chiếu không có tính năng DDL ngoài quy trình. FAIL nếu D1/R2 staging không thể chứng minh bảo vệ. Thời gian chờ và `data_version` chỉ là bằng chứng phụ. |
 | 4. Chụp bản sao | Sau khi hai khóa có hiệu lực, lưu exact export + bookmark D1 và manifest R2. Tạo D1 đích và R2 đích riêng. Khôi phục đúng đối tượng, kiểm tra toàn vẹn, đếm bản ghi và xác minh checksum/khả năng đọc tệp được hồ sơ tham chiếu. Sao lưu nguồn lưu riêng với quyền hạn phù hợp. | PASS khi số liệu bằng nguồn sau fence và mọi key có tham chiếu tồn tại. FAIL thì giữ bảo trì; không cắt sang đích. |
-| 5. Nâng schema đích | Xác nhận UUID/database và bucket name là **đích**, và chỉ bản mới có binding tới đích. Nếu export mang theo trigger cutover, tạo lệnh gỡ định danh chính xác bằng `node scripts/cutover-fence.mjs --unfence target-copy.sqlite` và áp dụng **chỉ trên đích**. Dùng cấu hình Wrangler riêng với binding đích để apply 0004–0011. Chạy preflight, kiểm tra toàn vẹn và chạy lần khởi tạo khóa Unicode trên staging trước. | PASS khi ledger và schema hợp lệ, không còn trùng hoặc khóa đích sai. Nếu mã đối tác lịch sử trùng, dừng và trình danh sách để chủ dự án quyết định. |
+| 5. Nâng schema đích | Xác nhận UUID/database và bucket name là **đích**, và chỉ bản mới có binding tới đích. Nếu export mang theo trigger cutover, tạo lệnh gỡ định danh chính xác bằng `node scripts/cutover-fence.mjs --unfence target-copy.sqlite` và áp dụng **chỉ trên đích**. Dùng [lệnh chỉ định D1 đích](#d1-dich) với cấu hình Wrangler riêng để apply 0004–0011. Chạy preflight, kiểm tra toàn vẹn và chạy lần khởi tạo khóa Unicode trên staging trước. | PASS khi ledger và schema hợp lệ, không còn trùng hoặc khóa đích sai. Nếu mã đối tác lịch sử trùng, dừng và trình danh sách để chủ dự án quyết định. |
 | 6. Cắt sang bản mới | Triển khai đúng SHA đã duyệt 100% với binding **đích**. Xác minh health, phân quyền, truy cập hồ sơ và tệp mẫu; theo dõi commit có biên nhận, số bản ghi và lỗi. Mở ghi sau khi các kiểm tra đạt. | PASS khi UAT staging/kiểm tra đọc trước mở đạt và chỉ target nhận các ghi được duyệt. |
 | 7. Khôi phục | Trước khi mở ghi target, có thể quay về nguồn theo kế hoạch riêng được duyệt, gỡ đúng guard/lock sau khi đổi đường phục vụ và kiểm tra lại. Sau khi target nhận ghi, giữ bảo trì và sửa tiến hoặc đối soát phần chênh rồi diễn tập phục hồi; không chuyển ngược trực tiếp về nguồn cũ. | FAIL nếu thiếu bản sao, quyền rollback, số liệu đối soát hoặc quyết định khi có ghi ở target. |
 
@@ -21,7 +21,90 @@ Tài liệu nhà cung cấp: [Workers deployments](https://developers.cloudflare
 
 Kiểm thử SQLite chỉ xác nhận trigger và quy trình khôi phục bản sao cục bộ. Kết quả live D1/R2, trigger batch của D1, khóa R2 qua binding, quyền môi trường và biên bản cutover vẫn là cổng staging bắt buộc.
 
+## Staging
+
+Endpoint công khai: <https://bpnm-doc-hub-staging.viettungcao2.workers.dev/>.
+Lịch sử Git (`e51ad61`, `docs/PR09_BRANCH_COMPARISON.md`) ghi nhận một lần kiểm thử bản `4bc122a` trên staging.
+Metadata cần xác minh còn thiếu, gồm version đang nhận lưu lượng, phạm vi route và hai định danh lưu trữ.
+Cấu hình Wrangler trong repo khai báo tài nguyên Production. HTTP 200 chỉ xác nhận endpoint phản hồi.
+
+1. **Xác minh trước khi chạy lệnh.** Chủ môi trường cung cấp metadata Cloudflare đã lọc từ đúng tài khoản, trong Workers & Pages → Worker staging → Deployments, Domains & Routes, và Bindings của từng phiên bản đang phục vụ:
+   Worker name và account ID, deployment ID, toàn bộ Version ID đang phục vụ và tỷ lệ lưu lượng, Workers subdomain,
+   custom domains/routes, preview URLs, `DB` (tên + UUID D1), `BUCKET` (tên bucket và jurisdiction nếu có).
+   Đối chiếu từng phiên bản đang phục vụ với danh mục nguồn/Production được chủ môi trường xác nhận và kiểm tra
+   Worker, tác vụ, trigger và quyền S3/API cùng ghi các tài nguyên. PASS khi hai tài nguyên chỉ dành cho staging
+   và tuyến staging chỉ vào Worker staging. Dừng nếu thiếu quyền đọc metadata, không xác định được binding/route
+   hoặc không xác minh được dữ liệu staging là fixture giả. Không cần giá trị secret hay truy vấn bản ghi để kiểm tra metadata.
+2. **Chuẩn bị cấu hình.** Dùng file Wrangler riêng với các mục top-level, tên và tài khoản đã xác minh,
+   `workers_dev: true` cho endpoint trên, route staging đã duyệt, tắt preview URLs ngoài phạm vi đã duyệt,
+   `DB`, `BUCKET` và `ASSETS` khai báo đầy đủ. Đường dẫn `main`, asset build và `migrations_dir` phải
+   phân giải từ file cấu hình. Dùng cấu hình đặt ở gốc checkout nếu giữ đường dẫn hiện tại.
+   Cần secret staging riêng đã cấu hình và tài khoản thử riêng. Ghi SHA/Version ID hiện hành và chuẩn bị một
+   bản bảo trì dùng đúng binding staging, trước khi deploy. Dùng Node 24, CI và build đạt trên đúng SHA.
+3. **Xác nhận và deploy có phê duyệt.** Sau khi thiết lập `STAGING_CONFIG` thành đường dẫn tuyệt đối tới
+   file staging đã duyệt, chạy các lệnh Bash sau từ checkout đã build. Mỗi khối dừng nếu biến thiếu.
+   So output dry-run với metadata ở bước 1 và so route, tài khoản, đường dẫn asset trong cấu hình trước khi tiếp tục.
+
+   ```bash
+   npx --no-install wrangler deploy --config "${STAGING_CONFIG:?Set the reviewed staging config path}" --dry-run --var MAINTENANCE_MODE:1
+   ```
+
+   Sau phê duyệt deploy, đưa đúng bản bảo trì lên 100% và xác nhận deployment từ metadata:
+
+   ```bash
+   npx --no-install wrangler deploy --config "${STAGING_CONFIG:?Set the reviewed staging config path}" --var MAINTENANCE_MODE:1
+   npx --no-install wrangler deployments list --config "${STAGING_CONFIG:?Set the reviewed staging config path}"
+   ```
+
+   PASS khi route/binding và Version ID khớp, health GET/HEAD 200 và API nghiệp vụ trả
+   `503 MAINTENANCE`. Health ngoài bảo trì có thể khởi tạo DB. Chỉ thử API khi binding staging và
+   quyền kiểm thử đã được xác nhận. Thiếu schema hoặc cần thay đổi dữ liệu thì giữ bảo trì và xin duyệt
+   riêng trước khi áp dụng [lệnh D1 đích](#d1-dich) hoặc diễn tập cutover.
+4. **Mở và xác nhận.** Sau khi schema, ledger và fixture khớp và có phê duyệt mở ghi, triển khai lại
+   cùng SHA và cấu hình với `--var MAINTENANCE_MODE:0`. Xác minh 100% lưu lượng trên version mới,
+   sau đó kiểm tra health, đăng nhập/phân quyền, lifecycle, tải tệp fixture theo checksum và độ trễ
+   hàng đợi MemoryStore. Đăng nhập/đăng xuất có ghi, và smoke `--write` cần quyền ghi staging rõ ràng.
+   Ghi lại SHA, deployment/version ID, binding, thời điểm và kết quả kiểm thử.
+5. **Dừng hoặc rollback.** Khi sai route/binding, health/RBAC lỗi, phát sinh 5xx hoặc lệch fixture,
+   dừng phát hành. Với route/binding đã xác minh, đưa bản bảo trì đã chuẩn bị lên 100% và kiểm tra lại.
+   Chỉ rollback theo Version ID trên Worker staging đã duyệt khi metadata của version đó khớp route
+   và binding staging, tương thích schema hiện tại và có phương án đối soát dữ liệu đã ghi.
+   Rollback Worker chỉ đổi mã/cấu hình phiên bản. Sau khi có ghi trên đích, giữ bảo trì và sửa tiến
+   hoặc đối soát rồi phục hồi trên tài nguyên riêng dưới quyền riêng trước khi mở ghi.
+
+**Diễn tập live cần quyền riêng.** Dùng hai bộ D1/R2 dùng một lần cho vai trò nguồn và đích,
+chỉ chứa fixture giả. Tách các quyền tạo/xóa tài nguyên và restore, export/clone đối tượng, áp/gỡ
+D1 fence và thử Worker cũ ghi (INSERT/UPDATE/DELETE đều bị từ chối), đặt R2 Bucket Locks và thử ghi đè/xóa
+qua cả S3 và Worker binding, và áp migration lên đích. Chọn phạm vi và thời hạn lock trước khi thử,
+vì retention có thể cản cleanup. Kiểm tra tệp đã phục hồi bằng checksum và tải qua Worker đích.
+Cần phê duyệt riêng để đổi route/lưu lượng hoặc rollback live. Local SQLite/Miniflare chỉ xác nhận
+hành vi cục bộ. Nếu thiếu bộ tài nguyên hoặc quyền tương ứng, đánh dấu drill đó chưa đạt.
+
+<a id="d1-dich"></a>
+
+## Lệnh D1 đích sau khi được duyệt
+
+Dùng file Wrangler riêng với một binding D1 **đích** và tài khoản đã xác minh. Đặt `TARGET_WRANGLER_CONFIG`
+là đường dẫn tuyệt đối đến file đó và `TARGET_D1_NAME` là `database_name` của binding `DB` trong file.
+Wrangler 3 nhận tên hoặc binding cho lệnh migrations. Đối chiếu tên và UUID trong file với biên bản Cloudflare,
+xác nhận cả hai khác nguồn và với staging cũng phải khác Production. Dùng cùng file và tên ở mọi bước. Thực hiện backup đích, kiểm tra schema/ledger và preflight trên bản sao
+local đã phục hồi (`node scripts/preflight.mjs --file "$target_check_db"`) trước khi apply. Sau apply,
+kiểm tra lại ledger, toàn vẹn và preflight trên bản sao mới.
+
+```bash
+npx --no-install wrangler d1 migrations list "${TARGET_D1_NAME:?Set the verified destination D1 name}" --remote --config "${TARGET_WRANGLER_CONFIG:?Set the verified destination configuration path}"
+```
+
+Chỉ chạy lệnh apply sau khi backup và các cổng cutover tương ứng đạt, và danh sách chờ áp đúng theo SHA đã duyệt:
+
+```bash
+npx --no-install wrangler d1 migrations apply "${TARGET_D1_NAME:?Set the verified destination D1 name}" --remote --config "${TARGET_WRANGLER_CONFIG:?Set the verified destination configuration path}"
+```
+
 ## Runbook PR08 lưu để tham chiếu
+
+Các lệnh có tên D1 nguồn bên dưới ghi lại thao tác PR08. Quy trình hiện hành áp migration bằng
+[lệnh chỉ định D1 đích](#d1-dich).
 
 ## 0. Điều kiện bắt đầu (dừng nếu thiếu bất kỳ mục nào)
 - [ ] PR #1 → #8 đã được duyệt và merge vào `main` theo thứ tự; CI trên `main` xanh.
@@ -115,8 +198,7 @@ không mở được hoặc số bản ghi lệch.
 ## 4. Migration theo thứ tự từ đúng SHA
 ```bash
 git status --short                # phải rỗng; git rev-parse HEAD = SHA mục 0
-npm run db:migrate:remote         # tự sao lưu thêm một lần, áp 0004 → 0010 theo thứ tự, in số bản ghi
-npm run preflight:remote          # kỳ vọng: "Chờ áp dụng: (không có)", không có "CHẶN:"
+# Xem lệnh chỉ định D1 đích và kiểm tra sau apply ở trên.
 ```
 | Migration | Nội dung (chỉ thêm) |
 |---|---|

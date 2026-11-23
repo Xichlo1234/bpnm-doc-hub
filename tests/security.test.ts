@@ -153,10 +153,20 @@ describe('Security: authentication', () => {
     expect((await withToken('/api/documents', token)).status).toBe(401);
   });
 
-  it('blocks locked accounts immediately, even with a valid token', async () => {
+  it('invalidates the session when an admin locks an account, even after unlocking it', async () => {
     const { token } = (await (await login('user', 'UserTest@2026')).json()) as any;
-    store.updateUser('user_viewer', { status: 'locked' });
+    const setStatus = (status: 'active' | 'locked') => app.request('/api/users/user_viewer', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    expect((await setStatus('locked')).status).toBe(200);
     expect((await withToken('/api/documents', token)).status).toBe(401);
+    expect((await setStatus('active')).status).toBe(200);
+    expect((await withToken('/api/documents', token)).status).toBe(401);
+    const fresh = await login('user', 'UserTest@2026');
+    expect(fresh.status).toBe(200);
+    expect((await withToken('/api/documents', ((await fresh.json()) as { token: string }).token)).status).toBe(200);
   });
 
   it('stores logout revocations and login failures in the database (shared by all isolates)', async () => {

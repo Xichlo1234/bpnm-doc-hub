@@ -133,7 +133,9 @@ export function previewImport(kind: ImportKind, rawRows: unknown[]): ImportPrevi
     if (!key) return { index, key, action: 'error', errors: [`${field}: bắt buộc`] };
     // A new document without doc_type goes to the incoming register (the import's default)
     if (kind === 'document' && !match && !data.doc_type) data.doc_type = 'incoming';
-    const dedupeKey = kind === 'document' && match
+    // A row that matched a record is deduplicated by that record's id: historical duplicates may share a
+    // number (two contracts, or two documents in one register), and rows naming them by id are distinct.
+    const dedupeKey = match
       ? `id:${match.id}`
       : `${kind === 'document' ? numberScope('document', data) : 'contract'}|${normalizeNumber(key)}`;
     if (seen.has(dedupeKey)) return { index, key, action: 'duplicate_in_file' };

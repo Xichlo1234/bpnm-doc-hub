@@ -4,7 +4,8 @@
 ```bash
 npx wrangler d1 export bpnm-doc-hub-db --remote --output backups/d1-$(date +%Y%m%d-%H%M).sql
 ```
-`npm run db:migrate:remote` tự sao lưu như trên trước mỗi lần migrate. `backups/` nằm trong `.gitignore`:
+Sao lưu riêng D1 đích trước khi áp migration theo [runbook](DEPLOY_RUNBOOK.md#d1-dich).
+`backups/` nằm trong `.gitignore`:
 **không commit bản sao lưu** (chứa dữ liệu thật và mật khẩu đã băm). Lưu ở kho nội bộ có kiểm soát truy cập.
 Khuyến nghị: hằng ngày, giữ 30 bản; luôn có một bản ngay trước mỗi lần deploy/migrate.
 
@@ -29,7 +30,7 @@ Mỗi tệp có SHA-256 trong `file_uploads` / `attachments` để kiểm tra to
    npx wrangler d1 execute bpnm-doc-hub-restore --remote --file backups/d1-YYYYMMDD-HHMM.sql
    ```
    (Bản export của wrangler đã gồm `CREATE TABLE`; nếu bản sao lưu chỉ có dữ liệu thì chạy
-   `wrangler d1 migrations apply bpnm-doc-hub-restore --remote` trước.)
+   bước [áp schema vào D1 đích đã xác minh](DEPLOY_RUNBOOK.md#d1-dich) trước.)
 2. Kiểm tra chỉ đọc: `node scripts/preflight.mjs --file <bản sao local>` hoặc truy vấn đếm bản ghi.
 3. Chỉ khi được duyệt: đổi `database_id` trong `wrangler.jsonc` sang database đã phục hồi rồi deploy.
 

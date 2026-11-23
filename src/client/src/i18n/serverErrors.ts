@@ -77,6 +77,8 @@ export const SERVER_ERROR_KEYS: Record<string, TranslationKey> = {
   FILE_RETIRED: 'srvFileRetired',
   MAINTENANCE: 'srvMaintenance',
   LOGIN_RETRY: 'srvLoginRetry',
+  COMMIT_OUTCOME_UNKNOWN: 'srvCommitOutcomeUnknown',
+  IDEMPOTENT_RECORD_TRASHED: 'srvIdempotentRecordTrashed',
 };
 
 export interface ServerErrorBody {

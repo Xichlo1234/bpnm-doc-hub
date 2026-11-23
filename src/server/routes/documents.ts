@@ -5,6 +5,8 @@ import { canReadDocument } from '../utils/access.ts';
 import { readRecordRequest, storeAttachment, applyCloudLink } from '../utils/recordRequest.ts';
 import { syncPrimaryAttachment } from '../utils/attachments.ts';
 import { getDatabase } from '../db/database.ts';
+import { CommitOutcomeUnknownError, NumberConflictError, RevisionConflictError } from '../db/repository.ts';
+import { readIdempotencyKey, idempotencyKeyInvalid, idempotentRecordId } from '../utils/idempotency.ts';
 import { documentInput, parseInput, withoutUnchangedLinks, revisionConflict } from '../utils/validation.ts';
 import { importPreviewHandler, importCommitHandler } from './imports.ts';
 import { allocateDocumentNumber, peekNextSequence } from '../utils/numbering.ts';
@@ -84,6 +86,15 @@ documentsRouter.post('/bulk-import', requireAdmin, importCommitHandler('document
 
 // POST /api/documents (Admin Only)
 documentsRouter.post('/', requireAdmin, async (c) => {
+  // A retried create (same Idempotency-Key) answers with the record the first attempt created
+  const idem = readIdempotencyKey(c);
+  if (!idem.ok) return idempotencyKeyInvalid(c);
+  const recordId = idem.key ? await idempotentRecordId('doc', getAuthUser(c)!.id, idem.key) : undefined;
+  if (recordId) {
+    const replay = idempotentReplay(c, recordId);
+    if (replay) return replay;
+  }
+
   const request = await readRecordRequest(c);
   if (request.file) request.body.doc_type = request.body.doc_type || 'internal';
 
@@ -128,7 +139,7 @@ documentsRouter.post('/', requireAdmin, async (c) => {
   }
 
   try {
-    const newDoc = store.createDocument(body);
+    const newDoc = store.createDocument(body, { id: recordId });
     await syncPrimaryAttachment(db, 'document', null, newDoc, currentUser.id);
     store.recordHistory({ record_type: 'document', record_id: newDoc.id, action: 'create', user: currentUser, before: null, after: newDoc });
     store.recordAuditLog({
@@ -147,11 +158,32 @@ documentsRouter.post('/', requireAdmin, async (c) => {
       201
     );
   } catch (err) {
-    // The record was not saved: do not keep its file
+    // Unknown outcome: the record may be saved and reference the file, so keep it (an unreferenced
+    // upload is preferable to a record whose file was deleted). Otherwise nothing was saved: drop it.
+    if (err instanceof CommitOutcomeUnknownError) throw err;
     await attachment?.rollback();
+    if (recordId && (err instanceof RevisionConflictError || err instanceof NumberConflictError)) {
+      // Another attempt with the same key committed first (a different isolate): answer with its record
+      await store.sync(db, (c.env as any)?.DB ? 'd1' : 'json');
+      const replay = idempotentReplay(c, recordId);
+      if (replay) return replay;
+    }
     throw err;
   }
 });
+
+/** Response for a create whose Idempotency-Key already produced a record, or null. */
+function idempotentReplay(c: Context, recordId: string) {
+  const existing = store.getDocument(recordId, { includeDeleted: true });
+  if (!existing) return null;
+  if (existing.deleted_at) {
+    return c.json(
+      { error: 'Yêu cầu này đã tạo văn bản, văn bản đó hiện ở thùng rác.', code: 'IDEMPOTENT_RECORD_TRASHED', params: { number: existing.document_number } },
+      409
+    );
+  }
+  return c.json({ ...withTransitions(existing), idempotent_replay: true }, 200);
+}
 
 // PUT/PATCH /api/documents/:id (Admin Only)
 async function updateDocumentHandler(c: Context) {

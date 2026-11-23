@@ -14,6 +14,7 @@ import {
 } from '../utils/attachments.ts';
 import type { AttachmentRecordType } from '../types.ts';
 import { revisionConflict } from '../utils/validation.ts';
+import { CommitOutcomeUnknownError } from '../db/repository.ts';
 
 export const attachmentsRouter = new Hono();
 
@@ -129,7 +130,8 @@ attachmentsRouter.post('/:type/:id', async (c) => {
   try {
     await store.persistAsync();
   } catch (err) {
-    await stored.rollback();
+    // Unknown outcome: the attachment row may be saved and reference the file, keep it
+    if (!(err instanceof CommitOutcomeUnknownError)) await stored.rollback();
     throw err;
   }
   return c.json({ attachment: att, record: updated ?? getRecord(type, record.id) }, 201);

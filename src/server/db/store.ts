@@ -668,8 +668,10 @@ export class MemoryStore {
     };
   }
 
-  public createDocument(doc: Omit<DocumentRecord, 'id' | 'created_at' | 'updated_at'>): DocumentRecord {
-    const id = 'doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+  /** `options.id`: a caller-chosen id (idempotent create); the database refuses it if it already exists. */
+  public createDocument(doc: Omit<DocumentRecord, 'id' | 'created_at' | 'updated_at'>, options: { id?: string } = {}): DocumentRecord {
+    if (options.id && this.documents.has(options.id)) throw new RevisionConflictError();
+    const id = options.id || 'doc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const newDoc: DocumentRecord = {
       ...withStorageLocation(doc),

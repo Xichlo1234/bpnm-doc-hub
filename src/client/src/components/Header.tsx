@@ -36,6 +36,7 @@ interface HeaderProps {
   onSelectDocumentById?: (id: string) => void;
   /** Opens the sidebar drawer on small screens */
   onOpenNav?: () => void;
+  isNavOpen?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -47,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSpotlight,
   onOpenCreate,
   onOpenNav,
+  isNavOpen,
   onSelectDocumentById,
 }) => {
   const { user, logout } = useAuth();
@@ -112,7 +114,8 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="top-header">
       {onOpenNav && (
-        <button type="button" className="btn-icon nav-toggle" onClick={onOpenNav} title={t.navOpenMenu} aria-label={t.navOpenMenu}>
+        <button type="button" className="btn-icon nav-toggle" onClick={onOpenNav} title={t.navOpenMenu}
+          aria-label={t.navOpenMenu} aria-expanded={isNavOpen} aria-controls="workspace-navigation">
           <Menu size={18} />
         </button>
       )}

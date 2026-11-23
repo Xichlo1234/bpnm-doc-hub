@@ -22,6 +22,45 @@ export interface ImportCommitOptions {
   previewFingerprint?: string;
   fileName?: string;
 }
+
+type CreateDocumentResult = DocumentRecord & {
+  idempotent_replay?: boolean;
+  number_reassigned?: boolean;
+  requested_number?: string;
+};
+
+/**
+ * A failed API call. `outcomeUnknown` means the write may have been saved: the server said so
+ * (COMMIT_OUTCOME_UNKNOWN) or no response arrived (network loss, timeout). Callers must not report
+ * it as a plain failure nor resend the write blindly; a create may be resent only with the same
+ * Idempotency-Key (the server then answers with the record already created).
+ */
+export class ApiError extends Error {
+  readonly code?: string;
+  readonly status?: number;
+  readonly outcomeUnknown: boolean;
+  constructor(message: string, opts: { code?: string; status?: number; outcomeUnknown?: boolean } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = opts.code;
+    this.status = opts.status;
+    this.outcomeUnknown = opts.outcomeUnknown ?? (
+      opts.code === 'COMMIT_OUTCOME_UNKNOWN' || opts.status === 408 ||
+      opts.status === 502 || opts.status === 504 || (!opts.code && (opts.status ?? 0) >= 500)
+    );
+  }
+}
+
+/** A fresh key for one create attempt; reuse it for every retry of that same attempt. */
+export function newIdempotencyKey(): string {
+  const c: Crypto | undefined = typeof globalThis !== 'undefined' ? (globalThis as any).crypto : undefined;
+  if (c?.randomUUID) return c.randomUUID();
+  const bytes = new Uint8Array(16);
+  if (c?.getRandomValues) c.getRandomValues(bytes);
+  else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export const TOKEN_KEY = 'sgii_auth_token';
 
 let inMemoryToken: string | null = null;
@@ -93,7 +132,9 @@ function customXhrRequest<T>(
     timeoutErrorMsg: string;
     includeHttpCodeInError?: boolean;
     fallbackSuccessPayload?: T;
+    requireJsonResponse?: boolean;
     onProgress?: (percent: number, loaded: number, total: number) => void;
+    headers?: Record<string, string>;
   }
 ): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -114,6 +155,10 @@ function customXhrRequest<T>(
         try {
           resolve(JSON.parse(xhr.responseText));
         } catch {
+          if (options.requireJsonResponse) {
+            reject(new ApiError(options.defaultErrorMsg, { outcomeUnknown: true }));
+            return;
+          }
           resolve((options.fallbackSuccessPayload ?? ({} as any)) as T);
         }
       } else {
@@ -121,24 +166,26 @@ function customXhrRequest<T>(
           handleUnauthorizedResponse(url);
         }
         let msg = options.defaultErrorMsg;
+        let code: string | undefined;
         try {
-          msg = trServerError(JSON.parse(xhr.responseText), msg);
+          const body = JSON.parse(xhr.responseText);
+          code = typeof body?.code === 'string' ? body.code : undefined;
+          msg = trServerError(body, msg);
         } catch {}
-        if (options.includeHttpCodeInError) {
-          reject(new Error(tr('errHttpCode', { message: msg, status: xhr.status })));
-        } else {
-          reject(new Error(msg));
-        }
+        const text = options.includeHttpCodeInError ? tr('errHttpCode', { message: msg, status: xhr.status }) : msg;
+        reject(new ApiError(text, { code, status: xhr.status }));
       }
     };
-    xhr.onerror = () => reject(new Error(options.networkErrorMsg));
-    xhr.ontimeout = () => reject(new Error(options.timeoutErrorMsg));
+    // No response: the request may have been processed
+    xhr.onerror = () => reject(new ApiError(options.networkErrorMsg, { outcomeUnknown: true }));
+    xhr.ontimeout = () => reject(new ApiError(options.timeoutErrorMsg, { outcomeUnknown: true }));
     xhr.timeout = 45000;
     xhr.open('POST', url, true);
     const token = authStorage.getToken();
     if (token) {
       xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     }
+    for (const [name, value] of Object.entries(options.headers ?? {})) xhr.setRequestHeader(name, value);
     xhr.send(body);
   });
 }
@@ -213,30 +260,49 @@ export const api = {
     return res.json();
   },
 
+  /**
+   * Creates a document. Pass the same `idempotencyKey` when resending an attempt whose outcome is
+   * unknown: the server then returns the document already created (`idempotent_replay: true`)
+   * instead of creating and numbering a second one.
+   */
   async createDocument(
     data: FormData | Partial<DocumentRecord>,
-    onProgress?: (percent: number) => void
-  ): Promise<DocumentRecord> {
+    onProgress?: (percent: number) => void,
+    options: { idempotencyKey?: string } = {}
+  ): Promise<CreateDocumentResult> {
     const isFormData = data instanceof FormData;
+    const idemHeaders: Record<string, string> = options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {};
     if (isFormData && onProgress && typeof XMLHttpRequest !== 'undefined') {
-      return customXhrRequest<DocumentRecord>(`${API_BASE}/documents`, data, {
+      const created = await customXhrRequest<CreateDocumentResult>(`${API_BASE}/documents`, data, {
         defaultErrorMsg: tr('errCreateDocument'),
         networkErrorMsg: tr('errNetworkUploadDocument'),
         timeoutErrorMsg: tr('errTimeoutSaveDocument'),
         onProgress: (percent) => onProgress(percent),
+        headers: idemHeaders,
+        requireJsonResponse: true,
       });
+      if (!created?.id) throw new ApiError(tr('errCreateDocument'), { outcomeUnknown: true });
+      return created;
     }
 
-    const res = await customFetch(`${API_BASE}/documents`, {
-      method: 'POST',
-      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
-      body: isFormData ? data : JSON.stringify(data),
-    });
+    let res: Response;
+    try {
+      res = await customFetch(`${API_BASE}/documents`, {
+        method: 'POST',
+        headers: isFormData ? idemHeaders : { 'Content-Type': 'application/json', ...idemHeaders },
+        body: isFormData ? data : JSON.stringify(data),
+      });
+    } catch {
+      // No response: the request may have been processed
+      throw new ApiError(tr('errCreateDocument'), { outcomeUnknown: true });
+    }
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as any;
-      throw new Error(trServerError(err, tr('errCreateDocument')));
+      throw new ApiError(trServerError(err, tr('errCreateDocument')), { code: err?.code, status: res.status });
     }
-    return res.json();
+    const created = await res.json().catch(() => null) as CreateDocumentResult | null;
+    if (!created?.id) throw new ApiError(tr('errCreateDocument'), { outcomeUnknown: true });
+    return created;
   },
 
   async deleteDocument(id: string): Promise<boolean> {

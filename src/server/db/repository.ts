@@ -39,7 +39,7 @@ export interface LoadedDataset {
 
 export class DatabaseNotMigratedError extends Error {
   constructor(cause: unknown) {
-    super(`Database schema is missing; run "npm run db:migrate:remote" (production) or restart the dev server (local). (${(cause as Error)?.message || cause})`);
+    super(`Database schema is missing. Follow the deployment runbook for the verified destination or restart the local dev server. (${(cause as Error)?.message || cause})`);
   }
 }
 
@@ -326,6 +326,26 @@ export class UsernameTakenError extends Error {
   }
 }
 
+/**
+ * The batch was sent but neither its response nor the receipt check could tell whether it committed
+ * (the database stayed unreachable). The change may be saved. Callers must not report failure as
+ * definitive, must not roll back side effects the record may now reference (stored files), and the
+ * client must not repeat the write blindly: only a create sent with the same Idempotency-Key is safe
+ * to retry, because the retry resolves to the record the first attempt may have created.
+ */
+export class CommitOutcomeUnknownError extends Error {
+  readonly cause: unknown;
+  constructor(cause: unknown) {
+    super('The database did not confirm whether the change was saved');
+    this.cause = cause;
+  }
+}
+
+/** SQLite rejected the batch itself (constraint, guard, schema): it was rolled back, nothing committed. */
+function isDefinitiveRejection(err: unknown): boolean {
+  return /constraint failed|SQLITE_CONSTRAINT|no such (table|column)|syntax error/i.test(String((err as Error)?.message || err));
+}
+
 export class FileRetiredError extends Error {
   constructor() {
     super('The file is queued for deletion or deleted');
@@ -355,11 +375,18 @@ export async function commitChanges(
     version = Number(results.at(-1)?.results[0]?.version ?? 0);
     if (version <= 0) throw new Error('D1 returned no commit receipt');
   } catch (error) {
+    // A rejected batch (guard, constraint) was rolled back: report it as it is
+    if (isDefinitiveRejection(error)) throw error;
     // A transport timeout does not tell us whether D1 committed. A receipt is written in
     // the same atomic batch; a positive read confirms success without replaying the writes.
-    const committed = await db.prepare('SELECT version FROM request_commits WHERE id = ?')
-      .bind(id).first<{ version: number }>().catch(() => null);
-    if (!committed) throw error;
+    // A missing receipt cannot rule out a batch that is still in flight.
+    let committed: { version: number } | null;
+    try {
+      committed = await db.prepare('SELECT version FROM request_commits WHERE id = ?').bind(id).first<{ version: number }>();
+    } catch {
+      throw new CommitOutcomeUnknownError(error);
+    }
+    if (!committed) throw new CommitOutcomeUnknownError(error);
     version = Number(committed.version);
   }
   return { version, concurrentWrite: version !== knownVersion + 1 };

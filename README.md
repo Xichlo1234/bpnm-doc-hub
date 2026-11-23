@@ -59,9 +59,9 @@ npm run typecheck && npm test
 ```
 Test chạy trên bản sao tạm của `data/`, không đụng dữ liệu thật.
 
-**Smoke test end-to-end** ([scripts/smoke-test.mjs](scripts/smoke-test.mjs)) gọi toàn bộ API của một bản đang chạy (local, `wrangler dev` hoặc production):
+**Smoke test end-to-end** ([scripts/smoke-test.mjs](scripts/smoke-test.mjs)) kiểm tra API trên bản local đang chạy:
 ```bash
-SMOKE_BASE=https://quan-ly-cong-van.vcrm.vn node scripts/smoke-test.mjs
+SMOKE_BASE=http://localhost:5180 node scripts/smoke-test.mjs
 ```
 Không có tài khoản thì chỉ chạy các kiểm tra công khai. Thêm `SMOKE_ADMIN_USER`/`SMOKE_ADMIN_PASS` (và tuỳ chọn `SMOKE_USER`/`SMOKE_USER_PASS` cho tài khoản thường) để kiểm tra các chức năng đọc. Thêm `--write` để thử cả các luồng ghi: script tạo bản ghi gắn nhãn `[SMOKE …]` rồi tự xoá khi xong. GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) chạy typecheck, test, build và đóng gói Worker cho mỗi push/PR.
 
@@ -86,50 +86,17 @@ npm run build
 
 ## ☁️ Hướng Dẫn Triển Khai Lên Cloudflare (D1 & R2)
 
-### Bước 1: Đăng nhập Cloudflare Wrangler
-```bash
-npx wrangler login
-```
+Kho cấu hình [wrangler.jsonc](wrangler.jsonc) đang trỏ tới Worker, D1 và R2 Production.
+Quy trình hiện hành giữ nguyên schema trên D1 nguồn và chỉ nâng schema trên **D1 đích riêng** sau khi xác minh định danh, sao lưu và phục hồi.
+Theo [runbook triển khai](docs/ops/DEPLOY_RUNBOOK.md) để xác nhận đích, quyền thực hiện và điều kiện mở ghi.
 
-### Bước 2: Tạo Cơ sở dữ liệu Cloudflare D1
-```bash
-npx wrangler d1 create document-manager-db
-```
-Sao chép `database_id` được sinh ra và dán vào file [wrangler.jsonc](wrangler.jsonc).
+**Staging:** [Worker công khai](https://bpnm-doc-hub-staging.viettungcao2.workers.dev/) cần cấu hình Wrangler riêng đã xác minh.
+Xem [cổng triển khai staging](docs/ops/DEPLOY_RUNBOOK.md#staging) trước khi dùng endpoint để kiểm thử.
+Các script npm remote hiện gọi tên D1 Production cố định và không chuyển tiếp cấu hình hoặc môi trường Wrangler.
 
-### Bước 3: Chạy migration D1
-```bash
-npm run db:migrate:remote
-```
-Script [scripts/db-migrate.mjs](scripts/db-migrate.mjs) làm 3 việc: kiểm tra an toàn, **sao lưu D1** vào `backups/`, rồi áp các file trong [migrations/](migrations/) bằng `wrangler d1 migrations apply`. Xem số bản ghi bất cứ lúc nào bằng `npm run db:status:remote`.
-
-**Nâng cấp từ bản lưu blob JSON (trước P1):** sau khi migrate và deploy, request API đầu tiên sẽ tự chép toàn bộ dữ liệu từ `system_data` sang các bảng mới. Việc chép chạy đúng một lần, trong một transaction. Bảng `system_data` được giữ nguyên làm bản dự phòng. File cũ lưu base64 trong D1 sẽ được chép sang R2 khi được tải lần đầu.
-
-**Mô hình lưu trữ:** mỗi văn bản, hợp đồng, đối tác, người dùng là một dòng riêng. Mỗi request chỉ ghi các dòng thay đổi, nên hai người sửa hai bản ghi khác nhau cùng lúc không còn ghi đè lên nhau. Nếu hai người cùng sửa **một** bản ghi, lần lưu sau cùng sẽ thắng.
-
-Khi chạy local (`npm run dev`), dữ liệu nằm trong `data/app.db` (SQLite, dùng chung các file migration). Lần chạy đầu sẽ tự nhập từ các file `data/*.json` cũ.
-
-### Bước 4: Tạo Bucket Cloudflare R2 (Lưu trữ tệp)
-```bash
-npx wrangler r2 bucket create document-manager-files
-```
-
-### Bước 5: Cấu hình khóa ký phiên đăng nhập (bắt buộc)
-Token đăng nhập được ký HMAC-SHA256 bằng `AUTH_SECRET`. Thiếu biến này, Worker sẽ từ chối mọi đăng nhập.
-```bash
-openssl rand -base64 48 | npx wrangler secret put AUTH_SECRET
-```
-Đổi `AUTH_SECRET` sẽ đăng xuất toàn bộ người dùng. Khi chạy local (`npm run dev`) không cần biến này: máy chủ tự sinh khóa tạm cho mỗi tiến trình.
-
-Tài khoản khởi tạo (`admin`, `user`) dùng mật khẩu mặc định và bị **backend bắt buộc đổi mật khẩu** ở lần đăng nhập đầu tiên (mọi API khác trả `403 PASSWORD_CHANGE_REQUIRED` cho tới khi đổi). Chi tiết phân quyền: [docs/ops/SECURITY.md](docs/ops/SECURITY.md).
-
-Bản cài mới **không có dữ liệu nghiệp vụ**. Muốn chạy thử local với dữ liệu giả lập: `SEED_DEMO=1 npm run dev` (chỉ áp dụng khi `data/app.db` chưa tồn tại).
-
-### Bước 6: Triển khai 1-Click lên toàn cầu
-```bash
-npm run deploy
-```
-Worker của bạn sẽ được kích hoạt toàn cầu trên mạng lưới Edge của Cloudflare với tên miền tùy chọn dạng `https://document-manager.<your-subdomain>.workers.dev`.
+**Tại máy local:** `npm run dev` chạy migration SQLite tự động với `data/app.db`.
+Dùng `npm run dev:demo` với thư mục dữ liệu local mới để thử bằng dữ liệu giả.
+Xem [SECURITY.md](docs/ops/SECURITY.md) về `AUTH_SECRET` và đổi mật khẩu lần đầu.
 
 ---
 
@@ -151,7 +118,7 @@ document-manager/
 │       │   ├── services/          # Client API fetcher
 │       │   └── styles/            # Hệ thống CSS Design Tokens (Light/Dark)
 │       └── public/samples/        # 3 file mẫu PPTX về THADS
-├── migrations/                    # Migration D1/SQLite (áp bằng npm run db:migrate:remote)
+├── migrations/                    # Migration D1/SQLite (triển khai remote theo runbook)
 ├── scripts/db-migrate.mjs         # Sao lưu + kiểm tra + áp migration
 ├── wrangler.jsonc                 # Cấu hình Cloudflare Worker, D1, R2, Assets
 ├── package.json

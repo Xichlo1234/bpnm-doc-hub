@@ -205,6 +205,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentFilter, onSelectFilter,
   const isAdmin = user?.role === 'admin';
   const hasLaborAccess = canAccessLaborContracts(user);
   const [disclosure, setDisclosure] = React.useState<{ filter: NavFilter; section: string | null; group: string | null }>();
+  const closeButton = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const opener = document.querySelector<HTMLButtonElement>('.nav-toggle');
+    closeButton.current?.focus();
+    return () => {
+      if (opener?.getClientRects().length) opener.focus();
+    };
+  }, [isOpen]);
+
+  const handleDrawerKeys = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!isOpen) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose?.();
+    }
+    if (event.key !== 'Tab') return;
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not([disabled])')]
+      .filter((button) => button.getClientRects().length > 0);
+    const first = buttons[0];
+    const last = buttons.at(-1);
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   const visible = (group: NavGroup | undefined): group is NavGroup =>
     Boolean(group && (group.when === 'labor' ? hasLaborAccess : group.when === 'admin' ? isAdmin : true));
@@ -243,9 +274,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentFilter, onSelectFilter,
   return (
     <>
       {isOpen && <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />}
-      <aside className={`sidebar-pane ${isOpen ? 'sidebar-open' : ''}`} aria-label={t.navOpenMenu}>
+      <aside
+        id="workspace-navigation"
+        className={`sidebar-pane ${isOpen ? 'sidebar-open' : ''}`}
+        role={isOpen ? 'dialog' : undefined}
+        aria-modal={isOpen || undefined}
+        aria-label={t.navOpenMenu}
+        onKeyDown={handleDrawerKeys}
+      >
         {onClose && (
-          <button type="button" className="btn-icon sidebar-close" onClick={onClose} title={t.close} aria-label={t.close}>
+          <button ref={closeButton} type="button" className="btn-icon sidebar-close" onClick={onClose} title={t.close} aria-label={t.close}>
             <X size={16} aria-hidden="true" />
           </button>
         )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -7,6 +7,8 @@ import { LANGUAGE_NAMES } from '../i18n/index.ts';
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const usernameId = useId();
+  const passwordId = useId();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -130,7 +132,7 @@ export const LoginView: React.FC = () => {
         {/* Login form */}
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group" style={{ marginBottom: 16 }}>
-            <label className="form-label" style={{ fontWeight: 600 }}>
+            <label htmlFor={usernameId} className="form-label" style={{ fontWeight: 600 }}>
               {t.loginUsernameLabel} <span style={{ color: '#EF4444' }}>*</span>
             </label>
             <div className="login-input-wrapper">
@@ -139,6 +141,7 @@ export const LoginView: React.FC = () => {
                 type="text"
                 required
                 className="form-input login-input"
+                id={usernameId}
                 placeholder={t.loginUsernamePlaceholder}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -150,7 +153,7 @@ export const LoginView: React.FC = () => {
 
           <div className="form-group" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>
+              <label htmlFor={passwordId} className="form-label" style={{ fontWeight: 600, margin: 0 }}>
                 {t.loginPasswordLabel} <span style={{ color: '#EF4444' }}>*</span>
               </label>
             </div>
@@ -160,6 +163,7 @@ export const LoginView: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 required
                 className="form-input login-input"
+                id={passwordId}
                 placeholder={t.loginPasswordPlaceholder}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

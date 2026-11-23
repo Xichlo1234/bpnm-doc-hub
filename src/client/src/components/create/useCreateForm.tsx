@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { notify } from '../../context/ToastContext.tsx';
 import { X, FileCheck, ArrowDownLeft, ArrowUpRight, Sparkles, Building2, UploadCloud, Link2, Paperclip, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
-import { api } from '../../services/api.ts';
+import { api, newIdempotencyKey } from '../../services/api.ts';
 import { canAccessLaborContracts, type ContractType, type PartnerRecord } from '../../../../server/types.ts';
 import { useLanguage } from '../../context/LanguageContext.tsx';
 import { seedLabel, statusLabel, urgencyLabel } from '../../i18n/index.ts';
@@ -31,6 +31,27 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
       notify.info(tf('numberReassigned', { requested: created.requested_number, number: created.document_number }));
     }
   };
+  // One Idempotency-Key per document being created. It is kept while the outcome of a save is
+  // unknown (lost response, timeout, COMMIT_OUTCOME_UNKNOWN), so pressing Save again returns the
+  // document already created instead of creating and numbering a second one. Any definitive answer
+  // from the server (success or refusal) ends it.
+  type DocumentTab = 'incoming' | 'outgoing';
+  const pendingCreates = useRef<Partial<Record<DocumentTab, { key: string; data: FormData | Record<string, any> }>>>({});
+  const createDocumentOnce = async (kind: DocumentTab, data: FormData | Record<string, any>, onProgress?: (percent: number) => void) => {
+    const attempt = pendingCreates.current[kind] ??= { key: newIdempotencyKey(), data };
+    try {
+      const created = await api.createDocument(attempt.data, onProgress, { idempotencyKey: attempt.key });
+      delete pendingCreates.current[kind];
+      if (created?.idempotent_replay) notify.info(tf('createAlreadySaved', { number: created.document_number }));
+      else notifyReassigned(created);
+      return created;
+    } catch (err: any) {
+      if (!err?.outcomeUnknown) delete pendingCreates.current[kind];
+      throw err;
+    }
+  };
+  // An unknown outcome is not reported as a failure to fix and resend: the document may exist
+  const createFailureMessage = (err: any) => (err?.outcomeUnknown ? t.createOutcomeUnknownRetry : err?.message || String(err));
   const { user } = useAuth();
   const canViewLabor = canAccessLaborContracts(user);
   const [tab, setTab] = useState<'contract' | 'labor' | 'incoming' | 'outgoing'>(defaultTab);
@@ -155,6 +176,8 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     setIsUploadingFile(false);
     setUploadError('');
     setUploadSuccess(false);
+    // A reopened dialog creates a new document
+    pendingCreates.current = {};
   }, [defaultTab, isOpen]);
 
   // Load categories, partners and auto-generate next numbers
@@ -509,16 +532,14 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         formData.append('file', selectedFile);
         setIsUploadingFile(true);
         setUploadProgress(10);
-        notifyReassigned(
-          await api.createDocument(formData, (percent) => {
-            setUploadProgress(percent);
-          })
-        );
+        await createDocumentOnce('incoming', formData, (percent) => {
+          setUploadProgress(percent);
+        });
       } else {
         if (incomingAttachMode === 'link' && incomingCloudLink.trim()) {
           docPayload.google_drive_url = incomingCloudLink.trim();
         }
-        notifyReassigned(await api.createDocument(docPayload));
+        await createDocumentOnce('incoming', docPayload);
       }
 
       setUploadSuccess(true);
@@ -528,9 +549,10 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         onClose();
       }, 400);
     } catch (err: any) {
-      const msg = err.message || String(err);
+      const msg = createFailureMessage(err);
       setUploadError(msg);
-      notify.error(tf('receiveDocumentFailed', { error: msg }));
+      if (err?.outcomeUnknown) notify.info(msg);
+      else notify.error(tf('receiveDocumentFailed', { error: msg }));
     } finally {
       setIsSubmitting(false);
       setIsUploadingFile(false);
@@ -583,16 +605,14 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         formData.append('file', selectedFile);
         setIsUploadingFile(true);
         setUploadProgress(10);
-        notifyReassigned(
-          await api.createDocument(formData, (percent) => {
-            setUploadProgress(percent);
-          })
-        );
+        await createDocumentOnce('outgoing', formData, (percent) => {
+          setUploadProgress(percent);
+        });
       } else {
         if (outgoingAttachMode === 'link' && outgoingCloudLink.trim()) {
           docPayload.google_drive_url = outgoingCloudLink.trim();
         }
-        notifyReassigned(await api.createDocument(docPayload));
+        await createDocumentOnce('outgoing', docPayload);
       }
 
       setUploadSuccess(true);
@@ -602,9 +622,10 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         onClose();
       }, 400);
     } catch (err: any) {
-      const msg = err.message || String(err);
+      const msg = createFailureMessage(err);
       setUploadError(msg);
-      notify.error(tf('issueDocumentFailed', { error: msg }));
+      if (err?.outcomeUnknown) notify.info(msg);
+      else notify.error(tf('issueDocumentFailed', { error: msg }));
     } finally {
       setIsSubmitting(false);
       setIsUploadingFile(false);

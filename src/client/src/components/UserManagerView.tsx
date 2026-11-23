@@ -333,6 +333,7 @@ export const UserManagerView: React.FC = () => {
                         >
                           <option value="admin">{t.usersAdminFullAccess}</option>
                           <option value="user">{t.usersUserViewDownload}</option>
+                          {u.role === 'editor' && <option value="editor">Editor · {t.usersUserViewDownload}</option>}
                         </select>
                       )}
                     </td>

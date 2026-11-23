@@ -454,12 +454,21 @@ describe('D5 — maintenance mode stops writes before any database access', () =
     const cfg = fs.readFileSync(path.join(process.cwd(), 'wrangler.jsonc'), 'utf-8');
     expect(cfg).toMatch(/"MAINTENANCE_MODE":\s*"0"/);
     const runbook = fs.readFileSync(path.join(process.cwd(), 'docs/ops/DEPLOY_RUNBOOK.md'), 'utf-8');
-    const lock = runbook.indexOf('MAINTENANCE_MODE:1');
-    const migrate = runbook.indexOf('npm run db:migrate:remote');
-    const open = runbook.lastIndexOf('MAINTENANCE_MODE:0');
+    const cutover = runbook.slice(0, runbook.indexOf('## Staging'));
+    const lock = cutover.indexOf('| 3. Khóa tại lưu trữ');
+    const migrate = cutover.indexOf('| 5. Nâng schema đích');
+    const open = cutover.indexOf('| 6. Cắt sang bản mới');
     expect(lock).toBeGreaterThan(-1);
     expect(lock).toBeLessThan(migrate);
     expect(open).toBeGreaterThan(migrate);
+
+    const readme = fs.readFileSync(path.join(process.cwd(), 'README.md'), 'utf-8');
+    expect(readme).not.toContain('npm run db:migrate:remote');
+    expect(runbook).not.toContain('npm run db:migrate:remote');
+    const applyCommands = runbook.match(/^npx[^\n]* d1 migrations apply .*$/gm);
+    expect(applyCommands).toEqual([
+      'npx --no-install wrangler d1 migrations apply "${TARGET_D1_NAME:?Set the verified destination D1 name}" --remote --config "${TARGET_WRANGLER_CONFIG:?Set the verified destination configuration path}"',
+    ]);
   });
 });
 

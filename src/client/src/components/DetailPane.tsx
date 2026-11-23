@@ -23,6 +23,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import type { UnifiedItem } from './ItemList.tsx';
+import { canAccessLaborContracts, isLaborContract } from '../../../server/types.ts';
 import { DocumentViewer, GoogleDriveIcon } from './DocumentViewer.tsx';
 import { AttachmentsPanel } from './AttachmentsPanel.tsx';
 import { HistoryPanel } from './HistoryPanel.tsx';
@@ -301,6 +302,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
           const isUrgent = c.urgency?.level === 'urgent';
           const isExpired = c.urgency?.level === 'expired';
           const isLiquidated = c.status === 'liquidated';
+          const canEditContract = isAdmin || (canAccessLaborContracts(user) && isLaborContract(c));
 
           return (
             <>
@@ -336,7 +338,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 </div>
 
                 <div className="detail-actions-row">
-                  {isAdmin && onEditItem && (
+                  {canEditContract && onEditItem && (
                     <button
                       className="btn-secondary"
                       onClick={() => onEditItem(item)}
@@ -359,7 +361,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                   )}
 
                   {/* Upload / Replace Attachment Button */}
-                  {isAdmin && (
+                  {canEditContract && (
                     <button
                       type="button"
                       className="btn-secondary"
@@ -377,7 +379,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                   )}
 
                   {/* Google Drive Button */}
-                  {isAdmin && (
+                  {canEditContract && (
                     <button
                       type="button"
                       className="btn-secondary"
@@ -580,19 +582,19 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 documentNumber={c.contract_number}
                 issuer={c.party_a}
                 googleDriveUrl={c.google_drive_url}
-                onTriggerUpload={() => fileInputRef.current?.click()}
-                onOpenDriveSync={() => setIsDriveModalOpen(true)}
+                onTriggerUpload={canEditContract ? () => fileInputRef.current?.click() : undefined}
+                onOpenDriveSync={canEditContract ? () => setIsDriveModalOpen(true) : undefined}
               />
               <ContractLifecyclePanel
                 contract={c}
                 isAdmin={isAdmin}
-                canEdit={isAdmin || (Boolean(user?.can_access_labor_contracts) && c.contract_type === 'labor')}
+                canEdit={canEditContract}
                 onUpdated={(rec) => onItemUpdated?.({ kind: 'contract', data: rec })}
               />
               <AttachmentsPanel
                 recordType="contract"
                 recordId={c.id}
-                canEdit={isAdmin || (Boolean(user?.can_access_labor_contracts) && c.contract_type === 'labor')}
+                canEdit={canEditContract}
                 recordRevision={c.revision ?? 0}
                 onRecordChanged={(rec) => rec && onItemUpdated?.({ kind: 'contract', data: rec })}
               />
@@ -945,8 +947,8 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 documentNumber={d.document_number}
                 issuer={d.issuer}
                 googleDriveUrl={d.google_drive_url}
-                onTriggerUpload={() => fileInputRef.current?.click()}
-                onOpenDriveSync={() => setIsDriveModalOpen(true)}
+                onTriggerUpload={isAdmin ? () => fileInputRef.current?.click() : undefined}
+                onOpenDriveSync={isAdmin ? () => setIsDriveModalOpen(true) : undefined}
               />
               <WorkflowPanel doc={d} canEdit={isAdmin} onUpdated={(rec) => onItemUpdated?.({ kind: 'document', data: rec })} />
               <AttachmentsPanel

@@ -115,11 +115,12 @@ usersRouter.patch('/:id', async (c) => {
       return c.json({ error: weakness.message, code: weakness.code, params: weakness.params }, 400);
     }
     updates.password = await hashPassword(body.password);
-    // A password reset revokes all of the user's existing sessions. Role/permission/lock changes
-    // need no revocation: auth.ts re-reads them from the store on every request.
-    updates.token_version = (existing.token_version || 0) + 1;
     // A password set by an admin is temporary unless the admin is changing their own
     updates.must_change_password = currentUser?.id !== id;
+  }
+  // A password reset or a new lock invalidates prior sessions, including after an unlock.
+  if (body.password !== undefined || (updates.status === 'locked' && existing.status !== 'locked')) {
+    updates.token_version = (existing.token_version || 0) + 1;
   }
 
   // hashPassword awaited above: another request may have changed the account meanwhile

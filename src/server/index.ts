@@ -18,7 +18,7 @@ import { adminRouter } from './routes/admin.ts';
 import { importsRouter } from './routes/imports.ts';
 import { store } from './db/store.ts';
 import { getDatabase } from './db/database.ts';
-import { DatabaseNotMigratedError, RevisionConflictError, NumberConflictError, FileRetiredError, UsernameTakenError, PartnerCodeTakenError } from './db/repository.ts';
+import { DatabaseNotMigratedError, CommitOutcomeUnknownError, RevisionConflictError, NumberConflictError, FileRetiredError, UsernameTakenError, PartnerCodeTakenError } from './db/repository.ts';
 import { UploadValidationError } from './utils/fileStorage.ts';
 
 export const app = new Hono();
@@ -169,9 +169,22 @@ app.onError((err, c) => {
       409
     );
   }
+  if (err instanceof CommitOutcomeUnknownError) {
+    console.error('Commit outcome unknown:', err.cause);
+    // Not a failure: the change may be saved. Clients reload before deciding; only a create with
+    // the same Idempotency-Key may be resent (it resolves to the record already created).
+    return c.json(
+      {
+        error: 'Chưa xác nhận được kết quả lưu: thay đổi có thể đã được ghi. Vui lòng tải lại để kiểm tra trước khi thao tác lại.',
+        code: 'COMMIT_OUTCOME_UNKNOWN',
+        outcome: 'unknown',
+      },
+      503
+    );
+  }
   if (err instanceof DatabaseNotMigratedError) {
     console.error(err.message);
-    return c.json({ error: 'Cơ sở dữ liệu chưa được nâng cấp (chạy npm run db:migrate:remote).', code: 'DB_NOT_MIGRATED' }, 503);
+    return c.json({ error: 'Cơ sở dữ liệu chưa được nâng cấp. Vui lòng liên hệ quản trị viên để kiểm tra cấu hình triển khai.', code: 'DB_NOT_MIGRATED' }, 503);
   }
   console.error('Unhandled API error:', err);
   return c.json({ error: 'Lỗi máy chủ nội bộ.', code: 'INTERNAL_ERROR' }, 500);

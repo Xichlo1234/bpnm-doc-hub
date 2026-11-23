@@ -11,6 +11,7 @@ import { isLaborContract, canAccessLaborContracts, type ContractRecord } from '.
 import { importPreviewHandler, importCommitHandler } from './imports.ts';
 import { contractNumberTaken, checkContractDates, type ContractRuleError, type Appendix } from '../utils/contractRules.ts';
 import { vietnamToday } from '../utils/workflow.ts';
+import { CommitOutcomeUnknownError } from '../db/repository.ts';
 
 export const contractsRouter = new Hono();
 
@@ -116,7 +117,8 @@ contractsRouter.post('/', requireAdminOrLaborAccess, async (c) => {
     await store.persistAsync();
     return c.json(newContract, 201);
   } catch (err) {
-    await attachment?.rollback();
+    // Unknown outcome: the contract may be saved and reference the file, keep it
+    if (!(err instanceof CommitOutcomeUnknownError)) await attachment?.rollback();
     throw err;
   }
 });

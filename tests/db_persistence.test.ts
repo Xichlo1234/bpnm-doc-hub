@@ -5,7 +5,7 @@ import * as path from 'path';
 import { applyLocalMigrations, __createNodeDatabaseForTests, type SqlDatabase } from '../src/server/db/database.ts';
 import { MemoryStore } from '../src/server/db/store.ts';
 import { RECORD_TABLES, columnNames, toRow, fromRow, partnersTable } from '../src/server/db/tables.ts';
-import { importLegacyDataset, loadDataset, readVersion } from '../src/server/db/repository.ts';
+import { CommitOutcomeUnknownError, importLegacyDataset, loadDataset, readVersion } from '../src/server/db/repository.ts';
 import { withSeedDefaults } from '../src/server/db/persistence.ts';
 
 const { DatabaseSync } = (process as any).getBuiltinModule('node:sqlite');
@@ -144,12 +144,12 @@ describe('Row-level persistence', () => {
     expect(raw.prepare('SELECT COUNT(*) AS n FROM audit_logs').get().n).toBe(1);
   });
 
-  it('discards cached changes the database rejected', async () => {
+  it('reloads committed state after an unconfirmed write', async () => {
     const { db, a } = await twoIsolates();
     const doc = a.getDocuments()[0];
     a.updateDocument(doc.id, { title: 'never saved' });
     const failing: SqlDatabase = { ...db, prepare: db.prepare.bind(db), batch: async () => { throw new Error('D1 down'); } };
-    await expect(a.flush(failing)).rejects.toThrow('D1 down');
+    await expect(a.flush(failing)).rejects.toBeInstanceOf(CommitOutcomeUnknownError);
 
     await a.sync(db, 'json');
     expect(a.getDocument(doc.id)!.title).toBe(doc.title);

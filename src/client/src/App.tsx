@@ -413,6 +413,7 @@ const AppContent: React.FC = () => {
         onOpenHome={() => handleSelectFilter('home')}
         onOpenSpotlight={() => setIsSpotlightOpen(true)}
         onOpenNav={() => setIsNavOpen(true)}
+        isNavOpen={isNavOpen}
         onOpenCreate={() => {
           if (currentFilter.startsWith('labor') || (user?.role !== 'admin' && user?.can_access_labor_contracts)) {
             openCreateWithTab('labor');
