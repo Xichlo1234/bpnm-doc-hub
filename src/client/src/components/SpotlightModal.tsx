@@ -220,7 +220,7 @@ export const SpotlightModal: React.FC<SpotlightModalProps> = ({
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, overflow: 'hidden' }}>
-                          <FileText size={16} color={d.doc_type === 'incoming' ? 'var(--accent-primary)' : '#6366F1'} style={{ flexShrink: 0 }} />
+                          <FileText size={16} color={d.doc_type === 'incoming' ? 'var(--accent-primary)' : 'var(--accent-primary)'} style={{ flexShrink: 0 }} />
                           <div style={{ overflow: 'hidden' }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                               {d.title}
@@ -228,7 +228,7 @@ export const SpotlightModal: React.FC<SpotlightModalProps> = ({
                             <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                               <span className="mono-code" style={{ fontSize: 10 }}>{d.document_number}</span>
                               {d.original_doc_number && (
-                                <span style={{ color: '#2563EB', fontWeight: 600 }}>({d.original_doc_number})</span>
+                                <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>({d.original_doc_number})</span>
                               )}
                               <span>·</span>
                               <span>{d.issuer || d.recipient || t.docTypeInternal}</span>

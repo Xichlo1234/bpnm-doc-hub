@@ -274,11 +274,11 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                background: item.kind === 'contract' ? 'rgba(16, 124, 65, 0.1)' : 'rgba(37, 99, 235, 0.1)',
+                background: item.kind === 'contract' ? 'rgba(16, 124, 65, 0.1)' : 'rgba(252, 207, 77, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: item.kind === 'contract' ? '#107C41' : '#2563EB',
+                color: item.kind === 'contract' ? '#107C41' : 'var(--accent-primary)',
               }}
             >
               <Edit3 size={18} />

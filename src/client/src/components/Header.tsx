@@ -276,7 +276,7 @@ export const Header: React.FC<HeaderProps> = ({
                       style={{
                         padding: '12px 16px',
                         borderBottom: '1px solid var(--border-subtle)',
-                        background: notif.read ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
+                        background: notif.read ? 'transparent' : 'rgba(252, 207, 77, 0.05)',
                         cursor: 'pointer',
                         transition: 'background 0.15s ease',
                         whiteSpace: 'normal',
@@ -284,7 +284,7 @@ export const Header: React.FC<HeaderProps> = ({
                         overflowWrap: 'break-word',
                       }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-card)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(59, 130, 246, 0.05)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(252, 207, 77, 0.05)')}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, flex: 1, minWidth: 0 }}>
@@ -294,7 +294,7 @@ export const Header: React.FC<HeaderProps> = ({
                                 width: 7,
                                 height: 7,
                                 borderRadius: '50%',
-                                background: '#3B82F6',
+                                background: 'var(--accent-primary)',
                                 display: 'inline-block',
                                 marginTop: 5,
                                 flexShrink: 0,
