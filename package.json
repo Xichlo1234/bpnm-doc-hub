@@ -22,7 +22,8 @@
     "db:migrate:local": "node scripts/db-migrate.mjs migrate --local",
     "dev:demo": "SEED_DEMO=1 vite",
     "preflight:remote": "node scripts/preflight.mjs --remote",
-    "preflight:local": "node scripts/preflight.mjs --file data/app.db"
+    "preflight:local": "node scripts/preflight.mjs --file data/app.db",
+    "build:document-manage": "npm run build && node scripts/select-wrangler-env.mjs document-manage"
   },
   "dependencies": {
     "hono": "^4.13.19",
