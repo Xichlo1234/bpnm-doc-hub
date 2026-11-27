@@ -35,5 +35,39 @@
       "binding": "BUCKET",
       "bucket_name": "bpnm-doc-hub-files"
     }
-  ]
+  ],
+  // Two production tenants share this code:
+  //   top level            -> Worker bpnm-doc-hub      on bpnm.tungcv.vn            (`wrangler deploy`)
+  //   env.document-manage  -> Worker quan-ly-cong-van  on document-manage.tungcv.vn (`wrangler deploy --env document-manage`)
+  // routes, vars, d1_databases and r2_buckets are NOT inherited by an env, so each is repeated
+  // here with that tenant's own resources. `name` is set explicitly so Wrangler does not append
+  // the env suffix. Every D1 migration must be applied to BOTH databases (see DEPLOY_RUNBOOK).
+  "env": {
+    "document-manage": {
+      "name": "quan-ly-cong-van",
+      "routes": [
+        {
+          "pattern": "document-manage.tungcv.vn",
+          "custom_domain": true
+        }
+      ],
+      "vars": {
+        "MAINTENANCE_MODE": "0"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "document-manager-db",
+          "database_id": "dd6a5309-85ff-449b-bdbd-b1aa239dcb77",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "BUCKET",
+          "bucket_name": "document-manager-files"
+        }
+      ]
+    }
+  }
 }
