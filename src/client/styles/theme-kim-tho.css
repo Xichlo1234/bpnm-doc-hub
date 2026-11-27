@@ -1,135 +1,151 @@
 /*
  * Chủ đề Kim – Thổ (ngũ hành).
  *   Kim: trắng bạc, bạc, thép, ánh kim loại.
- *   Thổ: vàng đất, nâu đất, cát, đất nung.
- * Vàng kim (gold) là màu nhấn chính vì nó là giao điểm của Kim và Thổ (Thổ sinh Kim).
+ *   Thổ: nâu đất trầm, cát, đất nung.
+ * Vàng kim sáng là màu nhấn chính, giao điểm của Kim và Thổ (Thổ sinh Kim).
  * Tránh xanh lá (Mộc khắc Thổ) và đỏ tươi (Hỏa khắc Kim) làm màu trang trí. Màu trạng thái
  * vẫn giữ nghĩa nhưng chuyển sang tông đất: khẩn = đất nung, cảnh báo = vàng đất,
  * thành công = ô liu đồng, thông tin = thép bạc.
+ *
+ * Nút: bo tròn đều 4 góc, khối nổi nhờ dải sáng bên trong (vát sáng ở cạnh trên, tối nhẹ ở
+ * cạnh dưới) và viền được chiếu sáng, không dùng bóng đổ đen ra ngoài. Nút vàng có quầng
+ * sáng như kim loại được soi đèn.
  *
  * File này nạp sau index.css và chỉ ghi đè biến màu cùng kiểu nút; bố cục không đổi.
  */
 
 :root {
-  --bg-page: #f6f1e7;
-  --bg-surface: #fffdf8;
-  --bg-surface-subtle: #fbf7ee;
-  --bg-sidebar: #f3ecdd;
-  --bg-hover: #ede4d1;
-  --bg-active: #e5d9c1;
-  --bg-input: #f4eee2;
-  --border-subtle: #e7dcc7;
-  --border-strong: #d4c4a6;
-  --text-primary: #2a2017;
-  --text-secondary: #5f5240;
-  --text-muted: #8e806a;
+  --bg-page: #efe6d4;
+  --bg-surface: #fbf6ec;
+  --bg-surface-subtle: #f6efe1;
+  --bg-sidebar: #e9dec8;
+  --bg-hover: #e3d6bc;
+  --bg-active: #dacbad;
+  --bg-input: #f3ead9;
+  --border-subtle: #ddd0b6;
+  --border-strong: #c6b391;
+  --text-primary: #2a1f14;
+  --text-secondary: #5a4b37;
+  --text-muted: #87785f;
   --text-inverted: #ffffff;
-  --accent-primary: #9a6b17;
-  --accent-hover: #7f5712;
-  --accent-light: #f5ead2;
+  --accent-primary: #94650f;
+  --accent-hover: #7a530b;
+  --accent-light: #f6e7c2;
   --accent-blue: #66707c;
-  --urgent-bg: #fbeae3;
-  --urgent-text: #a8442a;
-  --urgent-border: #f1cbbd;
+  --urgent-bg: #f6e2d8;
+  --urgent-text: #a3401f;
+  --urgent-border: #ecc2b1;
   --urgent-dot: #c4552f;
-  --warning-bg: #fbf1dc;
-  --warning-text: #9a6a12;
-  --warning-border: #f0d9a6;
+  --warning-bg: #f7ebd0;
+  --warning-text: #93620a;
+  --warning-border: #ebd29a;
   --warning-dot: #c98a1f;
-  --success-bg: #f1f3e2;
-  --success-text: #5d6b1f;
-  --success-border: #dbe0b5;
+  --success-bg: #ecefd9;
+  --success-text: #56631b;
+  --success-border: #d3d9a8;
   --success-dot: #7d8c2c;
-  --info-bg: #eef0f2;
-  --info-text: #4f5965;
-  --info-border: #d5dae0;
-  --gray-bg: #f0ebe1;
-  --gray-text: #6e6455;
-  --gray-border: #ddd3c2;
+  --info-bg: #e9ecef;
+  --info-text: #4b5561;
+  --info-border: #cfd5dc;
+  --gray-bg: #e9e1d1;
+  --gray-text: #6a5f4f;
+  --gray-border: #d5c9b4;
   --shadow-sm: 0 1px 2px rgba(58, 40, 18, 0.06);
   --shadow-md: 0 4px 12px rgba(58, 40, 18, 0.08);
   --shadow-lg: 0 12px 32px rgba(58, 40, 18, 0.12);
 
-  /* Nút 3D: vàng kim (chính), bạc (phụ), đất nung (nguy hiểm) */
-  --k3d-gold-top: #f0cf7f;
-  --k3d-gold-bottom: #c99632;
-  --k3d-gold-edge: #a87a24;
-  --k3d-gold-depth: #7a5530;
-  --k3d-gold-text: #2b1d0c;
-  --k3d-silver-top: #ffffff;
-  --k3d-silver-bottom: #e2e4e8;
-  --k3d-silver-edge: #c3c8ce;
-  --k3d-silver-depth: #9aa1a9;
-  --k3d-silver-text: #2a2e33;
-  --k3d-clay-top: #e07a55;
-  --k3d-clay-bottom: #b5522f;
-  --k3d-clay-edge: #93401f;
-  --k3d-clay-depth: #6b2c14;
-  --k3d-clay-text: #ffffff;
-  --k3d-glow: rgba(58, 40, 18, 0.22);
-  --k3d-focus: #c99632;
+  --k-radius: 12px;
+  --k-radius-sm: 10px;
+
+  /* Vàng kim được chiếu sáng */
+  --k-gold-hi: #fff6cf;
+  --k-gold-top: #ffe38a;
+  --k-gold-mid: #fccf4d;
+  --k-gold-low: #e9ad22;
+  --k-gold-rim: #fff1b3;
+  --k-gold-text: #3a2606;
+  --k-gold-glow: rgba(252, 196, 64, 0.45);
+  --k-gold-glow-strong: rgba(255, 206, 84, 0.65);
+
+  /* Bạc */
+  --k-silver-hi: #ffffff;
+  --k-silver-top: #fbfbfc;
+  --k-silver-low: #d8dce1;
+  --k-silver-rim: #ffffff;
+  --k-silver-line: #c4c9cf;
+  --k-silver-text: #2a2e33;
+  --k-silver-glow: rgba(255, 255, 255, 0.7);
+
+  /* Đất nung */
+  --k-clay-top: #f39a74;
+  --k-clay-low: #c95f36;
+  --k-clay-rim: #ffc7ad;
+  --k-clay-text: #ffffff;
+  --k-clay-glow: rgba(240, 130, 90, 0.4);
+
+  --k-focus: #f5c242;
 }
 
 [data-theme='dark'] {
-  --bg-page: #14110c;
-  --bg-surface: #1d1913;
-  --bg-surface-subtle: #221d16;
-  --bg-sidebar: #17130e;
-  --bg-hover: #2b251c;
-  --bg-active: #352d21;
-  --bg-input: #221d16;
-  --border-subtle: #2f281e;
-  --border-strong: #43392b;
-  --text-primary: #f3ecdf;
-  --text-secondary: #c4b8a3;
-  --text-muted: #8c8170;
-  --text-inverted: #14110c;
-  --accent-primary: #d9ae55;
-  --accent-hover: #e8c272;
-  --accent-light: #2e2516;
+  --bg-page: #110d08;
+  --bg-surface: #1a140d;
+  --bg-surface-subtle: #1f1810;
+  --bg-sidebar: #140f09;
+  --bg-hover: #271e14;
+  --bg-active: #30251a;
+  --bg-input: #1f1810;
+  --border-subtle: #2c2217;
+  --border-strong: #3e3122;
+  --text-primary: #f3e9d6;
+  --text-secondary: #c2b399;
+  --text-muted: #8a7c66;
+  --text-inverted: #110d08;
+  --accent-primary: #f6c94e;
+  --accent-hover: #ffd96e;
+  --accent-light: #2d2312;
   --accent-blue: #a9b1bb;
-  --urgent-bg: #2e1a14;
+  --urgent-bg: #2a170f;
   --urgent-text: #f0937a;
-  --urgent-border: #55291d;
+  --urgent-border: #4f2618;
   --urgent-dot: #d4643f;
-  --warning-bg: #2d2210;
-  --warning-text: #e9b949;
-  --warning-border: #4d3a16;
-  --warning-dot: #d99a2b;
-  --success-bg: #1f2414;
+  --warning-bg: #2a1f0c;
+  --warning-text: #f0c053;
+  --warning-border: #4a3713;
+  --warning-dot: #e0a12d;
+  --success-bg: #1c2011;
   --success-text: #b7c46a;
-  --success-border: #39421f;
+  --success-border: #343c1c;
   --success-dot: #9fae4a;
-  --info-bg: #1f2329;
+  --info-bg: #1c2026;
   --info-text: #b8c2cc;
-  --info-border: #343b44;
-  --gray-bg: #24201a;
-  --gray-text: #a99f8e;
-  --gray-border: #3a3228;
+  --info-border: #313841;
+  --gray-bg: #211b13;
+  --gray-text: #a69a86;
+  --gray-border: #382e22;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
 
-  --k3d-gold-top: #ecc46e;
-  --k3d-gold-bottom: #b98a2e;
-  --k3d-gold-edge: #8f6a22;
-  --k3d-gold-depth: #5a3f1c;
-  --k3d-gold-text: #1f150a;
-  --k3d-silver-top: #4d5259;
-  --k3d-silver-bottom: #353a40;
-  --k3d-silver-edge: #262a2f;
-  --k3d-silver-depth: #121417;
-  --k3d-silver-text: #eef0f2;
-  --k3d-clay-top: #d9714c;
-  --k3d-clay-bottom: #a94a29;
-  --k3d-clay-edge: #7d3518;
-  --k3d-clay-depth: #4d200d;
-  --k3d-clay-text: #ffffff;
-  --k3d-glow: rgba(0, 0, 0, 0.5);
-  --k3d-focus: #ecc46e;
+  --k-gold-glow: rgba(252, 196, 64, 0.38);
+  --k-gold-glow-strong: rgba(255, 206, 84, 0.6);
+
+  --k-silver-hi: #8a9098;
+  --k-silver-top: #5b6168;
+  --k-silver-low: #393e44;
+  --k-silver-rim: #a3a9b1;
+  --k-silver-line: #2b2f34;
+  --k-silver-text: #f2f3f5;
+  --k-silver-glow: rgba(200, 206, 214, 0.22);
+
+  --k-clay-top: #e88560;
+  --k-clay-low: #b24f2a;
+  --k-clay-rim: #f6b296;
+  --k-clay-glow: rgba(230, 120, 80, 0.35);
+
+  --k-focus: #ffd96e;
 }
 
-/* ---------- Nút 3D chung ---------- */
+/* ---------- Nút chung: bo tròn, khối sáng ---------- */
 .btn-primary,
 .btn.btn-primary,
 .btn-ghost,
@@ -144,21 +160,29 @@
   opacity: 1;
   border-width: 1px;
   border-style: solid;
-  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
-  will-change: transform;
+  border-radius: var(--k-radius);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.btn-sm,
+.btn-icon {
+  border-radius: var(--k-radius-sm);
 }
 
 /* Vàng kim: hành động chính, tab đang chọn */
 .btn-primary,
 .btn.btn-primary {
-  background: linear-gradient(180deg, var(--k3d-gold-top) 0%, var(--k3d-gold-bottom) 100%);
-  border-color: var(--k3d-gold-edge);
-  color: var(--k3d-gold-text);
-  text-shadow: 0 1px 0 rgba(255, 244, 214, 0.45);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-gold-hi) 0%, rgba(255, 246, 207, 0) 55%),
+    linear-gradient(180deg, var(--k-gold-top) 0%, var(--k-gold-mid) 52%, var(--k-gold-low) 100%);
+  border-color: var(--k-gold-rim);
+  color: var(--k-gold-text);
+  text-shadow: 0 1px 0 rgba(255, 248, 220, 0.6);
   box-shadow:
-    inset 0 1px 0 rgba(255, 250, 235, 0.65),
-    0 4px 0 var(--k3d-gold-depth),
-    0 6px 14px var(--k3d-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 3px rgba(180, 120, 10, 0.35),
+    0 0 0 1px rgba(255, 225, 140, 0.35),
+    0 0 14px var(--k-gold-glow);
 }
 
 /* Bạc: hành động phụ, tab chưa chọn */
@@ -167,140 +191,106 @@
 .btn-secondary,
 .btn.btn-secondary,
 .btn-outline {
-  background: linear-gradient(180deg, var(--k3d-silver-top) 0%, var(--k3d-silver-bottom) 100%);
-  border-color: var(--k3d-silver-edge);
-  color: var(--k3d-silver-text);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-silver-hi) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, var(--k-silver-top) 0%, var(--k-silver-low) 100%);
+  border-color: var(--k-silver-rim);
+  color: var(--k-silver-text);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    0 4px 0 var(--k3d-silver-depth),
-    0 6px 12px var(--k3d-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.12),
+    0 0 0 1px var(--k-silver-line),
+    0 0 10px var(--k-silver-glow);
 }
 
 /* Đất nung: xoá, huỷ nguy hiểm */
 .btn-danger,
 .btn.btn-danger {
-  background: linear-gradient(180deg, var(--k3d-clay-top) 0%, var(--k3d-clay-bottom) 100%);
-  border-color: var(--k3d-clay-edge);
-  color: var(--k3d-clay-text);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  background: linear-gradient(180deg, var(--k-clay-top) 0%, var(--k-clay-low) 100%);
+  border-color: var(--k-clay-rim);
+  color: var(--k-clay-text);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
   box-shadow:
-    inset 0 1px 0 rgba(255, 220, 200, 0.4),
-    0 4px 0 var(--k3d-clay-depth),
-    0 6px 14px var(--k3d-glow);
+    inset 0 1px 0 rgba(255, 230, 215, 0.6),
+    inset 0 -2px 3px rgba(90, 30, 10, 0.3),
+    0 0 12px var(--k-clay-glow);
 }
 
-/* Nút biểu tượng: bạc, nổi thấp hơn */
+/* Nút biểu tượng: bạc */
 .btn-icon {
-  background: linear-gradient(180deg, var(--k3d-silver-top) 0%, var(--k3d-silver-bottom) 100%);
-  border-color: var(--k3d-silver-edge);
-  color: var(--k3d-silver-text);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-silver-hi) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, var(--k-silver-top) 0%, var(--k-silver-low) 100%);
+  border-color: var(--k-silver-rim);
+  color: var(--k-silver-text);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 3px 0 var(--k3d-silver-depth),
-    0 4px 10px var(--k3d-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.12),
+    0 0 0 1px var(--k-silver-line),
+    0 0 8px var(--k-silver-glow);
 }
 
-/* Di chuột: nổi lên. Nhấn: lún xuống. */
-.btn-primary:hover:not(:disabled),
-.btn-ghost:hover:not(:disabled),
-.btn-secondary:hover:not(:disabled),
-.btn-outline:hover:not(:disabled),
-.btn-danger:hover:not(:disabled),
-.btn-icon:hover:not(:disabled) {
-  transform: translateY(-1px);
-  filter: brightness(1.05);
-  opacity: 1;
-}
-
+/* Di chuột: sáng hơn, nhích lên. Nhấn: lún vào, tắt quầng sáng. */
 .btn-primary:hover:not(:disabled),
 .btn.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--k3d-gold-top) 0%, var(--k3d-gold-bottom) 100%);
-  color: var(--k3d-gold-text);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-gold-hi) 0%, rgba(255, 246, 207, 0) 60%),
+    linear-gradient(180deg, var(--k-gold-top) 0%, var(--k-gold-mid) 52%, var(--k-gold-low) 100%);
+  color: var(--k-gold-text);
+  opacity: 1;
+  transform: translateY(-1px);
+  filter: brightness(1.06);
   box-shadow:
-    inset 0 1px 0 rgba(255, 250, 235, 0.7),
-    0 5px 0 var(--k3d-gold-depth),
-    0 8px 16px var(--k3d-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(180, 120, 10, 0.3),
+    0 0 0 1px rgba(255, 230, 150, 0.55),
+    0 0 22px var(--k-gold-glow-strong);
 }
 
 .btn-ghost:hover:not(:disabled),
 .btn.btn-ghost:hover:not(:disabled),
 .btn-secondary:hover:not(:disabled),
 .btn.btn-secondary:hover:not(:disabled),
-.btn-outline:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--k3d-silver-top) 0%, var(--k3d-silver-bottom) 100%);
-  border-color: var(--k3d-silver-edge);
-  color: var(--k3d-silver-text);
+.btn-outline:hover:not(:disabled),
+.btn-icon:hover:not(:disabled) {
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-silver-hi) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, var(--k-silver-top) 0%, var(--k-silver-low) 100%);
+  border-color: var(--k-gold-rim);
+  color: var(--k-silver-text);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 5px 0 var(--k3d-silver-depth),
-    0 8px 14px var(--k3d-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 225, 140, 0.45),
+    0 0 14px var(--k-gold-glow);
 }
 
-.btn-icon:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--k3d-silver-top) 0%, var(--k3d-silver-bottom) 100%);
-  color: var(--accent-primary);
+.btn-danger:hover:not(:disabled),
+.btn.btn-danger:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 215, 0.7),
+    inset 0 -2px 3px rgba(90, 30, 10, 0.25),
+    0 0 18px var(--k-clay-glow);
 }
 
 .btn-primary:active:not(:disabled),
 .btn-ghost:active:not(:disabled),
 .btn-secondary:active:not(:disabled),
 .btn-outline:active:not(:disabled),
-.btn-danger:active:not(:disabled) {
-  transform: translateY(3px);
-  filter: brightness(0.97);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.18),
-    0 1px 0 var(--k3d-silver-depth);
-}
-
-.btn-primary:active:not(:disabled),
-.btn.btn-primary:active:not(:disabled) {
-  box-shadow:
-    inset 0 2px 4px rgba(90, 60, 20, 0.3),
-    0 1px 0 var(--k3d-gold-depth);
-}
-
 .btn-danger:active:not(:disabled),
-.btn.btn-danger:active:not(:disabled) {
-  box-shadow:
-    inset 0 2px 4px rgba(60, 20, 8, 0.35),
-    0 1px 0 var(--k3d-clay-depth);
-}
-
 .btn-icon:active:not(:disabled) {
-  transform: translateY(2px);
+  transform: translateY(1px);
+  filter: brightness(0.96);
   box-shadow:
-    inset 0 2px 3px rgba(0, 0, 0, 0.18),
-    0 1px 0 var(--k3d-silver-depth);
+    inset 0 2px 5px rgba(0, 0, 0, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.35);
 }
 
-/* Nút nhỏ: nổi thấp hơn để không lệch hàng */
-.btn-sm.btn-primary,
-.btn-sm.btn-ghost,
-.btn-sm.btn-secondary,
-.btn-sm.btn-danger,
-.btn-sm.btn-outline {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    0 2px 0 var(--k3d-silver-depth),
-    0 3px 8px var(--k3d-glow);
-}
-
-.btn-sm.btn-primary {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 250, 235, 0.6),
-    0 2px 0 var(--k3d-gold-depth),
-    0 3px 8px var(--k3d-glow);
-}
-
-.btn-sm.btn-danger {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 220, 200, 0.4),
-    0 2px 0 var(--k3d-clay-depth),
-    0 3px 8px var(--k3d-glow);
-}
-
-/* Vô hiệu hoá: phẳng, không nổi */
+/* Vô hiệu hoá: phẳng, không phát sáng */
 .btn-primary:disabled,
 .btn-ghost:disabled,
 .btn-secondary:disabled,
@@ -308,25 +298,159 @@
 .btn-danger:disabled,
 .btn-icon:disabled {
   transform: none;
-  filter: saturate(0.4);
+  filter: saturate(0.35);
   opacity: 0.6;
-  box-shadow: 0 1px 0 var(--k3d-silver-depth);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-/* Bàn phím: viền vàng kim rõ ràng */
+/* Bàn phím: vòng sáng vàng kim */
 .btn-primary:focus-visible,
 .btn-ghost:focus-visible,
 .btn-secondary:focus-visible,
 .btn-outline:focus-visible,
 .btn-danger:focus-visible,
 .btn-icon:focus-visible {
-  outline: 2px solid var(--k3d-focus);
+  outline: 2px solid var(--k-focus);
   outline-offset: 3px;
 }
 
-/* Hàng nút tab: chừa chỗ cho phần nổi bên dưới */
+/* Hàng nút tab: chừa chỗ cho quầng sáng */
 .modal-tabs-nav {
-  padding-bottom: 6px;
+  padding-bottom: 4px;
+}
+
+/* ---------- Thành phần có màu viết cứng ---------- */
+
+/* Biểu tượng đăng nhập: vàng kim phát sáng */
+.login-logo-badge {
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-gold-hi) 0%, rgba(255, 246, 207, 0) 55%),
+    linear-gradient(160deg, var(--k-gold-top) 0%, var(--k-gold-mid) 50%, var(--k-gold-low) 100%);
+  border: 1px solid var(--k-gold-rim);
+  color: var(--k-gold-text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 4px rgba(180, 120, 10, 0.35),
+    0 0 24px var(--k-gold-glow);
+}
+
+.login-logo-badge svg {
+  color: var(--k-gold-text);
+  stroke: currentColor;
+}
+
+/* Ô đánh dấu, thanh trượt, radio: vàng kim thay cho xanh lá mặc định */
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'],
+progress {
+  accent-color: var(--k-gold-low);
+}
+
+/* Khung "Bàn làm việc": nâu đất trầm, chữ trắng ngà; ảnh nền kéo về tông đất */
+.home-hero {
+  border-color: #4a3820;
+  background: #20180e;
+  color: #f7efe0;
+}
+
+.home-hero::after {
+  background: linear-gradient(90deg, #20180e 0%, rgba(32, 24, 14, 0.45) 36%, transparent 68%),
+    url('/home-archive.webp') center 56% / cover no-repeat;
+  filter: sepia(0.6) saturate(0.8) hue-rotate(-8deg) brightness(0.92);
+}
+
+.home-hero p {
+  color: #e2d2b2;
+}
+
+.home-primary,
+.home-secondary {
+  border-radius: var(--k-radius);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.home-primary {
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-gold-hi) 0%, rgba(255, 246, 207, 0) 55%),
+    linear-gradient(180deg, var(--k-gold-top) 0%, var(--k-gold-mid) 52%, var(--k-gold-low) 100%);
+  border-color: var(--k-gold-rim);
+  color: var(--k-gold-text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 3px rgba(180, 120, 10, 0.35),
+    0 0 16px rgba(252, 196, 64, 0.45);
+}
+
+.home-primary:hover {
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-gold-hi) 0%, rgba(255, 246, 207, 0) 60%),
+    linear-gradient(180deg, var(--k-gold-top) 0%, var(--k-gold-mid) 52%, var(--k-gold-low) 100%);
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(180, 120, 10, 0.3),
+    0 0 24px rgba(255, 206, 84, 0.6);
+}
+
+.home-secondary {
+  background: linear-gradient(180deg, rgba(225, 229, 234, 0.24) 0%, rgba(160, 166, 174, 0.12) 100%);
+  border-color: rgba(235, 238, 242, 0.55);
+  color: #f4f5f7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.2),
+    0 0 10px rgba(220, 225, 232, 0.18);
+}
+
+.home-secondary:hover {
+  background: linear-gradient(180deg, rgba(225, 229, 234, 0.32) 0%, rgba(160, 166, 174, 0.18) 100%);
+  border-color: rgba(255, 230, 150, 0.7);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.18),
+    0 0 16px rgba(252, 196, 64, 0.35);
+}
+
+.home-primary:active,
+.home-secondary:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.25), inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.home-hero button:focus-visible {
+  outline-color: var(--k-focus);
+}
+
+.workspace-calendar-trigger {
+  border-color: #5c4527;
+  border-radius: 10px;
+  background: #2e2315;
+  color: #f5ead6;
+}
+
+.workspace-calendar-trigger:hover {
+  background: #3b2d1b;
+  border-color: rgba(255, 225, 140, 0.6);
+}
+
+.workspace-clock {
+  color: #fbf3e3;
+}
+
+.workspace-lunar {
+  color: #dccaa6;
+}
+
+.workspace-holiday {
+  color: #ffd56a;
+}
+
+.calendar-dialog::backdrop {
+  background: rgba(16, 11, 5, 0.66);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -335,7 +459,9 @@
   .btn-secondary,
   .btn-outline,
   .btn-danger,
-  .btn-icon {
+  .btn-icon,
+  .home-primary,
+  .home-secondary {
     transition: none;
   }
   .btn-primary:hover:not(:disabled),
@@ -349,128 +475,7 @@
   .btn-secondary:active:not(:disabled),
   .btn-outline:active:not(:disabled),
   .btn-danger:active:not(:disabled),
-  .btn-icon:active:not(:disabled) {
-    transform: none;
-  }
-}
-
-/* ---------- Thành phần có màu viết cứng ---------- */
-
-/* Biểu tượng đăng nhập và logo: vàng kim nổi */
-.login-logo-badge {
-  background: linear-gradient(145deg, var(--k3d-gold-top) 0%, var(--k3d-gold-bottom) 100%);
-  border: 1px solid var(--k3d-gold-edge);
-  color: var(--k3d-gold-text);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 250, 235, 0.6),
-    0 4px 0 var(--k3d-gold-depth),
-    0 10px 20px var(--k3d-glow);
-}
-
-.login-logo-badge svg {
-  color: var(--k3d-gold-text);
-  stroke: currentColor;
-}
-
-/* Ô đánh dấu, thanh trượt, radio: vàng kim thay cho xanh lá mặc định */
-input[type='checkbox'],
-input[type='radio'],
-input[type='range'],
-progress {
-  accent-color: var(--k3d-gold-bottom);
-}
-
-/* Khung "Bàn làm việc": nâu đất, chữ trắng ngà; ảnh nền kéo về tông đất */
-.home-hero {
-  border-color: #5a4426;
-  background: #2a2115;
-  color: #f7efe0;
-}
-
-.home-hero::after {
-  background: linear-gradient(90deg, #2a2115 0%, rgba(42, 33, 21, 0.45) 36%, transparent 68%),
-    url('/home-archive.webp') center 56% / cover no-repeat;
-  filter: sepia(0.6) saturate(0.85) hue-rotate(-8deg);
-}
-
-.home-hero p {
-  color: #e6d6b8;
-}
-
-.home-primary {
-  background: linear-gradient(180deg, var(--k3d-gold-top) 0%, var(--k3d-gold-bottom) 100%);
-  border-color: var(--k3d-gold-edge);
-  color: var(--k3d-gold-text);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 250, 235, 0.65),
-    0 4px 0 var(--k3d-gold-depth),
-    0 6px 14px rgba(0, 0, 0, 0.35);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
-}
-
-.home-primary:hover {
-  background: linear-gradient(180deg, var(--k3d-gold-top) 0%, var(--k3d-gold-bottom) 100%);
-  transform: translateY(-1px);
-  filter: brightness(1.05);
-}
-
-.home-secondary {
-  background: linear-gradient(180deg, rgba(214, 218, 223, 0.22) 0%, rgba(160, 166, 174, 0.14) 100%);
-  border-color: rgba(214, 218, 223, 0.45);
-  color: #f2f3f5;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 4px 0 rgba(0, 0, 0, 0.45),
-    0 6px 12px rgba(0, 0, 0, 0.3);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
-}
-
-.home-secondary:hover {
-  background: linear-gradient(180deg, rgba(214, 218, 223, 0.3) 0%, rgba(160, 166, 174, 0.2) 100%);
-  transform: translateY(-1px);
-}
-
-.home-primary:active,
-.home-secondary:active {
-  transform: translateY(3px);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-
-.home-hero button:focus-visible {
-  outline-color: #ecc46e;
-}
-
-.workspace-calendar-trigger {
-  border-color: #6b5532;
-  background: #3a2d1b;
-  color: #f5ead6;
-}
-
-.workspace-calendar-trigger:hover {
-  background: #4a3a22;
-}
-
-.workspace-clock {
-  color: #fbf3e3;
-}
-
-.workspace-lunar {
-  color: #e0cfae;
-}
-
-.workspace-holiday {
-  color: #f2c76a;
-}
-
-.calendar-dialog::backdrop {
-  background: rgba(20, 14, 6, 0.64);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-primary,
-  .home-secondary {
-    transition: none;
-  }
+  .btn-icon:active:not(:disabled),
   .home-primary:hover,
   .home-secondary:hover,
   .home-primary:active,
