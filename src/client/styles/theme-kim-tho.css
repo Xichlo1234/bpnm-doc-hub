@@ -841,6 +841,27 @@ progress {
 }
 
 /* ---------- Sổ công văn nội bộ: hàng thư mục Đến / Đi ---------- */
+.document-stats-bar .stat-card-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 721px) {
+  .document-stats-bar {
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .table-view-container:has(.register-folders) {
+    overflow-y: auto;
+  }
+
+  .table-view-container:has(.register-folders) .table-scroll-container {
+    min-height: 12rem;
+  }
+}
+
 .register-folders {
   display: flex;
   flex-wrap: wrap;

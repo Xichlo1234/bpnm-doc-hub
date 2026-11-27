@@ -400,14 +400,18 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
   const internalFolder: 'all' | 'incoming' | 'outgoing' =
     currentFilter === 'docs_internal_incoming' ? 'incoming' : currentFilter === 'docs_internal_outgoing' ? 'outgoing' : 'all';
 
-  const createType: NumberedDocumentType = subTab === 'internal'
-    ? (currentFilter === 'docs_internal_outgoing' ? 'internal_outgoing' : 'internal_incoming')
-    : subTab === 'outgoing' ? 'outgoing' : 'incoming';
+  const createTypes: NumberedDocumentType[] = [];
+  if (subTab === 'internal') {
+    if (internalFolder !== 'outgoing') createTypes.push('internal_incoming');
+    if (internalFolder !== 'incoming') createTypes.push('internal_outgoing');
+  } else {
+    createTypes.push(subTab === 'outgoing' ? 'outgoing' : 'incoming');
+  }
   const createLabels = {
     incoming: t.createIncomingBtn,
     outgoing: t.createOutgoingBtn,
-    internal_incoming: t.createInternalIncomingTitle,
-    internal_outgoing: t.createInternalOutgoingTitle,
+    internal_incoming: t.internalIncomingTab,
+    internal_outgoing: t.internalOutgoingTab,
   };
 
   return (
@@ -451,7 +455,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
         </div>
 
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             className="btn btn-outline"
             style={{ fontSize: 13, padding: '7px 12px' }}
@@ -474,29 +478,9 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
             </button>
           )}
 
-          {isAdmin && subTab === 'internal' && (
-            <>
-              <button
-                className="btn btn-primary"
-                style={{ fontSize: 13, padding: '7px 14px' }}
-                onClick={() => onOpenCreate('internal_incoming')}
-              >
-                <Plus size={15} style={{ marginRight: 6 }} />
-                {t.internalIncomingTab}
-              </button>
-              <button
-                className="btn btn-primary"
-                style={{ fontSize: 13, padding: '7px 14px' }}
-                onClick={() => onOpenCreate('internal_outgoing')}
-              >
-                <Plus size={15} style={{ marginRight: 6 }} />
-                {t.internalOutgoingTab}
-              </button>
-            </>
-          )}
-
-          {isAdmin && subTab !== 'internal' && (
+          {isAdmin && createTypes.map(createType => (
             <button
+              key={createType}
               className="btn btn-primary"
               style={{ fontSize: 13, padding: '7px 14px' }}
               onClick={() => onOpenCreate(createType)}
@@ -504,7 +488,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
               <Plus size={15} style={{ marginRight: 6 }} />
               {createLabels[createType]}
             </button>
-          )}
+          ))}
         </div>
       </div>
 

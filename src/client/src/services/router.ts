@@ -267,7 +267,7 @@ export function parseCurrentLocation(customPath?: string, customHash?: string): 
     }
 
     if (second === 'internal') {
-      state.viewMode = 'split';
+      state.viewMode = 'doc_table';
       if (parts[2] === 'incoming') state.currentFilter = 'docs_internal_incoming';
       else if (parts[2] === 'outgoing') state.currentFilter = 'docs_internal_outgoing';
       else state.currentFilter = 'docs_internal';
@@ -309,7 +309,7 @@ export function buildRouteUrl(params: {
     return settingsSubTab ? `/settings/${settingsSubTab}` : '/settings';
   }
 
-  if (viewMode === 'doc_table') {
+  if (viewMode === 'doc_table' && !currentFilter.startsWith('docs_internal')) {
     return '/documents/table';
   }
 
@@ -318,7 +318,7 @@ export function buildRouteUrl(params: {
   }
 
   // Split View with a specifically selected item
-  if (selectedItem) {
+  if (viewMode === 'split' && selectedItem) {
     if (selectedItem.kind === 'contract') {
       return `/contracts/${encodeURIComponent(selectedItem.data.id)}`;
     } else {

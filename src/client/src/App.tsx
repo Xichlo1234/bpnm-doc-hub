@@ -211,7 +211,7 @@ const AppContent: React.FC = () => {
     } else if (filter.startsWith('docs')) {
       setTableSelectedDocument(null);
       setTableSelectedContract(null);
-      if (viewMode === 'contract_table' || viewMode === 'partners' || viewMode === 'settings') {
+      if (filter.startsWith('docs_internal') || viewMode === 'contract_table' || viewMode === 'partners' || viewMode === 'settings') {
         targetView = 'doc_table';
       }
     } else if (filter === 'all') {
@@ -253,7 +253,7 @@ const AppContent: React.FC = () => {
       if (!currentFilter.startsWith('docs')) {
         setCurrentFilter('docs_incoming');
       }
-      syncUrl('/documents/table');
+      syncUrl(buildRouteUrl({ viewMode: mode, currentFilter }));
     } else if (mode === 'contract_table') {
       if (!currentFilter.startsWith('contracts') && !currentFilter.startsWith('labor')) {
         setCurrentFilter('contracts_all');
@@ -521,12 +521,9 @@ const AppContent: React.FC = () => {
                   : 'incoming'
               }
               onTabChange={tab => {
-                if (tab === 'outgoing') setCurrentFilter('docs_outgoing');
-                else if (tab === 'incoming') setCurrentFilter('docs_incoming');
-                else if (tab === 'internal') setCurrentFilter('docs_internal');
-                else setCurrentFilter('docs_all');
+                handleSelectFilter(tab === 'search' ? 'docs_all' : `docs_${tab}`);
               }}
-              onSelectFilter={filter => setCurrentFilter(filter)}
+              onSelectFilter={handleSelectFilter}
               onSelectDocument={doc => {
                 setTableSelectedDocument(doc);
                 setSelectedItem({ kind: 'document', data: doc });
@@ -647,7 +644,7 @@ const AppContent: React.FC = () => {
           className="modal-overlay"
           onClick={() => {
             setTableSelectedDocument(null);
-            syncUrl('/documents/table');
+            syncUrl(buildRouteUrl({ viewMode, currentFilter }));
           }}
         >
           <div
@@ -660,7 +657,7 @@ const AppContent: React.FC = () => {
                 className="btn-icon"
                 onClick={() => {
                   setTableSelectedDocument(null);
-                  syncUrl('/documents/table');
+                  syncUrl(buildRouteUrl({ viewMode, currentFilter }));
                 }}
                 style={{ width: 32, height: 32 }}
               >
