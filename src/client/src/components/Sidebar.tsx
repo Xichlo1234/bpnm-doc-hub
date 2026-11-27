@@ -96,7 +96,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { filter: 'docs_incoming', label: 'allIncomingDocs', icon: ArrowDownLeft, color: 'var(--accent-primary)' },
       { filter: 'docs_incoming_overdue', label: 'overdueDocs', icon: AlertCircle, color: 'var(--urgent-dot)' },
       { filter: 'docs_incoming_expiring', label: 'expiringSoon3d', icon: AlertTriangle, color: '#EA580C' },
-      { filter: 'docs_incoming_processing', label: 'inProgress', icon: Clock, color: '#3B82F6' },
+      { filter: 'docs_incoming_processing', label: 'inProgress', icon: Clock, color: 'var(--accent-primary)' },
       { filter: 'docs_incoming_unassigned', label: 'unassigned', icon: UserCheck, color: 'var(--text-muted)' },
       { filter: 'docs_incoming_completed', label: 'completed', icon: CheckCircle, color: 'var(--success-dot)' },
     ],
@@ -105,7 +105,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'outgoing',
     title: 'outgoingLog',
     items: [
-      { filter: 'docs_outgoing', label: 'allOutgoingDocs', icon: ArrowUpRight, color: '#6366F1' },
+      { filter: 'docs_outgoing', label: 'allOutgoingDocs', icon: ArrowUpRight, color: 'var(--accent-primary)' },
       { filter: 'docs_outgoing_draft', label: 'navOutgoingDraft', icon: PenLine, color: 'var(--text-muted)' },
       { filter: 'docs_outgoing_signing', label: 'pendingSignature', icon: Clock, color: '#EA580C' },
       { filter: 'docs_outgoing_sent', label: 'dispatched', icon: CheckCircle, color: 'var(--success-dot)' },
@@ -138,7 +138,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { filter: 'labor_urgent', label: 'laborUrgentRenewal', icon: AlertCircle, color: 'var(--urgent-dot)' },
       { filter: 'labor_warning', label: 'laborExpiringSoon', icon: Clock, color: 'var(--warning-dot)' },
       { filter: 'labor_active', label: 'laborActiveFixedTerm', icon: CheckCircle, color: 'var(--success-dot)' },
-      { filter: 'labor_indefinite', label: 'laborIndefinite', icon: Bookmark, color: '#3B82F6' },
+      { filter: 'labor_indefinite', label: 'laborIndefinite', icon: Bookmark, color: 'var(--accent-primary)' },
       { filter: 'labor_expired', label: 'laborExpired', icon: AlertCircle, color: 'var(--urgent-dot)' },
       { filter: 'labor_liquidated', label: 'laborTerminated', icon: Archive },
     ],
@@ -156,7 +156,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: 'admin',
     title: 'navAdminTitle',
-    items: [{ filter: 'settings_all', label: 'navAdminSettings', icon: SlidersHorizontal, color: '#6366F1', noCount: true }],
+    items: [{ filter: 'settings_all', label: 'navAdminSettings', icon: SlidersHorizontal, color: 'var(--accent-primary)', noCount: true }],
   },
 ];
 

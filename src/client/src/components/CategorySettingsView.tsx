@@ -274,8 +274,8 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
               width: 40,
               height: 40,
               borderRadius: 10,
-              background: 'rgba(99, 102, 241, 0.12)',
-              color: '#6366F1',
+              background: 'rgba(252, 207, 77, 0.12)',
+              color: 'var(--accent-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -298,9 +298,9 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
             style={{
               padding: '6px 14px',
               borderRadius: 6,
-              background: statusMessage.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-              color: statusMessage.type === 'success' ? '#16a34a' : '#ef4444',
-              border: `1px solid ${statusMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
+              background: statusMessage.type === 'success' ? 'rgba(159, 174, 74, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: statusMessage.type === 'success' ? 'var(--success-text)' : '#ef4444',
+              border: `1px solid ${statusMessage.type === 'success' ? 'var(--success-dot)' : '#ef4444'}`,
               fontSize: 13,
               fontWeight: 500,
               display: 'flex',
@@ -327,19 +327,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
       >
         <button
           onClick={() => changeTab('doc_types')}
+          className={`settings-tab${activeTab === 'doc_types' ? ' active' : ''}`}
+          aria-pressed={activeTab === 'doc_types'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '7px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            background: activeTab === 'doc_types' ? '#6366F1' : 'transparent',
-            color: activeTab === 'doc_types' ? '#ffffff' : 'var(--text-secondary)',
             fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           <FileCode2 size={16} />
@@ -350,19 +347,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
         <button
           onClick={() => changeTab('agencies')}
+          className={`settings-tab${activeTab === 'agencies' ? ' active' : ''}`}
+          aria-pressed={activeTab === 'agencies'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '7px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            background: activeTab === 'agencies' ? '#6366F1' : 'transparent',
-            color: activeTab === 'agencies' ? '#ffffff' : 'var(--text-secondary)',
             fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           <Building size={16} />
@@ -373,19 +367,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
         <button
           onClick={() => changeTab('departments')}
+          className={`settings-tab${activeTab === 'departments' ? ' active' : ''}`}
+          aria-pressed={activeTab === 'departments'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '7px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            background: activeTab === 'departments' ? '#6366F1' : 'transparent',
-            color: activeTab === 'departments' ? '#ffffff' : 'var(--text-secondary)',
             fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           <Users2 size={16} />
@@ -396,19 +387,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
         <button
           onClick={() => changeTab('personnel')}
+          className={`settings-tab${activeTab === 'personnel' ? ' active' : ''}`}
+          aria-pressed={activeTab === 'personnel'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '7px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            background: activeTab === 'personnel' ? '#6366F1' : 'transparent',
-            color: activeTab === 'personnel' ? '#ffffff' : 'var(--text-secondary)',
             fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           <UserCheck size={16} />
@@ -419,19 +407,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
         <button
           onClick={() => changeTab('contract_config')}
+          className={`settings-tab${activeTab === 'contract_config' ? ' active' : ''}`}
+          aria-pressed={activeTab === 'contract_config'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '7px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            background: activeTab === 'contract_config' ? '#6366F1' : 'transparent',
-            color: activeTab === 'contract_config' ? '#ffffff' : 'var(--text-secondary)',
             fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           <FileSpreadsheet size={16} />
@@ -440,19 +425,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
         <button
           onClick={() => changeTab('alert_settings')}
+          className={`settings-tab${activeTab === 'alert_settings' ? ' active' : ''}`}
+          aria-pressed={activeTab === 'alert_settings'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '7px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            background: activeTab === 'alert_settings' ? '#6366F1' : 'transparent',
-            color: activeTab === 'alert_settings' ? '#ffffff' : 'var(--text-secondary)',
             fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           <BellRing size={16} />
@@ -461,19 +443,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
         <button
           onClick={() => changeTab('currencies')}
+          className={`settings-tab${activeTab === 'currencies' ? ' active' : ''}`}
+          aria-pressed={activeTab === 'currencies'}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 6,
             padding: '7px 14px',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            background: activeTab === 'currencies' ? '#6366F1' : 'transparent',
-            color: activeTab === 'currencies' ? '#ffffff' : 'var(--text-secondary)',
             fontWeight: 600,
             fontSize: 13,
             cursor: 'pointer',
-            transition: 'all 0.15s ease',
           }}
         >
           <Coins size={16} />
@@ -486,19 +465,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
           <>
             <button
               onClick={() => changeTab('users')}
+              className={`settings-tab${activeTab === 'users' ? ' active' : ''}`}
+              aria-pressed={activeTab === 'users'}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
                 padding: '7px 14px',
-                borderRadius: 'var(--radius-md)',
-                border: 'none',
-                background: activeTab === 'users' ? '#6366F1' : 'transparent',
-                color: activeTab === 'users' ? '#ffffff' : 'var(--text-secondary)',
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
               }}
             >
               <Shield size={16} />
@@ -507,19 +483,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
             <button
               onClick={() => changeTab('audit')}
+              className={`settings-tab${activeTab === 'audit' ? ' active' : ''}`}
+              aria-pressed={activeTab === 'audit'}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
                 padding: '7px 14px',
-                borderRadius: 'var(--radius-md)',
-                border: 'none',
-                background: activeTab === 'audit' ? '#6366F1' : 'transparent',
-                color: activeTab === 'audit' ? '#ffffff' : 'var(--text-secondary)',
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
               }}
             >
               <History size={16} />
@@ -528,19 +501,16 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
 
             <button
               onClick={() => changeTab('trash')}
+              className={`settings-tab${activeTab === 'trash' ? ' active' : ''}`}
+              aria-pressed={activeTab === 'trash'}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
                 padding: '7px 14px',
-                borderRadius: 'var(--radius-md)',
-                border: 'none',
-                background: activeTab === 'trash' ? '#6366F1' : 'transparent',
-                color: activeTab === 'trash' ? '#ffffff' : 'var(--text-secondary)',
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
               }}
             >
               <Trash2 size={16} />
@@ -602,7 +572,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                   display: 'flex',
                   gap: 12,
                   padding: '14px 20px',
-                  background: 'rgba(99, 102, 241, 0.05)',
+                  background: 'rgba(252, 207, 77, 0.05)',
                   borderBottom: '1px solid var(--border-subtle)',
                   alignItems: 'center',
                 }}
@@ -692,9 +662,9 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                               fontWeight: 700,
                               padding: '2px 8px',
                               borderRadius: 4,
-                              background: 'rgba(99, 102, 241, 0.1)',
-                              color: '#6366F1',
-                              border: '1px solid rgba(99, 102, 241, 0.2)',
+                              background: 'rgba(252, 207, 77, 0.1)',
+                              color: 'var(--accent-primary)',
+                              border: '1px solid rgba(252, 207, 77, 0.2)',
                             }}
                           >
                             {item.code}
@@ -837,7 +807,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                   display: 'flex',
                   gap: 12,
                   padding: '14px 20px',
-                  background: 'rgba(99, 102, 241, 0.05)',
+                  background: 'rgba(252, 207, 77, 0.05)',
                   borderBottom: '1px solid var(--border-subtle)',
                   alignItems: 'center',
                 }}
@@ -903,7 +873,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                         />
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <Building size={14} color="#6366F1" />
+                          <Building size={14} color="var(--accent-primary)" />
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{agency}</span>
                         </div>
                       )}
@@ -1020,7 +990,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                   display: 'flex',
                   gap: 12,
                   padding: '14px 20px',
-                  background: 'rgba(99, 102, 241, 0.05)',
+                  background: 'rgba(252, 207, 77, 0.05)',
                   borderBottom: '1px solid var(--border-subtle)',
                   alignItems: 'center',
                 }}
@@ -1258,7 +1228,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                   display: 'flex',
                   gap: 10,
                   padding: '14px 20px',
-                  background: 'rgba(99, 102, 241, 0.05)',
+                  background: 'rgba(252, 207, 77, 0.05)',
                   borderBottom: '1px solid var(--border-subtle)',
                   alignItems: 'center',
                   flexWrap: 'wrap',
@@ -1363,8 +1333,8 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                                 width: 28,
                                 height: 28,
                                 borderRadius: '50%',
-                                background: 'rgba(99, 102, 241, 0.1)',
-                                color: '#6366F1',
+                                background: 'rgba(252, 207, 77, 0.1)',
+                                color: 'var(--accent-primary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -1688,7 +1658,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Send size={14} color="#2563EB" />
+                      <Send size={14} color="var(--accent-primary)" />
                       <span style={{ color: 'var(--text-primary)', fontSize: 13 }}>{displaySeed(m)}</span>
                     </div>
                     <button
@@ -1757,7 +1727,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Building size={14} color="#10B981" />
+                        <Building size={14} color="var(--accent-primary)" />
                         <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600 }}>{pA}</span>
                       </div>
                       <button
@@ -1792,7 +1762,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <BellRing size={20} color="#6366F1" />
+                <BellRing size={20} color="var(--accent-primary)" />
                 <div>
                   <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
                     {t.settingsExpirationAlertParametersSystemStandards}
@@ -2069,7 +2039,7 @@ export const CategorySettingsView: React.FC<CategorySettingsViewProps> = ({
                             borderRadius: 4,
                             fontSize: 12,
                             fontWeight: 600,
-                            background: curr.active ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            background: curr.active ? 'rgba(159, 174, 74, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                             color: curr.active ? '#059669' : '#dc2626',
                           }}
                         >

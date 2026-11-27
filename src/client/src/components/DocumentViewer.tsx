@@ -119,9 +119,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           {isPptx ? (
             <Presentation size={18} color="#d97706" />
           ) : isImage ? (
-            <ImageIcon size={18} color="#2563EB" />
+            <ImageIcon size={18} color="var(--accent-primary)" />
           ) : isExcel ? (
-            <FileSpreadsheet size={18} color="#16A34A" />
+            <FileSpreadsheet size={18} color="var(--success-text)" />
           ) : isWord ? (
             <FileText size={18} color="#2B579A" />
           ) : isPdf ? (
@@ -153,9 +153,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 height: 30,
                 padding: '0 10px',
                 fontSize: 11,
-                color: '#1d4ed8',
-                borderColor: '#bfdbfe',
-                background: '#eff6ff',
+                color: 'var(--accent-primary)',
+                borderColor: 'rgba(252, 207, 77, 0.45)',
+                background: 'var(--accent-light)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
@@ -388,7 +388,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   ? 'rgba(22, 163, 74, 0.08)'
                   : isWord
                   ? 'rgba(43, 87, 154, 0.08)'
-                  : 'rgba(37, 99, 235, 0.08)',
+                  : 'rgba(252, 207, 77, 0.08)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -396,11 +396,11 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
               }}
             >
               {isExcel ? (
-                <FileSpreadsheet size={28} color="#16A34A" />
+                <FileSpreadsheet size={28} color="var(--success-text)" />
               ) : isWord ? (
                 <FileText size={28} color="#2B579A" />
               ) : (
-                <FileText size={28} color="#2563EB" />
+                <FileText size={28} color="var(--accent-primary)" />
               )}
             </div>
 

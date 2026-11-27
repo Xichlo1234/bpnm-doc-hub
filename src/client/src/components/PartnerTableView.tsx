@@ -230,7 +230,7 @@ export const PartnerTableView: React.FC<PartnerTableViewProps> = ({
               borderRadius: 'var(--radius-md)',
               background: 'var(--accent-primary)',
               border: 'none',
-              color: '#ffffff',
+              color: 'var(--text-inverted)',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
@@ -400,7 +400,7 @@ export const PartnerTableView: React.FC<PartnerTableViewProps> = ({
                           color: activeCount > 0 ? 'var(--success-text)' : 'var(--text-muted)',
                           padding: '2px 6px',
                           borderRadius: 4,
-                          background: activeCount > 0 ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                          background: activeCount > 0 ? 'rgba(159, 174, 74, 0.1)' : 'transparent',
                         }}
                       >
                         {activeCount}

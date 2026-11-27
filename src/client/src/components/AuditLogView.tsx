@@ -51,16 +51,16 @@ export const AuditLogView: React.FC = () => {
   });
 
   const getActionBadge = (action: string) => {
-    let bg = 'rgba(59, 130, 246, 0.1)';
-    let color = '#2563EB';
+    let bg = 'rgba(252, 207, 77, 0.1)';
+    let color = 'var(--accent-primary)';
     let label = action;
 
     if (action === 'LOGIN') {
-      bg = 'rgba(16, 185, 129, 0.1)';
+      bg = 'rgba(159, 174, 74, 0.1)';
       color = '#059669';
       label = t.auditLogin;
     } else if (action === 'CREATE') {
-      bg = 'rgba(16, 185, 129, 0.15)';
+      bg = 'rgba(159, 174, 74, 0.15)';
       color = '#059669';
       label = t.auditCreate;
     } else if (action === 'UPDATE') {
@@ -114,11 +114,11 @@ export const AuditLogView: React.FC = () => {
               width: 36,
               height: 36,
               borderRadius: 8,
-              background: 'rgba(99, 102, 241, 0.1)',
+              background: 'rgba(252, 207, 77, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#6366F1',
+              color: 'var(--accent-primary)',
             }}
           >
             <History size={20} />
@@ -252,7 +252,7 @@ export const AuditLogView: React.FC = () => {
                   </td>
                   <td style={{ padding: '10px 12px', fontWeight: 600 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <User size={13} color="#6366F1" />
+                      <User size={13} color="var(--accent-primary)" />
                       <span>{log.username}</span>
                     </div>
                   </td>

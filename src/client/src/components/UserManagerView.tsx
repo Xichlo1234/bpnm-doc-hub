@@ -186,7 +186,7 @@ export const UserManagerView: React.FC = () => {
               height: 38,
               borderRadius: 8,
               background: 'var(--accent-primary)',
-              color: '#ffffff',
+              color: 'var(--text-inverted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -214,7 +214,7 @@ export const UserManagerView: React.FC = () => {
             padding: '0 14px',
             borderRadius: 6,
             background: 'var(--accent-primary)',
-            color: '#ffffff',
+            color: 'var(--text-inverted)',
             border: 'none',
             fontWeight: 600,
             fontSize: 12,
@@ -231,9 +231,9 @@ export const UserManagerView: React.FC = () => {
         <div
           style={{
             padding: '10px 24px',
-            background: 'rgba(34, 197, 94, 0.15)',
-            borderBottom: '1px solid #22c55e',
-            color: '#16a34a',
+            background: 'rgba(159, 174, 74, 0.15)',
+            borderBottom: '1px solid var(--success-dot)',
+            color: 'var(--success-text)',
             fontSize: 13,
             fontWeight: 600,
           }}
@@ -369,9 +369,9 @@ export const UserManagerView: React.FC = () => {
                             fontSize: 11,
                             fontWeight: 700,
                             cursor: 'pointer',
-                            border: hasLabor ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-strong)',
-                            background: hasLabor ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-surface-subtle)',
-                            color: hasLabor ? '#10B981' : 'var(--text-muted)',
+                            border: hasLabor ? '1px solid rgba(159, 174, 74, 0.4)' : '1px solid var(--border-strong)',
+                            background: hasLabor ? 'rgba(159, 174, 74, 0.15)' : 'var(--bg-surface-subtle)',
+                            color: hasLabor ? 'var(--success-dot)' : 'var(--text-muted)',
                           }}
                           title={t.usersClickToGrantRevokeAccess}
                         >
@@ -400,9 +400,9 @@ export const UserManagerView: React.FC = () => {
                             fontSize: 11,
                             fontWeight: 700,
                             cursor: 'pointer',
-                            border: hasConfidential ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-strong)',
-                            background: hasConfidential ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-surface-subtle)',
-                            color: hasConfidential ? '#10B981' : 'var(--text-muted)',
+                            border: hasConfidential ? '1px solid rgba(159, 174, 74, 0.4)' : '1px solid var(--border-strong)',
+                            background: hasConfidential ? 'rgba(159, 174, 74, 0.15)' : 'var(--bg-surface-subtle)',
+                            color: hasConfidential ? 'var(--success-dot)' : 'var(--text-muted)',
                           }}
                           title={t.usersClickToGrantRevokeAccess}
                         >
@@ -418,8 +418,8 @@ export const UserManagerView: React.FC = () => {
                           borderRadius: 4,
                           fontSize: 11,
                           fontWeight: 700,
-                          background: u.status === 'locked' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
-                          color: u.status === 'locked' ? '#ef4444' : '#16a34a',
+                          background: u.status === 'locked' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(159, 174, 74, 0.15)',
+                          color: u.status === 'locked' ? '#ef4444' : 'var(--success-text)',
                         }}
                       >
                         {u.status === 'locked' ? t.statusLocked : t.statusActive}
@@ -441,7 +441,7 @@ export const UserManagerView: React.FC = () => {
                         {u.username !== 'admin' && (
                           <button
                             className="btn-icon"
-                            style={{ width: 28, height: 28, color: u.status === 'locked' ? '#ef4444' : '#16a34a' }}
+                            style={{ width: 28, height: 28, color: u.status === 'locked' ? '#ef4444' : 'var(--success-text)' }}
                             onClick={() => handleToggleLock(u)}
                             title={
                               u.status === 'locked'
@@ -646,7 +646,7 @@ export const UserManagerView: React.FC = () => {
                     borderRadius: 6,
                     border: 'none',
                     background: 'var(--accent-primary)',
-                    color: '#ffffff',
+                    color: 'var(--text-inverted)',
                     fontWeight: 600,
                     cursor: 'pointer',
                   }}
@@ -724,7 +724,7 @@ export const UserManagerView: React.FC = () => {
                     borderRadius: 6,
                     border: 'none',
                     background: 'var(--accent-primary)',
-                    color: '#ffffff',
+                    color: 'var(--text-inverted)',
                     fontWeight: 600,
                     cursor: 'pointer',
                   }}
