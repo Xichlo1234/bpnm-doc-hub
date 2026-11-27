@@ -483,3 +483,190 @@ progress {
     transform: none;
   }
 }
+
+/* ---------- Thanh menu bên trái ---------- */
+
+/* Mục cấp 1: viên thuôn bo tròn; biểu tượng nằm trong ô bạc được chiếu sáng */
+.nav-item {
+  border: 1px solid transparent;
+  border-radius: var(--k-radius);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.nav-item:hover {
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 60%),
+    var(--bg-hover);
+  border-color: rgba(255, 225, 140, 0.28);
+  color: var(--text-primary);
+}
+
+.nav-top .nav-item-left > svg {
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border-radius: 9px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-silver-hi) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, var(--k-silver-top) 0%, var(--k-silver-low) 100%);
+  color: var(--k-silver-text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 0 1px var(--k-silver-line);
+}
+
+/* Mục đang mở: vàng kim phát sáng, chữ nâu đậm */
+.nav-top.active {
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-gold-hi) 0%, rgba(255, 246, 207, 0) 55%),
+    linear-gradient(180deg, var(--k-gold-top) 0%, var(--k-gold-mid) 52%, var(--k-gold-low) 100%);
+  border-color: var(--k-gold-rim);
+  color: var(--k-gold-text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 3px rgba(180, 120, 10, 0.3),
+    0 0 14px var(--k-gold-glow);
+}
+
+.nav-top.active:hover {
+  color: var(--k-gold-text);
+  border-color: var(--k-gold-rim);
+}
+
+.nav-top.active .nav-item-left > svg {
+  background: rgba(255, 252, 235, 0.55);
+  color: var(--k-gold-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 0 1px rgba(160, 110, 20, 0.35);
+}
+
+/* Nhóm đang mở (vd. Công văn): chữ vàng kim, ô biểu tượng vàng */
+.nav-section-toggle.active-section {
+  color: var(--accent-primary);
+}
+
+.nav-top.active-section .nav-item-left > svg {
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--k-gold-hi) 0%, rgba(255, 246, 207, 0) 55%),
+    linear-gradient(180deg, var(--k-gold-top) 0%, var(--k-gold-low) 100%);
+  color: var(--k-gold-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 8px var(--k-gold-glow);
+}
+
+/* Đường dẫn nhóm con: chỉ vàng mảnh được chiếu sáng */
+.nav-section-body,
+.nav-filter-items {
+  border-left: 1px solid transparent;
+  border-image: linear-gradient(180deg, rgba(252, 207, 77, 0.55), rgba(252, 207, 77, 0.08)) 1;
+}
+
+/* Mục cấp 2: phẳng, đang chọn thì có vạch vàng bên trái và nền vàng nhạt */
+.nav-item.nav-subitem {
+  border-radius: var(--k-radius-sm);
+}
+
+.nav-item.nav-subitem.active {
+  background: linear-gradient(90deg, var(--accent-light) 0%, rgba(0, 0, 0, 0) 100%);
+  border-color: transparent;
+  color: var(--accent-primary);
+  box-shadow: inset 3px 0 0 var(--k-gold-mid);
+}
+
+/* Nút mở bộ lọc (mũi tên nhỏ cạnh mục): gọn, phẳng, không nổi khối */
+.btn-icon.nav-filter-trigger {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 8px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+  filter: none;
+}
+
+.btn-icon.nav-filter-trigger svg {
+  width: 15px;
+  height: 15px;
+}
+
+.btn-icon.nav-filter-trigger:hover:not(:disabled),
+.btn-icon.nav-filter-trigger[aria-expanded='true'] {
+  transform: none;
+  filter: none;
+  background: var(--accent-light);
+  border-color: rgba(255, 225, 140, 0.35);
+  color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(252, 196, 64, 0.18);
+}
+
+.btn-icon.nav-filter-trigger:active:not(:disabled) {
+  transform: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-icon.nav-filter-trigger[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.btn-icon.nav-filter-trigger svg {
+  transition: transform 0.15s ease;
+}
+
+/* Thêm tài liệu mới: chữ vàng, viền đứt vàng khi di chuột */
+.nav-item.nav-upload {
+  color: var(--accent-primary);
+  border: 1px dashed transparent;
+}
+
+.nav-item.nav-upload:hover {
+  background: var(--accent-light);
+  border-color: rgba(252, 207, 77, 0.55);
+  color: var(--accent-primary);
+}
+
+/* Huy hiệu số: bạc sáng; khẩn: đất nung */
+.nav-count-badge {
+  background: linear-gradient(180deg, var(--k-silver-top) 0%, var(--k-silver-low) 100%);
+  color: var(--k-silver-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 0 1px var(--k-silver-line);
+}
+
+.nav-count-badge.urgent {
+  background: linear-gradient(180deg, var(--k-clay-top) 0%, var(--k-clay-low) 100%);
+  color: var(--k-clay-text);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 215, 0.5), 0 0 6px var(--k-clay-glow);
+}
+
+.nav-top.active .nav-count-badge {
+  background: rgba(255, 252, 235, 0.6);
+  color: var(--k-gold-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item,
+  .btn-icon.nav-filter-trigger svg {
+    transition: none;
+  }
+}
+
+/* Biểu tượng mục menu theo màu chữ (bạc ngà), mục đang chọn thì vàng kim;
+   bỏ các màu xanh dương / xanh lá viết cứng trong component */
+.nav-item.nav-subitem .nav-item-left > svg,
+.nav-item.nav-upload .nav-item-left > svg {
+  color: currentColor;
+  stroke: currentColor;
+  opacity: 0.85;
+}
+
+.nav-item.nav-subitem.active .nav-item-left > svg {
+  opacity: 1;
+}
+
+/* Nút đóng menu: tròn gọn */
+.btn-icon.sidebar-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+}
