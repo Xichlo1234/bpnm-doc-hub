@@ -12,7 +12,7 @@ import {
 } from '../src/client/src/i18n/index.ts';
 
 // Keys whose value is legitimately the same in English and Khmer (brand names, codes).
-const KM_SAME_AS_EN_ALLOWLIST = new Set(['brandTitle']);
+const KM_SAME_AS_EN_ALLOWLIST = new Set(['brandTitle', 'tabTitle']);
 
 // Document-number codes that are written in Vietnamese in every language (e.g. "QĐ" = decision).
 const DOCUMENT_CODES = /(?<!\p{L})QĐ(?!\p{L})/gu;

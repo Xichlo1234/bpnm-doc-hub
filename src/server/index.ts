@@ -26,6 +26,27 @@ export const app = new Hono();
 // No CORS middleware: the SPA is served from the same origin as the API, so cross-origin
 // access is intentionally not allowed.
 
+// Per-tenant display name. The same build serves several organisations (see docs/ops/RELEASE_FLOW.md);
+// each Worker sets APP_TITLE / APP_TAB_TITLE as plain vars in its wrangler env. Unset or invalid values
+// return null and the client keeps its built-in name.
+const BRAND_MAX_LENGTH = 60;
+export function brandingFrom(env: unknown): { title: string | null; tabTitle: string | null } {
+  const vars = (env ?? {}) as Record<string, unknown>;
+  const read = (name: string) => {
+    const raw = vars[name] ?? (typeof process !== 'undefined' ? process.env?.[name] : undefined);
+    if (typeof raw !== 'string') return null;
+    const value = raw.trim();
+    return value && value.length <= BRAND_MAX_LENGTH ? value : null;
+  };
+  return { title: read('APP_TITLE'), tabTitle: read('APP_TAB_TITLE') };
+}
+
+// Registered before every other /api middleware: public, never touches the database, and still answers
+// in maintenance mode so the shell shows the right name on the maintenance screen.
+app.get('/api/branding', (c) =>
+  withSecurityHeaders(c.json(brandingFrom(c.env), 200, { 'Cache-Control': 'no-store' }))
+);
+
 // Maintenance mode (MAINTENANCE_MODE=1 as a Worker variable): every API call except the health check
 // answers 503 without touching the database. This is the safe alternative to rolling back to a build
 // older than the security hardening (see docs/ops/DEPLOY_RUNBOOK.md, "Rollback").

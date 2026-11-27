@@ -51,8 +51,11 @@
           "custom_domain": true
         }
       ],
+      // Display name of this organisation (header and browser tab); BPNM uses the built-in name.
       "vars": {
-        "MAINTENANCE_MODE": "0"
+        "MAINTENANCE_MODE": "0",
+        "APP_TITLE": "SGII Doc Hub",
+        "APP_TAB_TITLE": "SGII"
       },
       "d1_databases": [
         {

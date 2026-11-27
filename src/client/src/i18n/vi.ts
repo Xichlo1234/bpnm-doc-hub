@@ -1,6 +1,7 @@
 export const vi = {
   // Header & Brand
   brandTitle: 'BPNM Doc Hub',
+  tabTitle: 'BPMN',
   brandSubtitle: 'Hồ sơ & Sổ Công văn điện tử',
   companyFullName: 'Công ty Cổ phần đầu tư quốc tế Sambo Gold - SGII',
   searchPlaceholder: 'Tìm kiếm thông minh toàn văn (HĐ, CV đến, CV đi, chỉ đạo...)...',
