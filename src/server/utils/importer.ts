@@ -2,9 +2,10 @@ import { store, diffRecords } from '../db/store.ts';
 import { documentInput, contractInput, withoutUnchangedLinks } from './validation.ts';
 import type { SqlDatabase, SqlStatement } from '../db/database.ts';
 import { normalizeNumber, numberScope } from './numberKeys.ts';
-import { workflowKind, findStage, isIssued, ISSUED_PROTECTED_FIELDS } from './workflow.ts';
-import { documentNumberTaken } from './documentRules.ts';
+import { workflowKind, findStage, isIssued, ISSUED_PROTECTED_FIELDS, missingForStage } from './workflow.ts';
+import { documentNumberTaken, prepareNewDocument } from './documentRules.ts';
 import { contractNumberTaken } from './contractRules.ts';
+import { DOCUMENT_TYPES, isDirectionalInternalType } from '../types.ts';
 
 // Excel import in two steps: preview (validate every row, find duplicates, show what would be added or
 // updated and which fields change) and commit (requires the caller to confirm updates explicitly, so
@@ -43,13 +44,20 @@ function importRuleErrors(kind: ImportKind, data: Record<string, any>, match: an
   const errors: string[] = [];
   const numField = numberField(kind);
   if (!match) {
+    if (kind === 'document' && data.doc_type && !DOCUMENT_TYPES.includes(data.doc_type)) {
+      errors.push(`doc_type: "${data.doc_type}" không thuộc danh sách loại văn bản`);
+    }
     // A number held by another record now or in the past (trash, renumbered, purged) is never re-issued
     const taken =
       kind === 'document'
         ? documentNumberTaken(String(data[numField] ?? ''), data.doc_type ?? 'incoming')
         : contractNumberTaken(String(data[numField] ?? ''));
     if (taken) errors.push(`${numField}: số đã được cấp cho hồ sơ khác (kể cả hồ sơ đã xoá/đổi số), không cấp lại`);
-    if (kind === 'document') {
+    if (kind === 'document' && isDirectionalInternalType(data.doc_type)) {
+      // Validate on a copy. Generated timestamps are applied at commit and must not change a preview fingerprint.
+      const invalid = prepareNewDocument({ ...data });
+      if (invalid) errors.push(invalid.error);
+    } else if (kind === 'document') {
       const wk = workflowKind(data.doc_type ?? 'incoming');
       if (wk && data.status && !findStage(wk, data.status)) errors.push(`status: "${data.status}" không thuộc quy trình`);
     } else if (data.status && !CONTRACT_STATUSES.has(String(data.status))) {
@@ -65,6 +73,13 @@ function importRuleErrors(kind: ImportKind, data: Record<string, any>, match: an
     const wk = workflowKind(match.doc_type);
     if (wk && data.status !== undefined && findStage(wk, data.status)?.code !== findStage(wk, match.status)?.code) {
       errors.push('status: đổi trạng thái theo quy trình, không qua nhập Excel');
+    }
+    if (wk && isDirectionalInternalType(match.doc_type)) {
+      const stage = findStage(wk, match.status);
+      if (stage) {
+        const missing = missingForStage(stage.code, { ...match, ...data }).filter(field => field in data);
+        if (missing.length) errors.push(`${missing.join(', ')}: bắt buộc ở bước hiện tại`);
+      }
     }
     if (data.security_level !== undefined && norm(data.security_level) !== norm(match.security_level)) {
       errors.push('security_level: không đổi độ mật qua nhập Excel');
@@ -130,6 +145,12 @@ export function previewImport(kind: ImportKind, rawRows: unknown[]): ImportPrevi
       return { index, key, action: 'error', errors: parsed.error.issues.slice(0, 5).map((i) => `${i.path.join('.') || '-'}: ${i.message}`) };
     }
     const data = parsed.data as Record<string, any>;
+    if (kind === 'document' && match) {
+      // A blank spreadsheet cell represents both NULL and the empty string. Preserve either stored form.
+      for (const [name, value] of Object.entries(data)) {
+        if (value === '' && match[name] == null) delete data[name];
+      }
+    }
     if (!key) return { index, key, action: 'error', errors: [`${field}: bắt buộc`] };
     // A new document without doc_type goes to the incoming register (the import's default)
     if (kind === 'document' && !match && !data.doc_type) data.doc_type = 'incoming';
@@ -164,10 +185,15 @@ export async function previewFingerprint(kind: ImportKind, preview: ImportPrevie
 }
 
 /** Rows to write: new records plus, only when confirmed, updates. */
-export function rowsToCommit(preview: ImportPreview): Array<Record<string, any>> {
+export function rowsToCommit(kind: ImportKind, preview: ImportPreview): Array<Record<string, any>> {
   return preview.rows
     .filter((r) => r.action === 'create' || r.action === 'update')
-    .map((r) => (r.action === 'update' ? { ...r.data, id: r.id } : r.data!));
+    .map((r) => {
+      if (r.action === 'update') return { ...r.data, id: r.id };
+      const data = { ...r.data };
+      if (kind === 'document' && isDirectionalInternalType(data.doc_type)) prepareNewDocument(data);
+      return data;
+    });
 }
 
 /** The import_batches row, written in the same D1 batch as the imported records (see store.queueStatement). */

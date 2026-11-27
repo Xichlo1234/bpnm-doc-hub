@@ -57,6 +57,8 @@ export type NavFilter =
   | 'docs_outgoing_signing'
   | 'docs_decision'
   | 'docs_internal'
+  | 'docs_internal_incoming'
+  | 'docs_internal_outgoing'
   | 'archive'
   | 'partners_all'
   | 'settings_all';
@@ -95,7 +97,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { filter: 'docs_incoming', label: 'allIncomingDocs', icon: ArrowDownLeft, color: 'var(--accent-primary)' },
       { filter: 'docs_incoming_overdue', label: 'overdueDocs', icon: AlertCircle, color: 'var(--urgent-dot)' },
-      { filter: 'docs_incoming_expiring', label: 'expiringSoon3d', icon: AlertTriangle, color: '#EA580C' },
+      { filter: 'docs_incoming_expiring', label: 'expiringSoon3d', icon: AlertTriangle, color: 'var(--warning-dot)' },
       { filter: 'docs_incoming_processing', label: 'inProgress', icon: Clock, color: 'var(--accent-primary)' },
       { filter: 'docs_incoming_unassigned', label: 'unassigned', icon: UserCheck, color: 'var(--text-muted)' },
       { filter: 'docs_incoming_completed', label: 'completed', icon: CheckCircle, color: 'var(--success-dot)' },
@@ -107,14 +109,18 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { filter: 'docs_outgoing', label: 'allOutgoingDocs', icon: ArrowUpRight, color: 'var(--accent-primary)' },
       { filter: 'docs_outgoing_draft', label: 'navOutgoingDraft', icon: PenLine, color: 'var(--text-muted)' },
-      { filter: 'docs_outgoing_signing', label: 'pendingSignature', icon: Clock, color: '#EA580C' },
+      { filter: 'docs_outgoing_signing', label: 'pendingSignature', icon: Clock, color: 'var(--warning-dot)' },
       { filter: 'docs_outgoing_sent', label: 'dispatched', icon: CheckCircle, color: 'var(--success-dot)' },
     ],
   },
   {
     id: 'internal',
     title: 'internalAndDecisions',
-    items: [{ filter: 'docs_internal', label: 'internalDocsDecisions', icon: FileText, color: '#059669', alsoActive: ['docs_decision'] }],
+    items: [
+      { filter: 'docs_internal', label: 'internalDocsDecisions', icon: FileText, color: 'var(--success-text)', alsoActive: ['docs_decision'] },
+      { filter: 'docs_internal_incoming', label: 'internalIncomingTab', icon: ArrowDownLeft },
+      { filter: 'docs_internal_outgoing', label: 'internalOutgoingTab', icon: ArrowUpRight },
+    ],
   },
   {
     id: 'contracts',

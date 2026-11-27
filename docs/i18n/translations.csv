@@ -245,6 +245,15 @@ createContractTitle,Thêm Hợp Đồng Mới,Add New Contract,បង្កើ�
 createIncomingTitle,Tiếp Nhận Công Văn Đến,Receive Incoming Letter,ទទួលលិខិតចូលថ្មី
 createOutgoingTitle,Phát Hành Công Văn Đi,Issue Outgoing Letter,ចេញលិខិតចេញថ្មី
 contractTab,Hợp Đồng,Contract,កិច្ចសន្យា
+internalIncomingTab,Nội bộ đến,Internal incoming,ឯកសារផ្ទៃក្នុងចូល
+internalOutgoingTab,Nội bộ đi,Internal outgoing,ឯកសារផ្ទៃក្នុងចេញ
+internalSenderDepartment,Phòng/bộ phận gửi,Sending department,ផ្នែកផ្ញើ
+internalRecipientDepartment,Phòng/bộ phận nhận,Receiving department,ផ្នែកទទួល
+replyToInternalIncoming,Phúc đáp văn bản nội bộ đến (nếu có),Reply to an internal incoming document (optional),ឆ្លើយតបឯកសារផ្ទៃក្នុងចូល (បើមាន)
+createInternalIncomingTitle,Tiếp nhận văn bản nội bộ đến,Register an internal incoming document,ចុះបញ្ជីឯកសារផ្ទៃក្នុងចូល
+createInternalOutgoingTitle,Tạo văn bản nội bộ đi,Create an internal outgoing document,បង្កើតឯកសារផ្ទៃក្នុងចេញ
+internalIncomingDesc,Ghi nhận văn bản từ phòng gửi và chuyển đến phòng nhận xử lý.,Record a document from the sending department and assign it to the receiving department.,កត់ត្រាឯកសារពីផ្នែកផ្ញើ រួចប្រគល់ឱ្យផ្នែកទទួលចាត់ការ។
+internalOutgoingDesc,Đăng ký văn bản gửi đến một phòng hoặc bộ phận trong đơn vị.,Register a document addressed to another department within the organization.,ចុះបញ្ជីឯកសារដែលផ្ញើទៅផ្នែកផ្សេងទៀតក្នុងអង្គភាព។
 incomingTab,Công Văn Đến,Incoming Letter,លិខិតចូល
 outgoingTab,Công Văn Đi,Outgoing Letter,លិខិតចេញ
 loginCompanySub,CÔNG TY CỔ PHẦN ĐẦU TƯ QUỐC TẾ SAMBO GOLD — SGII,SAMBO GOLD INTERNATIONAL INVESTMENT JSC — SGII,ក្រុមហ៊ុនវិនិយោគអន្តរជាតិ សំបូរ ហ្គោល — SGII

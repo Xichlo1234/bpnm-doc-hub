@@ -6,6 +6,8 @@ interface DocumentStatsBarProps {
   stats: {
     totalIncoming?: number;
     totalOutgoing?: number;
+    totalInternalIncoming?: number;
+    totalInternalOutgoing?: number;
     incomingProcessing?: number;
     incomingOverdue?: number;
     incomingExpiringSoon?: number;
@@ -37,15 +39,31 @@ export const DocumentStatsBar: React.FC<DocumentStatsBarProps> = ({
       id: 'docs_outgoing',
       label: t.totalOutgoingStat,
       value: stats.totalOutgoing ?? 0,
-      icon: <ArrowUpRight size={16} color="#6366F1" />,
+      icon: <ArrowUpRight size={16} color="var(--accent-primary)" />,
       badgeClass: '',
       active: currentFilter === 'docs_outgoing',
+    },
+    {
+      id: 'docs_internal_incoming',
+      label: t.internalIncomingTab,
+      value: stats.totalInternalIncoming ?? 0,
+      icon: <ArrowDownLeft size={16} />,
+      badgeClass: '',
+      active: currentFilter === 'docs_internal_incoming',
+    },
+    {
+      id: 'docs_internal_outgoing',
+      label: t.internalOutgoingTab,
+      value: stats.totalInternalOutgoing ?? 0,
+      icon: <ArrowUpRight size={16} />,
+      badgeClass: '',
+      active: currentFilter === 'docs_internal_outgoing',
     },
     {
       id: 'docs_incoming_processing',
       label: t.processingStat,
       value: stats.incomingProcessing ?? 0,
-      icon: <Clock size={16} color="#3B82F6" />,
+      icon: <Clock size={16} color="var(--accent-primary)" />,
       badgeClass: 'info',
       active: currentFilter === 'docs_incoming_processing',
     },
@@ -61,7 +79,7 @@ export const DocumentStatsBar: React.FC<DocumentStatsBarProps> = ({
       id: 'docs_incoming_expiring',
       label: t.expiringSoon3dStat,
       value: stats.incomingExpiringSoon ?? 0,
-      icon: <AlertTriangle size={16} color="#EA580C" />,
+      icon: <AlertTriangle size={16} color="var(--warning-dot)" />,
       badgeClass: 'warning',
       active: currentFilter === 'docs_incoming_expiring',
     },
@@ -77,7 +95,7 @@ export const DocumentStatsBar: React.FC<DocumentStatsBarProps> = ({
   ];
 
   return (
-    <div className="contract-stats-bar">
+    <div className="contract-stats-bar document-stats-bar">
       {cards.map(c => (
         <div
           key={c.id}

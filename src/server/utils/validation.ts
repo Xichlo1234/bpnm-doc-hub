@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Context } from 'hono';
+import { DOCUMENT_TYPES } from '../types.ts';
 import { documentsTable, contractsTable, partnersTable, type TableSpec } from '../db/tables.ts';
 
 // Request body validation. Record schemas are derived from the column definitions in db/tables.ts so
@@ -75,6 +76,8 @@ function recordSchema(spec: TableSpec, mode: RecordMode) {
     const base = col.type === 'number' ? numberValue : col.type === 'bool' ? boolValue : textValue;
     shape[name] = base.optional();
   }
+  // Import checks the type after matching the row to any historical record.
+  if (spec === documentsTable && mode !== 'import') shape.doc_type = z.enum(DOCUMENT_TYPES).nullable().optional();
   shape.file_key = fileKeyValue.optional();
   if ('google_drive_url' in spec.columns) shape.google_drive_url = httpUrl.nullable().optional();
   // Optimistic concurrency: the revision the client loaded (see revisionConflict)

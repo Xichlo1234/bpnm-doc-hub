@@ -167,7 +167,6 @@ export const ContractForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
     outgoingStorageLocation,
     setOutgoingStorageLocation,
     incomingDocsList,
-    setIncomingDocsList,
     contractAttachMode,
     setContractAttachMode,
     contractCloudLink,

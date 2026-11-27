@@ -1,4 +1,19 @@
-export type DocumentType = 'incoming' | 'outgoing' | 'internal' | 'decision' | 'other';
+export type InternalDocumentType = 'internal_incoming' | 'internal_outgoing';
+export type NumberedDocumentType = 'incoming' | 'outgoing' | InternalDocumentType;
+export const DOCUMENT_TYPES = ['incoming', 'outgoing', 'internal_incoming', 'internal_outgoing', 'internal', 'decision', 'other'] as const;
+export type DocumentType = typeof DOCUMENT_TYPES[number];
+
+export function isDirectionalInternalType(type?: string | null): type is InternalDocumentType {
+  return type === 'internal_incoming' || type === 'internal_outgoing';
+}
+
+export function isNumberedDocumentType(type?: string | null): type is NumberedDocumentType {
+  return type === 'incoming' || type === 'outgoing' || isDirectionalInternalType(type);
+}
+
+export function isInternalDocument(type?: string | null): boolean {
+  return isDirectionalInternalType(type) || type === 'internal' || type === 'decision';
+}
 
 export interface DocumentRecord {
   id: string;

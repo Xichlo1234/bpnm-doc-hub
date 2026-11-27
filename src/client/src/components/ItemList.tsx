@@ -4,6 +4,7 @@ import type { DocumentRecord, ContractRecord } from '../../../server/types.ts';
 import { UrgencyBadge } from './UrgencyBadge.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { documentDeadlineLabel } from '../i18n/index.ts';
+import { documentTypeLabel } from '../i18n/documentTypeLabel.ts';
 
 export type UnifiedItem =
   | { kind: 'contract'; data: ContractRecord }
@@ -40,7 +41,9 @@ export const ItemList: React.FC<ItemListProps> = ({
       return (
         item.data.title.toLowerCase().includes(q) ||
         item.data.document_number.toLowerCase().includes(q) ||
-        (item.data.issuer && item.data.issuer.toLowerCase().includes(q))
+        item.data.issuer?.toLowerCase().includes(q) ||
+        item.data.recipient?.toLowerCase().includes(q) ||
+        item.data.department?.toLowerCase().includes(q)
       );
     }
   });
@@ -125,13 +128,6 @@ export const ItemList: React.FC<ItemListProps> = ({
               );
             } else {
               const d = item.data;
-              const typeNames: Record<string, string> = {
-                incoming: t.docTypeIncomingShort,
-                outgoing: t.docTypeOutgoingShort,
-                decision: t.decisions,
-                internal: t.docTypeInternal,
-                other: t.docTypeOther,
-              };
 
               const ds = d.deadline_status;
 
@@ -147,7 +143,7 @@ export const ItemList: React.FC<ItemListProps> = ({
                       <div className="record-card-title">{d.title}</div>
                       <div className="record-card-subtitle">
                         {d.document_number}
-                        {d.original_doc_number && ` (${d.original_doc_number})`} · {d.issuer || d.recipient || t.docTypeInternal}
+                        {d.original_doc_number && ` (${d.original_doc_number})`} · {(d.doc_type === 'internal_outgoing' ? d.recipient : d.issuer || d.recipient) || t.docTypeInternal}
                       </div>
                     </div>
                   </div>
@@ -155,7 +151,7 @@ export const ItemList: React.FC<ItemListProps> = ({
                   <div className="record-card-bottom">
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <span className="urgency-badge info" style={{ fontSize: 10, padding: '2px 6px' }}>
-                        {typeNames[d.doc_type] || d.doc_category || d.doc_type}
+                        {documentTypeLabel(t, d.doc_type)}
                       </span>
                       {ds && (
                         <span className={`status-badge ${ds.badgeType}`} style={{ fontSize: 10, padding: '2px 6px' }}>

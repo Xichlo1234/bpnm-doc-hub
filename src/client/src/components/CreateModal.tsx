@@ -10,7 +10,7 @@ import { DEFAULT_CONTRACT_TYPES, DEFAULT_LABOR_CONTRACT_TYPES } from './create/c
 // (create/ContractForm, IncomingForm, OutgoingForm); state lives in create/useCreateForm.
 export const CreateModal: React.FC<CreateModalProps> = (props) => {
   const f = useCreateForm(props);
-  if (!props.isOpen) return null;
+  if (!props.isOpen || !f.canViewLabor) return null;
   const {
     language,
     t,
@@ -163,7 +163,6 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
     outgoingStorageLocation,
     setOutgoingStorageLocation,
     incomingDocsList,
-    setIncomingDocsList,
     contractAttachMode,
     setContractAttachMode,
     contractCloudLink,
@@ -220,33 +219,33 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
     onClose,
     onCreated,
   } = f;
+  const incoming = tab === 'incoming' || tab === 'internal_incoming';
+  const outgoing = tab === 'outgoing' || tab === 'internal_outgoing';
+  const title = {
+    contract: t.createContractTitle, labor: t.createLaborTitle,
+    incoming: t.createIncomingTitle, outgoing: t.createOutgoingTitle,
+    internal_incoming: t.createInternalIncomingTitle, internal_outgoing: t.createInternalOutgoingTitle,
+  }[tab];
+  const description = {
+    contract: t.createContractDesc, labor: t.createLaborDesc,
+    incoming: t.createIncomingDesc, outgoing: t.createOutgoingDesc,
+    internal_incoming: t.internalIncomingDesc, internal_outgoing: t.internalOutgoingDesc,
+  }[tab];
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-content modal-structured"
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 740, width: '95%' }}
+        style={{ maxWidth: 960, width: '95%' }}
       >
         {/* Pinned Modal Header */}
         <div className="modal-header">
           <div>
             <h2 className="modal-title">
-              {tab === 'contract'
-                ? t.createContractTitle
-                : tab === 'labor'
-                ? t.createLaborTitle
-                : tab === 'incoming'
-                ? t.createIncomingTitle
-                : t.createOutgoingTitle}
+              {title}
             </h2>
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
-              {tab === 'contract'
-                ? t.createContractDesc
-                : tab === 'labor'
-                ? t.createLaborDesc
-                : tab === 'incoming'
-                ? t.createIncomingDesc
-                : t.createOutgoingDesc}
+              {description}
             </div>
           </div>
           <button className="modal-close" onClick={onClose} type="button" title={t.close}>
@@ -255,9 +254,10 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
         </div>
 
         {/* Pinned Tab Bar */}
-        <div className="modal-tabs-nav">
-          <button
+        <div className="modal-tabs-nav create-tabs">
+          {user?.role === 'admin' && <button
             type="button"
+            disabled={isSubmitting}
             className={`btn ${tab === 'contract' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: 13, padding: '7px 14px', borderRadius: 8 }}
             onClick={() => {
@@ -268,10 +268,11 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
           >
             <FileCheck size={15} style={{ marginRight: 6 }} />
             {t.contractTab}
-          </button>
+          </button>}
           {canViewLabor && (
             <button
               type="button"
+              disabled={isSubmitting}
               className={`btn ${tab === 'labor' ? 'btn-primary' : 'btn-ghost'}`}
               style={{
                 fontSize: 13,
@@ -293,24 +294,25 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
               {t.laborTabLabel}
             </button>
           )}
-          <button
-            type="button"
-            className={`btn ${tab === 'incoming' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ fontSize: 13, padding: '7px 14px', borderRadius: 8 }}
-            onClick={() => setTab('incoming')}
-          >
-            <ArrowDownLeft size={15} style={{ marginRight: 6 }} />
-            {t.incomingTab}
-          </button>
-          <button
-            type="button"
-            className={`btn ${tab === 'outgoing' ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ fontSize: 13, padding: '7px 14px', borderRadius: 8 }}
-            onClick={() => setTab('outgoing')}
-          >
-            <ArrowUpRight size={15} style={{ marginRight: 6 }} />
-            {t.outgoingTab}
-          </button>
+          {user?.role === 'admin' && ([
+            ['incoming', t.incomingTab, ArrowDownLeft],
+            ['outgoing', t.outgoingTab, ArrowUpRight],
+            ['internal_incoming', t.internalIncomingTab, ArrowDownLeft],
+            ['internal_outgoing', t.internalOutgoingTab, ArrowUpRight],
+          ] as const).map(([type, label, Icon]) => (
+            <button
+              key={type}
+              type="button"
+              className={`btn ${tab === type ? 'btn-primary' : 'btn-ghost'}`}
+              aria-pressed={tab === type}
+              onClick={() => setTab(type)}
+              disabled={isSubmitting}
+              style={{ fontSize: 13, padding: '7px 14px', borderRadius: 8 }}
+            >
+              <Icon size={15} style={{ marginRight: 6 }} />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Scrollable Form Body */}
@@ -321,13 +323,13 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
           )}
 
           {/* TAB 2: CÔNG VĂN ĐẾN */}
-          {tab === 'incoming' && (
-            <IncomingForm f={f} />
+          {incoming && (
+            <IncomingForm key={tab} f={f} />
           )}
 
           {/* TAB 3: CÔNG VĂN ĐI */}
-          {tab === 'outgoing' && (
-            <OutgoingForm f={f} />
+          {outgoing && (
+            <OutgoingForm key={tab} f={f} />
           )}
         </div>
 
@@ -341,7 +343,7 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
             form={
               tab === 'contract' || tab === 'labor'
                 ? 'contract-form'
-                : tab === 'incoming'
+                : incoming
                 ? 'incoming-form'
                 : 'outgoing-form'
             }
@@ -355,7 +357,7 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
               ? t.saveContractBtn
               : tab === 'labor'
               ? t.saveLaborBtn
-              : tab === 'incoming'
+              : incoming
               ? t.receiveAndLogBtn
               : t.issueAndLogBtn}
           </button>

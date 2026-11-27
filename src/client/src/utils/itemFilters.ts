@@ -1,8 +1,8 @@
 import type { NavFilter } from '../components/Sidebar.tsx';
 import type { UnifiedItem } from '../components/ItemList.tsx';
 import { formatMessage, type TranslationKey, type Translations } from '../i18n/index.ts';
-import { isLaborContract, type ContractRecord, type DocumentRecord } from '../../../server/types.ts';
-import { stageOf } from '../../../server/utils/workflow.ts';
+import { isInternalDocument, isLaborContract, type ContractRecord, type DocumentRecord } from '../../../server/types.ts';
+import { stageOf, workflowKind } from '../../../server/utils/workflow.ts';
 
 // Sidebar filter → list contents. Pure functions so App.tsx only wires state, and so the filters
 // can be unit-tested (tests/item_filters.test.ts).
@@ -56,8 +56,10 @@ const isIncoming = (d: DocumentRecord) => d.doc_type === 'incoming';
 const isOutgoing = (d: DocumentRecord) => d.doc_type === 'outgoing';
 // Workflow stage (server/utils/workflow.ts), so legacy status values are grouped correctly
 const outgoingStage = (d: DocumentRecord) => stageOf('outgoing', d.status).code;
-const isArchivedDocument = (d: DocumentRecord) =>
-  (isIncoming(d) || isOutgoing(d)) && stageOf(d.doc_type as 'incoming' | 'outgoing', d.status).code === 'archived';
+const isArchivedDocument = (d: DocumentRecord) => {
+  const kind = workflowKind(d.doc_type);
+  return kind !== null && stageOf(kind, d.status).code === 'archived';
+};
 const isClosedContract = (c: ContractRecord) => c.status === 'liquidated' || c.status === 'terminated';
 
 const DOCUMENT_FILTERS: Record<string, { title: TranslationKey; predicate: (d: DocumentRecord) => boolean }> = {
@@ -96,12 +98,18 @@ const DOCUMENT_FILTERS: Record<string, { title: TranslationKey; predicate: (d: D
     title: 'listTitleOutgoingSent',
     predicate: (d) => isOutgoing(d) && ['issued', 'archived'].includes(outgoingStage(d)),
   },
+  docs_internal_incoming: { title: 'internalIncomingTab', predicate: (d) => d.doc_type === 'internal_incoming' },
+  docs_internal_outgoing: { title: 'internalOutgoingTab', predicate: (d) => d.doc_type === 'internal_outgoing' },
   docs_decision: {
     title: 'listTitleInternalDecisions',
-    predicate: (d) => d.doc_type === 'internal' || d.doc_type === 'decision',
+    predicate: (d) => isInternalDocument(d.doc_type),
   },
 };
 DOCUMENT_FILTERS.docs_internal = DOCUMENT_FILTERS.docs_decision;
+
+export function matchesDocumentFilter(filter: NavFilter, doc: DocumentRecord): boolean {
+  return DOCUMENT_FILTERS[filter]?.predicate(doc) ?? true;
+}
 
 const asContractItems = (list: ContractRecord[]): UnifiedItem[] => list.map((c) => ({ kind: 'contract', data: c }));
 const asDocumentItems = (list: DocumentRecord[]): UnifiedItem[] => list.map((d) => ({ kind: 'document', data: d }));

@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Edit3, FileText, CheckCircle2, UploadCloud, ExternalLink, Paperclip, AlertCircle } from 'lucide-react';
 import { api } from '../services/api.ts';
 import type { UnifiedItem } from './ItemList.tsx';
-import type { ContractRecord, DocumentRecord } from '../../../server/types.ts';
+import { isDirectionalInternalType, type ContractRecord, type DocumentRecord } from '../../../server/types.ts';
+import { stagesFor, workflowKind } from '../../../server/utils/workflow.ts';
 import { GoogleDriveIcon } from './DocumentViewer.tsx';
 import {
   getNormalizedDocTypes,
@@ -206,6 +207,11 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
   };
 
   if (!isOpen || !item) return null;
+  const internal = isDirectionalInternalType(docData.doc_type);
+  const internalOutgoing = docData.doc_type === 'internal_outgoing';
+  const departments = getNormalizedDepartments(categories);
+  const workflow = workflowKind(docData.doc_type);
+  const statuses = internal && workflow ? stagesFor(workflow).map(stage => stage.status) : DOC_STATUS_OPTIONS;
 
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,11 +280,11 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                background: item.kind === 'contract' ? 'rgba(16, 124, 65, 0.1)' : 'rgba(252, 207, 77, 0.1)',
+                background: item.kind === 'contract' ? 'rgba(252, 207, 77, 0.1)' : 'rgba(252, 207, 77, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: item.kind === 'contract' ? '#107C41' : 'var(--accent-primary)',
+                color: item.kind === 'contract' ? 'var(--accent-primary)' : 'var(--accent-primary)',
               }}
             >
               <Edit3 size={18} />
@@ -729,60 +735,89 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label">{t.issuerSenderLabel}</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={docData.issuer || ''}
-                  onChange={e => setDocData({ ...docData, issuer: e.target.value })}
-                  list="edit-doc-agencies"
-                />
-                <datalist id="edit-doc-agencies">
-                  {categories?.agencies?.map((a: string) => (
-                    <option key={a} value={a} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="form-group">
-                <label className="form-label">{t.recipientUnitLabel}</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={docData.recipient || ''}
-                  onChange={e => setDocData({ ...docData, recipient: e.target.value })}
-                  list="edit-doc-recipients"
-                />
-                <datalist id="edit-doc-recipients">
-                  {DEFAULT_RECIPIENTS.map((r) => (
-                    <option key={r} value={r} />
-                  ))}
-                  {getNormalizedDepartments(categories).map((d) => (
-                    <option key={d.code || d.name} value={d.name} />
-                  ))}
-                  {categories?.agencies?.map((a: string) => (
-                    <option key={a} value={a} />
-                  ))}
-                </datalist>
-              </div>
+              {internal ? (
+                (['sender', 'recipient'] as const).map(side => {
+                  const sender = side === 'sender';
+                  const field = sender ? (internalOutgoing ? 'department' : 'issuer') : (internalOutgoing ? 'recipient' : 'department');
+                  const value = docData[field] || '';
+                  return (
+                    <div className="form-group" key={side}>
+                      <label className="form-label" htmlFor={`edit-internal-${side}`}>
+                        {sender ? t.internalSenderDepartment : t.internalRecipientDepartment}
+                      </label>
+                      <select id={`edit-internal-${side}`} className="form-select" value={value}
+                        onChange={e => setDocData({ ...docData, [field]: e.target.value, ...(internalOutgoing && sender && { issuer: e.target.value }) })}>
+                        <option value="">{t.selectDepartment}</option>
+                        {value && !departments.some(d => d.name === value) && <option value={value}>{value}</option>}
+                        {departments.map(d => <option key={d.name} value={d.name}>{seedLabel(language, d.name)}</option>)}
+                      </select>
+                    </div>
+                  );
+                })
+              ) : (<>
+                <div className="form-group">
+                  <label className="form-label">{t.issuerSenderLabel}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={docData.issuer || ''}
+                    onChange={e => setDocData({ ...docData, issuer: e.target.value })}
+                    list="edit-doc-agencies"
+                  />
+                  <datalist id="edit-doc-agencies">
+                    {categories?.agencies?.map((a: string) => (
+                      <option key={a} value={a} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.recipientUnitLabel}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={docData.recipient || ''}
+                    onChange={e => setDocData({ ...docData, recipient: e.target.value })}
+                    list="edit-doc-recipients"
+                  />
+                  <datalist id="edit-doc-recipients">
+                    {DEFAULT_RECIPIENTS.map((r) => (
+                      <option key={r} value={r} />
+                    ))}
+                    {getNormalizedDepartments(categories).map((d) => (
+                      <option key={d.code || d.name} value={d.name} />
+                    ))}
+                    {categories?.agencies?.map((a: string) => (
+                      <option key={a} value={a} />
+                    ))}
+                  </datalist>
+                </div>
+              </>)}
             </div>
 
             <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">{t.handlingDepartmentLabel}</label>
-                <select
-                  className="form-select"
-                  value={docData.department || ''}
-                  onChange={e => setDocData({ ...docData, department: e.target.value })}
-                >
-                  <option value="">{t.selectDepartment}</option>
-                  {getNormalizedDepartments(categories).map((d) => (
-                    <option key={d.code || d.name} value={d.name}>
-                      {seedLabel(language, d.name)} {d.code ? `(${d.code})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {internal ? (
+                <div className="form-group">
+                  <label className="form-label" htmlFor="edit-internal-signer">{t.docSignerCol}</label>
+                  <input id="edit-internal-signer" className="form-input" value={docData.signer || ''}
+                    list="edit-doc-personnel" onChange={e => setDocData({ ...docData, signer: e.target.value })} />
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label">{t.handlingDepartmentLabel}</label>
+                  <select
+                    className="form-select"
+                    value={docData.department || ''}
+                    onChange={e => setDocData({ ...docData, department: e.target.value })}
+                  >
+                    <option value="">{t.selectDepartment}</option>
+                    {getNormalizedDepartments(categories).map((d) => (
+                      <option key={d.code || d.name} value={d.name}>
+                        {seedLabel(language, d.name)} {d.code ? `(${d.code})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">{t.mainHandlerLabel}</label>
                 <input
@@ -804,10 +839,13 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
                 <label className="form-label">{t.resolutionStatusLabel}</label>
                 <select
                   className="form-select"
-                  value={docData.status || DOC_STATUS_OPTIONS[1]}
+                  value={docData.status || (internal ? statuses[0] : DOC_STATUS_OPTIONS[1])}
                   onChange={e => setDocData({ ...docData, status: e.target.value })}
                 >
-                  {DOC_STATUS_OPTIONS.map((s) => (
+                  {internal && docData.status && !statuses.includes(docData.status) && (
+                    <option value={docData.status}>{statusLabel(t, docData.status)}</option>
+                  )}
+                  {statuses.map((s) => (
                     <option key={s} value={s}>
                       {statusLabel(t, s)}
                     </option>
@@ -885,11 +923,11 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
                 </datalist>
               </div>
               <div className="form-group">
-                <label className="form-label">{t.linkedDocFormLabel}</label>
+                <label className="form-label">{internalOutgoing ? t.replyToInternalIncoming : t.linkedDocFormLabel}</label>
                 <input
                   type="text"
                   className="form-input mono-code"
-                  placeholder={tf('examplePlaceholder', { example: LINKED_DOC_EXAMPLE })}
+                  placeholder={internalOutgoing ? undefined : tf('examplePlaceholder', { example: LINKED_DOC_EXAMPLE })}
                   value={docData.linked_doc_number || ''}
                   onChange={e => setDocData({ ...docData, linked_doc_number: e.target.value })}
                 />

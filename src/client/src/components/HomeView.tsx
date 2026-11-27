@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, BriefcaseBusiness, CalendarDays, Clock3, FileText, Plus, Search, UserRound } from 'lucide-react';
 import type { ContractRecord, DocumentRecord } from '../../../server/types.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
-import type { TranslationKey } from '../i18n/index.ts';
+import { documentTypeLabel } from '../i18n/documentTypeLabel.ts';
 import { parseSystemDate } from '../utils/dateTime.ts';
 import type { UnifiedItem } from './ItemList.tsx';
 import type { NavFilter } from './Sidebar.tsx';
@@ -35,14 +35,6 @@ const ATTENTION = [
   { filter: 'docs_incoming_expiring', label: 'homeExpiringDocuments', icon: CalendarDays, tone: 'red' },
   { filter: 'contracts_urgent', label: 'homeUrgentContracts', icon: BriefcaseBusiness, tone: 'amber' },
 ] as const;
-
-const DOCUMENT_LABELS: Record<DocumentRecord['doc_type'], TranslationKey> = {
-  incoming: 'incomingDoc',
-  outgoing: 'outgoingDoc',
-  internal: 'internalDocsDecisions',
-  decision: 'internalDocsDecisions',
-  other: 'homeDocument',
-};
 
 const LOCALES = { vi: 'vi-VN', en: 'en-GB', km: 'km-KH' };
 const VN_TIME = 'Asia/Ho_Chi_Minh';
@@ -118,7 +110,7 @@ export function HomeView({ name, documents, contracts, isLoading, hasError, coun
               : <ul className="home-list">
                 {recent.map(({ item, date }) => {
                   const number = item.kind === 'contract' ? item.data.contract_number : item.data.document_number;
-                  const label = item.kind === 'contract' ? t.contractWord : t[DOCUMENT_LABELS[item.data.doc_type] ?? 'homeDocument'];
+                  const label = item.kind === 'contract' ? t.contractWord : documentTypeLabel(t, item.data.doc_type);
                   return (
                     <li key={`${item.kind}:${item.data.id}`}>
                       <button type="button" className="home-record" onClick={() => onSelectItem(item)}>

@@ -10,6 +10,8 @@ import { ContractTableView } from './components/ContractTableView.tsx';
 import { DocumentStatsBar } from './components/DocumentStatsBar.tsx';
 import { DocumentTableView } from './components/DocumentTableView.tsx';
 import { SpotlightModal } from './components/SpotlightModal.tsx';
+import type { CreateTab } from './components/create/useCreateForm.tsx';
+import { isNumberedDocumentType } from '../../server/types.ts';
 import { CreateModal } from './components/CreateModal.tsx';
 import { PartnerTableView } from './components/PartnerTableView.tsx';
 import { CategorySettingsView, type SettingsSubTab } from './components/CategorySettingsView.tsx';
@@ -29,6 +31,8 @@ const DOCUMENT_LISTS: Record<DocumentRecord['doc_type'], NavFilter> = {
   incoming: 'docs_incoming',
   outgoing: 'docs_outgoing',
   internal: 'docs_internal',
+  internal_incoming: 'docs_internal_incoming',
+  internal_outgoing: 'docs_internal_outgoing',
   decision: 'docs_internal',
   other: 'docs_all',
 };
@@ -49,10 +53,10 @@ const AppContent: React.FC = () => {
     }
     return false;
   });
-  const [createModalTab, setCreateModalTab] = useState<'contract' | 'labor' | 'incoming' | 'outgoing'>(() => {
+  const [createModalTab, setCreateModalTab] = useState<CreateTab>(() => {
     if (typeof window !== 'undefined') {
       const tabParam = new URLSearchParams(window.location.search).get('tab');
-      if (tabParam === 'contract' || tabParam === 'labor' || tabParam === 'incoming' || tabParam === 'outgoing') {
+      if (tabParam === 'contract' || tabParam === 'labor' || isNumberedDocumentType(tabParam)) {
         return tabParam;
       }
     }
@@ -357,7 +361,7 @@ const AppContent: React.FC = () => {
     syncUrl(url);
   };
 
-  const openCreateWithTab = (tab: 'contract' | 'labor' | 'incoming' | 'outgoing') => {
+  const openCreateWithTab = (tab: CreateTab) => {
     setCreateModalTab(tab);
     setIsCreateOpen(true);
   };
@@ -417,6 +421,10 @@ const AppContent: React.FC = () => {
         onOpenCreate={() => {
           if (currentFilter.startsWith('labor') || (user?.role !== 'admin' && user?.can_access_labor_contracts)) {
             openCreateWithTab('labor');
+          } else if (currentFilter === 'docs_internal_outgoing') {
+            openCreateWithTab('internal_outgoing');
+          } else if (currentFilter.startsWith('docs_internal') || currentFilter === 'docs_decision') {
+            openCreateWithTab('internal_incoming');
           } else if (currentFilter.startsWith('docs_outgoing')) {
             openCreateWithTab('outgoing');
           } else if (currentFilter === 'home' || currentFilter.startsWith('docs')) {
@@ -506,7 +514,7 @@ const AppContent: React.FC = () => {
               activeTab={
                 currentFilter.startsWith('docs_outgoing')
                   ? 'outgoing'
-                  : currentFilter === 'docs_internal' || currentFilter === 'docs_decision'
+                  : currentFilter.startsWith('docs_internal') || currentFilter === 'docs_decision'
                   ? 'internal'
                   : currentFilter === 'docs_all'
                   ? 'search'
@@ -518,6 +526,7 @@ const AppContent: React.FC = () => {
                 else if (tab === 'internal') setCurrentFilter('docs_internal');
                 else setCurrentFilter('docs_all');
               }}
+              onSelectFilter={filter => setCurrentFilter(filter)}
               onSelectDocument={doc => {
                 setTableSelectedDocument(doc);
                 setSelectedItem({ kind: 'document', data: doc });
@@ -680,12 +689,12 @@ const AppContent: React.FC = () => {
       />
 
       {/* Create Document / Contract Modal */}
-      <CreateModal
-        isOpen={isCreateOpen}
+      {isCreateOpen && <CreateModal
+        isOpen
         defaultTab={createModalTab}
         onClose={() => setIsCreateOpen(false)}
         onCreated={() => loadData(true)}
-      />
+      />}
 
       {/* Edit Contract / Document Modal */}
       <EditRecordModal

@@ -7,6 +7,8 @@ import { UrgencyBadge } from './UrgencyBadge.tsx';
 
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { documentDeadlineLabel } from '../i18n/index.ts';
+import { documentTypeLabel } from '../i18n/documentTypeLabel.ts';
+import { isDirectionalInternalType } from '../../../server/types.ts';
 
 interface SpotlightModalProps {
   isOpen: boolean;
@@ -220,7 +222,7 @@ export const SpotlightModal: React.FC<SpotlightModalProps> = ({
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, overflow: 'hidden' }}>
-                          <FileText size={16} color={d.doc_type === 'incoming' ? 'var(--accent-primary)' : 'var(--accent-primary)'} style={{ flexShrink: 0 }} />
+                          <FileText size={16} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
                           <div style={{ overflow: 'hidden' }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                               {d.title}
@@ -231,7 +233,7 @@ export const SpotlightModal: React.FC<SpotlightModalProps> = ({
                                 <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>({d.original_doc_number})</span>
                               )}
                               <span>·</span>
-                              <span>{d.issuer || d.recipient || t.docTypeInternal}</span>
+                              <span>{(d.doc_type === 'internal_outgoing' ? d.recipient : d.issuer || d.recipient) || t.docTypeInternal}</span>
                               {d.directive && (
                                 <span style={{ color: '#B45309', fontStyle: 'italic' }}>· {t.directiveShort}: {d.directive.slice(0, 35)}...</span>
                               )}
@@ -245,7 +247,7 @@ export const SpotlightModal: React.FC<SpotlightModalProps> = ({
                               {documentDeadlineLabel(t, d.deadline_status)}
                             </span>
                           ) : (
-                            <span className="urgency-badge info">{d.doc_category || d.doc_type}</span>
+                            <span className="urgency-badge info">{isDirectionalInternalType(d.doc_type) ? documentTypeLabel(t, d.doc_type) : d.doc_category || documentTypeLabel(t, d.doc_type)}</span>
                           )}
                           <ArrowRight size={14} color="var(--text-muted)" />
                         </div>
