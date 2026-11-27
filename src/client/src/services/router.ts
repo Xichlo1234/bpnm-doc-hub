@@ -268,7 +268,9 @@ export function parseCurrentLocation(customPath?: string, customHash?: string): 
 
     if (second === 'internal') {
       state.viewMode = 'split';
-      state.currentFilter = 'docs_internal';
+      if (parts[2] === 'incoming') state.currentFilter = 'docs_internal_incoming';
+      else if (parts[2] === 'outgoing') state.currentFilter = 'docs_internal_outgoing';
+      else state.currentFilter = 'docs_internal';
       return state;
     }
 
@@ -382,6 +384,10 @@ export function buildRouteUrl(params: {
       return '/archive';
     case 'docs_decision':
       return '/documents/decision';
+    case 'docs_internal_incoming':
+      return '/documents/internal/incoming';
+    case 'docs_internal_outgoing':
+      return '/documents/internal/outgoing';
     case 'docs_internal':
       return '/documents/internal';
     case 'partners_all':

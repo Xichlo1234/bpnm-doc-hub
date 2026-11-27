@@ -1,3 +1,5 @@
+import { isDirectionalInternalType, type InternalDocumentType } from '../types.ts';
+
 // Document workflows. Stored status values stay the Vietnamese labels the app already uses (and that
 // the status categories in Settings list), so existing records and filters keep working; legacy
 // variants are accepted as aliases.
@@ -51,7 +53,9 @@ export function stagesFor(kind: WorkflowKind): WorkflowStage[] {
 }
 
 export function workflowKind(docType?: string | null): WorkflowKind | null {
-  return docType === 'incoming' || docType === 'outgoing' ? docType : null;
+  if (docType === 'incoming' || docType === 'internal_incoming') return 'incoming';
+  if (docType === 'outgoing' || docType === 'internal_outgoing') return 'outgoing';
+  return null;
 }
 
 /** Stage of a stored status; unknown/empty statuses count as the first stage. */
@@ -82,7 +86,7 @@ export function allowedTransitions(kind: WorkflowKind, status?: string | null): 
 }
 
 export function isIssued(doc: { doc_type?: string | null; status?: string | null }): boolean {
-  if (doc.doc_type !== 'outgoing') return false;
+  if (workflowKind(doc.doc_type) !== 'outgoing') return false;
   const code = findStage('outgoing', doc.status)?.code;
   return code === 'issued' || code === 'archived';
 }
@@ -118,8 +122,22 @@ export interface ParsedNumber {
   rebuild: (seq: number) => string;
 }
 
+export function internalNumberPrefix(type: InternalDocumentType): string {
+  return type === 'internal_incoming' ? 'NB-ĐẾN' : 'NB-ĐI';
+}
+
 export function parseAutoNumber(docType: string | null | undefined, number: string | null | undefined): ParsedNumber | null {
   const n = String(number || '').trim();
+  if (isDirectionalInternalType(docType)) {
+    const match = /^(NB-ĐẾN|NB-ĐI)-(\d{4})-(\d{1,9})$/.exec(n.normalize('NFC').toUpperCase());
+    const prefix = internalNumberPrefix(docType);
+    if (!match || match[1] !== prefix) return null;
+    return {
+      sequenceKey: `${docType}:${match[2]}`,
+      seq: Number(match[3]),
+      rebuild: (seq) => `${prefix}-${match[2]}-${String(seq).padStart(4, '0')}`,
+    };
+  }
   if (docType === 'incoming') {
     const m = /^ĐẾN-(\d{4})-(\d{1,6})$/.exec(n);
     if (!m) return null;

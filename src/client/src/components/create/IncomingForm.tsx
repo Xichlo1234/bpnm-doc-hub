@@ -167,7 +167,6 @@ export const IncomingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
     outgoingStorageLocation,
     setOutgoingStorageLocation,
     incomingDocsList,
-    setIncomingDocsList,
     contractAttachMode,
     setContractAttachMode,
     contractCloudLink,
@@ -224,6 +223,7 @@ export const IncomingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
     onClose,
     onCreated,
   } = f;
+  const internal = tab === 'internal_incoming';
   return (
     <form id="incoming-form" onSubmit={handleIncomingSubmit}>
       <div className="form-row">
@@ -296,33 +296,44 @@ export const IncomingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">
-            {tf('senderAgencyCountLabel', { count: agenciesList.length })} <span style={{ color: '#EF4444' }}>*</span>
+          <label className="form-label" htmlFor="create-incoming-sender">
+            {internal ? t.internalSenderDepartment : tf('senderAgencyCountLabel', { count: agenciesList.length })} <span style={{ color: '#EF4444' }}>*</span>
           </label>
           <select
+            id="create-incoming-sender"
             className="form-select"
+            required={internal}
             value={selectedIncomingIssuer}
             onChange={e => handleIncomingIssuerChange(e.target.value)}
           >
-            <optgroup label={t.stateAgenciesGroup}>
-              {agenciesList.map((a: string) => (
-                <option key={a} value={a}>
-                  {seedLabel(language, a)}
-                </option>
-              ))}
-            </optgroup>
-            {partners.length > 0 && (
-              <optgroup label={t.partnersFromDirectoryGroup}>
-                {partners.slice(0, 15).map((p: any) => (
-                  <option key={`partner-${p.id}`} value={p.name_vn}>
-                    {p.name_vn}
-                  </option>
-                ))}
-              </optgroup>
+            {internal ? (
+              <>
+                <option value="">{t.selectDepartment}</option>
+                {departmentsList.map(d => <option key={d.name} value={d.name}>{seedLabel(language, d.name)}</option>)}
+              </>
+            ) : (
+              <>
+                <optgroup label={t.stateAgenciesGroup}>
+                  {agenciesList.map((a: string) => (
+                    <option key={a} value={a}>
+                      {seedLabel(language, a)}
+                    </option>
+                  ))}
+                </optgroup>
+                {partners.length > 0 && (
+                  <optgroup label={t.partnersFromDirectoryGroup}>
+                    {partners.slice(0, 15).map((p: any) => (
+                      <option key={`partner-${p.id}`} value={p.name_vn}>
+                        {p.name_vn}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <option value="__custom__">{t.enterOtherAgency}</option>
+              </>
             )}
-            <option value="__custom__">{t.enterOtherAgency}</option>
           </select>
-          {isCustomIncomingIssuer && (
+          {!internal && isCustomIncomingIssuer && (
             <input
               type="text"
               required
@@ -339,14 +350,17 @@ export const IncomingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
 
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">
-            {tf('receivingDeptCountLabel', { count: departmentsList.length })} <span style={{ color: '#EF4444' }}>*</span>
+          <label className="form-label" htmlFor="create-incoming-recipient">
+            {internal ? t.internalRecipientDepartment : tf('receivingDeptCountLabel', { count: departmentsList.length })} <span style={{ color: '#EF4444' }}>*</span>
           </label>
           <select
+            id="create-incoming-recipient"
             className="form-select"
+            required={internal}
             value={incomingDepartment}
             onChange={e => setIncomingDepartment(e.target.value)}
           >
+            {internal && <option value="">{t.selectDepartment}</option>}
             {departmentsList.map((d: any) => (
               <option key={d.code || d.name} value={d.name}>
                 {seedLabel(language, d.name)} {d.code ? `(${d.code})` : ''}
@@ -420,6 +434,13 @@ export const IncomingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
             onChange={e => setIncomingDueDate(e.target.value)}
           />
         </div>
+        {internal && (
+          <div className="form-group">
+            <label className="form-label" htmlFor="internal-incoming-signer">{t.docSignerCol}</label>
+            <input id="internal-incoming-signer" className="form-input" value={f.internalIncomingSigner}
+              onChange={e => f.setInternalIncomingSigner(e.target.value)} />
+          </div>
+        )}
       </div>
 
       <div className="form-row">

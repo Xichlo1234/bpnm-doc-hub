@@ -46,6 +46,10 @@ export function documentDeadlineLabel(t: Translations, info?: DeadlineInfo | nul
       return t.statusCompletedLate;
     case 'sent':
       return t.statusDispatched;
+    case 'archived':
+      return t.wfStage_archived;
+    case 'cancelled':
+      return t.statusCancelled;
     case 'signing':
       return t.statusPendingSignature;
     case 'pending_send':

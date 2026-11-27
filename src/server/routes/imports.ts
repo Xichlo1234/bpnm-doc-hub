@@ -62,7 +62,7 @@ export function importCommitHandler(kind: ImportKind) {
     }
 
     const user = getAuthUser(c)!;
-    const toWrite = rowsToCommit(preview);
+    const toWrite = rowsToCommit(kind, preview);
     const result = kind === 'document' ? store.bulkUpsertDocuments(toWrite as any) : store.bulkUpsertContracts(toWrite as any);
     for (const ch of result.changes) {
       store.recordHistory({ record_type: kind, record_id: ch.id, action: 'import', user, before: ch.before, after: ch.after });

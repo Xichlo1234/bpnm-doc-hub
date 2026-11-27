@@ -57,6 +57,8 @@ export type NavFilter =
   | 'docs_outgoing_signing'
   | 'docs_decision'
   | 'docs_internal'
+  | 'docs_internal_incoming'
+  | 'docs_internal_outgoing'
   | 'archive'
   | 'partners_all'
   | 'settings_all';
@@ -114,7 +116,11 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: 'internal',
     title: 'internalAndDecisions',
-    items: [{ filter: 'docs_internal', label: 'internalDocsDecisions', icon: FileText, color: '#059669', alsoActive: ['docs_decision'] }],
+    items: [
+      { filter: 'docs_internal', label: 'internalDocsDecisions', icon: FileText, color: '#059669', alsoActive: ['docs_decision'] },
+      { filter: 'docs_internal_incoming', label: 'internalIncomingTab', icon: ArrowDownLeft },
+      { filter: 'docs_internal_outgoing', label: 'internalOutgoingTab', icon: ArrowUpRight },
+    ],
   },
   {
     id: 'contracts',

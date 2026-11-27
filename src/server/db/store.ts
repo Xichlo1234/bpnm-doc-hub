@@ -1,5 +1,8 @@
 import {
   type DocumentRecord,
+  type NumberedDocumentType,
+  isDirectionalInternalType,
+  isInternalDocument,
   type ContractRecord,
   type PartnerRecord,
   type NotificationRecord,
@@ -71,7 +74,7 @@ import {
 import initialCategories from './categories.json';
 import { contractValueTotals } from '../utils/contractRules.ts';
 import { normalizeNumber, numberScope, numberOf } from '../utils/numberKeys.ts';
-import { vietnamToday } from '../utils/workflow.ts';
+import { internalNumberPrefix, parseAutoNumber, vietnamToday } from '../utils/workflow.ts';
 import { canReadContract, canReadDocument, type AccessSubject } from '../utils/access.ts';
 
 // Vietnamese string normalizer for fast, diacritic-insensitive search
@@ -643,7 +646,7 @@ export class MemoryStore {
         return docs.filter(d => d.doc_type === 'decision');
       }
       if (type === 'internal') {
-        return docs.filter(d => d.doc_type === 'internal');
+        return docs.filter(d => isInternalDocument(d.doc_type));
       }
       if (type === 'overdue') {
         return docs.filter(d => d.deadline_status?.level === 'overdue');
@@ -813,9 +816,31 @@ export class MemoryStore {
     return { added, updated, total: this.getDocuments().length, changes };
   }
 
-  public getNextDocumentNumber(type: 'incoming' | 'outgoing', categoryCode = 'CV', deptCode = 'HCNS'): string {
+  /** Includes numbers retained by the registry after a record was renumbered or purged. */
+  public documentNumbersInRegister(type: string | undefined | null): string[] {
+    const scope = numberScope('document', { doc_type: type });
+    const numbers = Array.from(this.documents.values())
+      .filter((doc) => numberScope('document', doc) === scope)
+      .map((doc) => doc.document_number);
+    const prefix = `${scope}|`;
+    for (const key of this.numberOwners.keys()) {
+      if (key.startsWith(prefix)) numbers.push(key.slice(prefix.length).toUpperCase());
+    }
+    return numbers;
+  }
+
+  public getNextDocumentNumber(type: NumberedDocumentType, categoryCode = 'CV', deptCode = 'HCNS'): string {
     // The numbering year is the year in Vietnam (UTC+7), not the server's
     const year = Number(vietnamToday().slice(0, 4));
+    if (isDirectionalInternalType(type)) {
+      let highest = 0;
+      const sequenceKey = `${type}:${year}`;
+      for (const number of this.documentNumbersInRegister(type)) {
+        const parsed = parseAutoNumber(type, number);
+        if (parsed?.sequenceKey === sequenceKey) highest = Math.max(highest, parsed.seq);
+      }
+      return `${internalNumberPrefix(type)}-${year}-${String(highest + 1).padStart(4, '0')}`;
+    }
     // Trashed documents keep their numbers: they are never re-issued
     const docs = Array.from(this.documents.values());
     if (type === 'incoming') {
@@ -1406,7 +1431,7 @@ export class MemoryStore {
     const docs = this.getDocuments().filter((d) => !user || canReadDocument(user, d));
     const incomingDocs = docs.filter(d => d.doc_type === 'incoming');
     const outgoingDocs = docs.filter(d => d.doc_type === 'outgoing');
-    const internalDocs = docs.filter(d => d.doc_type === 'internal' || d.doc_type === 'decision');
+    const internalDocs = docs.filter(d => isInternalDocument(d.doc_type));
 
     const incomingCompleted = incomingDocs.filter(d => d.status === 'Hoàn thành' || d.completed_date).length;
     const incomingOverdue = incomingDocs.filter(d => d.deadline_status?.level === 'overdue').length;
@@ -1424,6 +1449,8 @@ export class MemoryStore {
       totalIncoming: incomingDocs.length,
       totalOutgoing: outgoingDocs.length,
       totalInternal: internalDocs.length,
+      totalInternalIncoming: internalDocs.filter(d => d.doc_type === 'internal_incoming').length,
+      totalInternalOutgoing: internalDocs.filter(d => d.doc_type === 'internal_outgoing').length,
       incomingProcessing,
       incomingOverdue,
       incomingExpiringSoon,

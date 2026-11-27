@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import type { UnifiedItem } from './ItemList.tsx';
 import { canAccessLaborContracts, isLaborContract } from '../../../server/types.ts';
+import { workflowKind } from '../../../server/utils/workflow.ts';
+import { documentTypeLabel } from '../i18n/documentTypeLabel.ts';
 import { DocumentViewer, GoogleDriveIcon } from './DocumentViewer.tsx';
 import { AttachmentsPanel } from './AttachmentsPanel.tsx';
 import { HistoryPanel } from './HistoryPanel.tsx';
@@ -605,13 +607,9 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
       ) : (
         (() => {
           const d = item.data;
-          const typeLabels: Record<string, string> = {
-            incoming: t.incomingDoc,
-            outgoing: t.outgoingDoc,
-            decision: t.decisions,
-            internal: t.docTypeInternal,
-            other: t.docTypeOther,
-          };
+          const typeLabel = documentTypeLabel(t, d.doc_type);
+          const internalSender = d.doc_type === 'internal_incoming';
+          const internalRecipient = d.doc_type === 'internal_outgoing';
 
           return (
             <>
@@ -620,7 +618,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 <div className="detail-title-section">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span className="detail-category-tag">
-                      {t.documentBreadcrumb} / {typeLabels[d.doc_type] || d.doc_type} / {d.document_number}
+                      {t.documentBreadcrumb} / {typeLabel} / {d.document_number}
                     </span>
                     {hasDriveLink && (
                       <span
@@ -644,7 +642,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                   </div>
                   <h1 className="detail-title">{d.title}</h1>
                   <span className="detail-meta-line">
-                    {t.issuingAuthorityLabel}: <strong style={{ color: 'var(--text-primary)' }}>{d.issuer || t.issuedInternally}</strong> · {t.signedDateLabel}: {d.issue_date}
+                    {internalSender || internalRecipient ? t.internalSenderDepartment : t.issuingAuthorityLabel}: <strong style={{ color: 'var(--text-primary)' }}>{d.issuer || (internalRecipient && d.department) || t.issuedInternally}</strong> · {t.signedDateLabel}: {d.issue_date}
                   </span>
                 </div>
 
@@ -808,7 +806,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 <div className="metric-card">
                   <span className="metric-label">{t.categoryAndUrgency}</span>
                   <span className="metric-value" style={{ fontSize: 15 }}>
-                    {seedLabel(language, d.doc_category) || typeLabels[d.doc_type] || d.doc_type}
+                    {seedLabel(language, d.doc_category) || typeLabel}
                     {d.urgency_level && d.urgency_level !== 'Thường' && (
                       <span style={{ fontSize: 12, color: '#F43F5E', marginLeft: 6, fontWeight: 700 }}>
                         ({urgencyLabel(t, d.urgency_level)})
@@ -818,9 +816,9 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                 </div>
 
                 <div className="metric-card">
-                  <span className="metric-label">{t.senderOrRecipient}</span>
+                  <span className="metric-label">{internalSender ? t.internalSenderDepartment : internalRecipient ? t.internalRecipientDepartment : t.senderOrRecipient}</span>
                   <span className="metric-value" style={{ fontSize: 15, wordBreak: 'break-word' }}>
-                    {d.issuer || d.recipient || t.internalCompany}
+                    {(internalRecipient ? d.recipient : d.issuer || d.recipient) || t.internalCompany}
                   </span>
                 </div>
 
@@ -862,7 +860,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
 
                   {d.received_date && (
                     <div className="info-cell">
-                      <span className="info-cell-label">{d.doc_type === 'outgoing' ? t.sentDateLabel : t.receivedDateLabel}</span>
+                      <span className="info-cell-label">{workflowKind(d.doc_type) === 'outgoing' ? t.sentDateLabel : t.receivedDateLabel}</span>
                       <span className="info-cell-value">{d.received_date}</span>
                     </div>
                   )}

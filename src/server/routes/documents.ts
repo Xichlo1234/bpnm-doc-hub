@@ -19,7 +19,7 @@ import {
   type RuleError,
 } from '../utils/documentRules.ts';
 import { workflowKind, stageByCode, allowedTransitions, stagesFor, parseAutoNumber, vietnamToday } from '../utils/workflow.ts';
-import type { DocumentRecord } from '../types.ts';
+import { isDirectionalInternalType, isNumberedDocumentType, type DocumentRecord } from '../types.ts';
 
 export const documentsRouter = new Hono();
 
@@ -33,7 +33,7 @@ const ruleResponse = (c: Context, e: RuleError) => c.json({ error: e.error, code
 const numberTaken = (c: Context, number: string) =>
   c.json({ error: `Số văn bản "${number}" đã được sử dụng.`, code: 'DOCUMENT_NUMBER_TAKEN', params: { number } }, 409);
 
-// GET /api/documents?type=incoming|outgoing|decision|internal|all
+// GET /api/documents?type=internal lists the whole internal register; directional types filter exactly.
 documentsRouter.get('/', (c) => {
   const type = c.req.query('type');
   const user = getAuthUser(c);
@@ -54,10 +54,13 @@ documentsRouter.get('/workflow', (c) => {
   });
 });
 
-// GET /api/documents/next-number?type=incoming|outgoing&category=CV&department=HCNS
+// GET /api/documents/next-number?type=...&category=CV&department=HCNS
 // A suggestion only: the number is reserved atomically when the document is saved.
 documentsRouter.get('/next-number', async (c) => {
-  const type = (c.req.query('type') as 'incoming' | 'outgoing') || 'incoming';
+  const type = c.req.query('type') || 'incoming';
+  if (!isNumberedDocumentType(type)) {
+    return c.json({ error: 'Loại văn bản không có sổ cấp số.', code: 'VALIDATION_FAILED', params: { fields: 'type' } }, 400);
+  }
   const category = c.req.query('category') || 'CV';
   const department = c.req.query('department') || 'HCNS';
   const suggestion = store.getNextDocumentNumber(type, category, department);
@@ -103,6 +106,10 @@ documentsRouter.post('/', requireAdmin, async (c) => {
   const body: any = parsed.data;
   applyCloudLink(body);
 
+  const numberProvided = Boolean(String(body.document_number ?? '').trim());
+  if (!numberProvided && isDirectionalInternalType(body.doc_type)) {
+    body.document_number = store.getNextDocumentNumber(body.doc_type);
+  }
   if (!body.document_number || !body.title) {
     return c.json({ error: 'Missing required fields (document_number, title)', code: 'DOCUMENT_FIELDS_REQUIRED' }, 400);
   }
@@ -117,13 +124,14 @@ documentsRouter.post('/', requireAdmin, async (c) => {
     db,
     body.doc_type,
     requestedNumber,
-    [
-      ...[...store.getDocuments(), ...store.getTrash().documents].filter((d) => d.doc_type === body.doc_type).map((d) => d.document_number),
-      // numbers reserved by renumbered or purged documents of this register
-      ...[...store.registeredNumbers().keys()].filter((k) => k.startsWith(`doc:${body.doc_type || 'other'}|`)).map((k) => k.slice(k.indexOf('|') + 1).toUpperCase()),
-    ]
+    store.documentNumbersInRegister(body.doc_type)
   );
   body.document_number = allocation.number;
+  // Padding or a concurrent reservation can change the final number to the sender's own number.
+  if (body.document_number !== requestedNumber && body.original_doc_number) {
+    const ruleError = prepareNewDocument(body);
+    if (ruleError) return ruleResponse(c, ruleError);
+  }
   if (documentNumberTaken(body.document_number, body.doc_type)) return numberTaken(c, body.document_number);
 
   const currentUser = getAuthUser(c)!;
@@ -154,7 +162,7 @@ documentsRouter.post('/', requireAdmin, async (c) => {
 
     await store.persistAsync();
     return c.json(
-      { ...withTransitions(newDoc), ...(allocation.reassigned ? { number_reassigned: true, requested_number: requestedNumber } : {}) },
+      { ...withTransitions(newDoc), ...(numberProvided && allocation.reassigned ? { number_reassigned: true, requested_number: requestedNumber } : {}) },
       201
     );
   } catch (err) {
@@ -190,6 +198,8 @@ async function updateDocumentHandler(c: Context) {
   const id = c.req.param('id') || '';
   const rawBody = await c.req.json().catch(() => null);
   const current = store.getDocument(id);
+  // Older databases may contain free-text types. A full-record edit can retain one.
+  if (current && rawBody && rawBody.doc_type === current.doc_type) delete rawBody.doc_type;
   const parsed = parseInput(c, documentInput.update, withoutUnchangedLinks(rawBody, current));
   if (!parsed.ok) return parsed.response;
   const { expected_revision, adjustment_reason, status_override_reason, ...changes } = parsed.data as Record<string, any>;

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { notify } from '../context/ToastContext.tsx';
 import { X, UploadCloud, AlertCircle, CheckCircle2, FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
-import { readExcelFile, downloadExcelTemplate } from '../utils/excelHelper.ts';
+import { readExcelFile, downloadExcelTemplate, parseDocumentExcelRow } from '../utils/excelHelper.ts';
+import { DOCUMENT_TYPES } from '../../../server/types.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { api, type ImportPreview, type ImportCommitOptions } from '../services/api.ts';
 
@@ -67,8 +68,9 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
           { header: 'ID (Không sửa nếu cập nhật)', sample: '', width: 20 },
           { header: 'Số văn bản (*)', sample: 'CV-2026-001', width: 18 },
           { header: 'Trích yếu / Tiêu đề (*)', sample: 'V/v phê duyệt báo cáo đánh giá tác động môi trường', width: 40 },
-          { header: 'Loại văn bản', sample: 'incoming', width: 16 },
+          { header: `Loại văn bản (${DOCUMENT_TYPES.join(', ')})`, sample: 'incoming', width: 28 },
           { header: 'Cơ quan ban hành / Gửi đến', sample: 'Sở Tài nguyên và Môi trường', width: 30 },
+          { header: 'Nơi nhận', sample: '', width: 24 },
           { header: 'Người ký', sample: 'Nguyễn Văn Giám Đốc', width: 20 },
           { header: 'Phòng ban phụ trách', sample: 'HCNS', width: 18 },
           { header: 'Người xử lý', sample: 'Trần Thị Chuyên Viên', width: 20 },
@@ -108,6 +110,17 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
 
       rawRows.forEach((r, idx) => {
         const rowNum = idx + 2; // Excel 1-based, row 1 is header
+        if (type === 'document') {
+          const document = parseDocumentExcelRow(r);
+          if (!document.document_number && !document.id) {
+            errors.push({ row: rowNum, error: t.excelMissingDocumentNumber });
+            return;
+          }
+          if (document.id) updateCount++;
+          else newCount++;
+          parsed.push(document);
+          return;
+        }
         const keys = Object.keys(r);
 
         const consumed = new Set<string>();
@@ -167,47 +180,6 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             department,
             status,
             notes,
-          }));
-        } else {
-          // Document import parsing
-          const id = findVal('id', ['id', 'mã định danh']); // i18n-data
-          const document_number = findVal('document_number', ['số văn bản', 'số công văn', 'document_number']); // i18n-data
-          const title = findVal('title', ['trích yếu', 'tiêu đề', 'title']); // i18n-data
-          const doc_type = (findVal('doc_type', ['loại', 'doc_type']) || 'incoming').toLowerCase(); // i18n-data
-          const issuer = findVal('issuer', ['cơ quan', 'nơi gửi', 'issuer']); // i18n-data
-          const recipient = findVal('recipient', ['nơi nhận', 'recipient']); // i18n-data
-          const signer = findVal('signer', ['người ký', 'signer']); // i18n-data
-          const department = findVal('department', ['phòng ban', 'bộ phận', 'department']); // i18n-data
-          const handler = findVal('handler', ['người xử lý', 'handler']); // i18n-data
-          const issue_date = findVal('issue_date', ['ngày ban hành', 'ngày văn bản', 'issue_date']) || new Date().toISOString().substring(0, 10); // i18n-data
-          const due_date = findVal('due_date', ['hạn xử lý', 'due_date']) || null; // i18n-data
-          const urgency_level = findVal('urgency_level', ['độ khẩn', 'urgency']) || 'Thường'; // i18n-data
-          const status = findVal('status', ['trạng thái', 'status']) || 'Đang xử lý'; // i18n-data
-          const directive = findVal('directive', ['chỉ đạo', 'directive']) || null; // i18n-data
-
-          if (!document_number && !id) {
-            errors.push({ row: rowNum, error: t.excelMissingDocumentNumber });
-            return;
-          }
-
-          if (id) updateCount++;
-          else newCount++;
-
-          parsed.push(parsedRow({
-            id: id || undefined,
-            document_number,
-            title: title || 'Văn bản nhập từ Excel', // i18n-data
-            doc_type: ['incoming', 'outgoing', 'internal', 'decision'].includes(doc_type) ? doc_type : 'incoming',
-            issuer,
-            recipient,
-            signer,
-            department,
-            handler,
-            issue_date,
-            due_date,
-            urgency_level,
-            status,
-            directive,
           }));
         }
       });

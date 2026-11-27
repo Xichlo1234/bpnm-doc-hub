@@ -4,24 +4,7 @@ import { api } from '../services/api.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { formatSystemDateTime } from '../utils/dateTime.ts';
 import type { TranslationKey } from '../i18n/index.ts';
-
-// Mirrors src/server/utils/workflow.ts (stage codes and the stored status values)
-const STAGES: Record<'incoming' | 'outgoing', Array<{ code: string; statuses: string[] }>> = {
-  incoming: [
-    { code: 'received', statuses: ['Chưa phân công', 'Chờ tiếp nhận', 'Tiếp nhận'] }, // i18n-data
-    { code: 'assigned', statuses: ['Đã phân công'] }, // i18n-data
-    { code: 'processing', statuses: ['Đang xử lý', 'Quá hạn'] }, // i18n-data
-    { code: 'completed', statuses: ['Hoàn thành'] }, // i18n-data
-    { code: 'archived', statuses: ['Lưu trữ'] }, // i18n-data
-  ],
-  outgoing: [
-    { code: 'draft', statuses: ['Dự thảo'] }, // i18n-data
-    { code: 'pending_signature', statuses: ['Trình ký', 'Chờ ký'] }, // i18n-data
-    { code: 'signed', statuses: ['Đã ký - chờ gửi', 'Đã ký'] }, // i18n-data
-    { code: 'issued', statuses: ['Đã gửi', 'Đã phát hành', 'Phát hành'] }, // i18n-data
-    { code: 'archived', statuses: ['Lưu trữ'] }, // i18n-data
-  ],
-};
+import { workflowKind, stagesFor, stageOf } from '../../../server/utils/workflow.ts';
 
 interface WorkflowPanelProps {
   doc: any;
@@ -31,7 +14,7 @@ interface WorkflowPanelProps {
 
 export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({ doc, canEdit, onUpdated }) => {
   const { t, tf } = useLanguage();
-  const kind = doc.doc_type === 'incoming' || doc.doc_type === 'outgoing' ? (doc.doc_type as 'incoming' | 'outgoing') : null;
+  const kind = workflowKind(doc.doc_type);
   const [target, setTarget] = useState<string | null>(null);
   const [form, setForm] = useState({ handler: doc.handler || '', due_date: doc.due_date || '', directive: '', signer: doc.signer || '', note: '' });
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -39,8 +22,8 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = ({ doc, canEdit, onUp
   if (!kind) return null;
 
   const stageLabel = (code: string) => t[`wfStage_${code}` as TranslationKey] || code;
-  const stages = STAGES[kind];
-  const current = stages.find((s) => s.statuses.includes(doc.status))?.code ?? stages[0].code;
+  const stages = stagesFor(kind);
+  const current = stageOf(kind, doc.status).code;
   const allowed: string[] = doc.allowed_transitions || [];
 
   const submit = async () => {

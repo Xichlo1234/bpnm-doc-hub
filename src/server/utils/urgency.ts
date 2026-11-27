@@ -1,4 +1,5 @@
 import type { UrgencyInfo, UrgencyLevel, BadgeType } from '../types.ts';
+import { findStage } from './workflow.ts';
 
 export function parseYMD(dateStr: string): number {
   if (!dateStr) return 0;
@@ -153,6 +154,11 @@ export function calculateDocumentDeadline(
   color: string;
 } {
   const status = (doc.status || '').trim();
+  const internalOutgoingStage = doc.doc_type === 'internal_outgoing' ? findStage('outgoing', status)?.code : undefined;
+  if (internalOutgoingStage === 'cancelled' || internalOutgoingStage === 'archived') {
+    return { level: internalOutgoingStage, label: status, daysRemaining: null, badgeType: 'gray', color: '#71717A' };
+  }
+  const hasIssueDeadline = doc.doc_type === 'internal_outgoing' && Boolean(doc.due_date?.trim());
 
   // Completed incoming doc
   if (status === 'Hoàn thành' || doc.completed_date) {
@@ -175,7 +181,7 @@ export function calculateDocumentDeadline(
   }
 
   // Outgoing doc statuses
-  if (status === 'Đã gửi') {
+  if (status === 'Đã gửi' || internalOutgoingStage === 'issued') {
     return {
       level: 'sent',
       label: 'Đã gửi',
@@ -184,7 +190,7 @@ export function calculateDocumentDeadline(
       color: '#059669',
     };
   }
-  if (status === 'Trình ký') {
+  if (!hasIssueDeadline && status === 'Trình ký') {
     return {
       level: 'signing',
       label: 'Trình ký',
@@ -193,7 +199,7 @@ export function calculateDocumentDeadline(
       color: '#EA580C',
     };
   }
-  if (status === 'Đã ký - chờ gửi') {
+  if (!hasIssueDeadline && status === 'Đã ký - chờ gửi') {
     return {
       level: 'pending_send',
       label: 'Đã ký - chờ gửi',
@@ -202,7 +208,7 @@ export function calculateDocumentDeadline(
       color: '#0284C7',
     };
   }
-  if (status === 'Dự thảo') {
+  if (!hasIssueDeadline && status === 'Dự thảo') {
     return {
       level: 'draft',
       label: 'Dự thảo',

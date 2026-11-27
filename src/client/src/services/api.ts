@@ -1,4 +1,4 @@
-import type { DocumentRecord, ContractRecord, PartnerRecord, AttachmentRecord } from '../../../server/types.ts';
+import type { DocumentRecord, NumberedDocumentType, ContractRecord, PartnerRecord, AttachmentRecord } from '../../../server/types.ts';
 import { tr, trServerError } from '../i18n/index.ts';
 
 const API_BASE = '/api';
@@ -314,7 +314,7 @@ export const api = {
     return true;
   },
 
-  async getNextDocNumber(type: 'incoming' | 'outgoing', category = 'CV', department = 'HCNS'): Promise<{ nextNumber: string }> {
+  async getNextDocNumber(type: NumberedDocumentType, category = 'CV', department = 'HCNS'): Promise<{ nextNumber: string }> {
     const res = await customFetch(`${API_BASE}/documents/next-number?type=${type}&category=${category}&department=${department}`);
     if (!res.ok) throw new Error(tr('errLoadNextNumber'));
     return res.json();

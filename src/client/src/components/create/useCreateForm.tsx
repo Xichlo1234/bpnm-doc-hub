@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { notify } from '../../context/ToastContext.tsx';
 import { X, FileCheck, ArrowDownLeft, ArrowUpRight, Sparkles, Building2, UploadCloud, Link2, Paperclip, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 import { api, newIdempotencyKey } from '../../services/api.ts';
-import { canAccessLaborContracts, type ContractType, type PartnerRecord } from '../../../../server/types.ts';
+import { canAccessLaborContracts, type ContractType, type DocumentRecord, type NumberedDocumentType, type PartnerRecord } from '../../../../server/types.ts';
+import { vietnamToday } from '../../../../server/utils/workflow.ts';
 import { useLanguage } from '../../context/LanguageContext.tsx';
 import { seedLabel, statusLabel, urgencyLabel } from '../../i18n/index.ts';
 import { useAuth } from '../../context/AuthContext.tsx';
@@ -14,11 +15,20 @@ import {
 } from '../../utils/categoryHelpers.ts';
 import { DEFAULT_DOC_TYPES, DEFAULT_CONTRACT_TYPES, DEFAULT_CONTRACT_DEPTS, DEFAULT_DEPARTMENTS, DEFAULT_AGENCIES, DEFAULT_PERSONNEL, DEFAULT_URGENCY_LEVELS, DEFAULT_SECURITY_LEVELS, DEFAULT_STORAGE_TYPES, DEFAULT_CONTRACT_STATUSES, DEFAULT_SEND_METHODS, DEFAULT_OUTGOING_STATUSES, DEFAULT_PARTIES_A, DEFAULT_LABOR_CONTRACT_TYPES, DEFAULT_RECIPIENTS, LABOR_NUMBER_EXAMPLE, CONTRACT_NUMBER_EXAMPLE, REPLY_NUMBER_EXAMPLE } from './constants.ts';
 
+export type CreateTab = 'contract' | 'labor' | NumberedDocumentType;
+
+// Keep separate drafts when the same form is used with different document registers.
+function useRegisterField<T>(internal: boolean, initial: T, internalInitial: T = initial) {
+  const externalField = useState(initial);
+  const internalField = useState(internalInitial);
+  return internal ? internalField : externalField;
+}
+
 export interface CreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: () => void;
-  defaultTab?: 'contract' | 'labor' | 'incoming' | 'outgoing';
+  defaultTab?: CreateTab;
 }
 
 /** All state and handlers of the create dialog; the per-business forms render from it. */
@@ -35,9 +45,8 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
   // unknown (lost response, timeout, COMMIT_OUTCOME_UNKNOWN), so pressing Save again returns the
   // document already created instead of creating and numbering a second one. Any definitive answer
   // from the server (success or refusal) ends it.
-  type DocumentTab = 'incoming' | 'outgoing';
-  const pendingCreates = useRef<Partial<Record<DocumentTab, { key: string; data: FormData | Record<string, any> }>>>({});
-  const createDocumentOnce = async (kind: DocumentTab, data: FormData | Record<string, any>, onProgress?: (percent: number) => void) => {
+  const pendingCreates = useRef<Partial<Record<NumberedDocumentType, { key: string; data: FormData | Record<string, any> }>>>({});
+  const createDocumentOnce = async (kind: NumberedDocumentType, data: FormData | Record<string, any>, onProgress?: (percent: number) => void) => {
     const attempt = pendingCreates.current[kind] ??= { key: newIdempotencyKey(), data };
     try {
       const created = await api.createDocument(attempt.data, onProgress, { idempotencyKey: attempt.key });
@@ -54,7 +63,12 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
   const createFailureMessage = (err: any) => (err?.outcomeUnknown ? t.createOutcomeUnknownRetry : err?.message || String(err));
   const { user } = useAuth();
   const canViewLabor = canAccessLaborContracts(user);
-  const [tab, setTab] = useState<'contract' | 'labor' | 'incoming' | 'outgoing'>(defaultTab);
+  const initialTab = user?.role === 'admin' ? defaultTab : 'labor';
+  const [tab, setTab] = useState<CreateTab>(initialTab);
+  const internalIncoming = tab === 'internal_incoming';
+  const internalOutgoing = tab === 'internal_outgoing';
+  const incomingType = internalIncoming ? 'internal_incoming' : 'incoming';
+  const outgoingType = internalOutgoing ? 'internal_outgoing' : 'outgoing';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<any>(null);
   const [partners, setPartners] = useState<PartnerRecord[]>([]);
@@ -92,95 +106,109 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
   const [renewalTerms, setRenewalTerms] = useState('');
 
   // Incoming Document form fields
-  const [incomingDocNumber, setIncomingDocNumber] = useState('');
-  const [incomingOrigNumber, setIncomingOrigNumber] = useState('');
-  const [incomingTitle, setIncomingTitle] = useState('');
-  const [incomingCategory, setIncomingCategory] = useState('Công văn'); // i18n-data
-  const [selectedIncomingIssuer, setSelectedIncomingIssuer] = useState(DEFAULT_AGENCIES[0]);
-  const [isCustomIncomingIssuer, setIsCustomIncomingIssuer] = useState(false);
-  const [incomingIssuer, setIncomingIssuer] = useState(DEFAULT_AGENCIES[0]);
-  const [incomingDepartment, setIncomingDepartment] = useState('');
-  const [selectedIncomingHandler, setSelectedIncomingHandler] = useState('');
-  const [isCustomIncomingHandler, setIsCustomIncomingHandler] = useState(false);
-  const [incomingHandler, setIncomingHandler] = useState('');
-  const [incomingReceiveDate, setIncomingReceiveDate] = useState(new Date().toISOString().slice(0, 10));
-  const [incomingIssueDate, setIncomingIssueDate] = useState(new Date().toISOString().slice(0, 10));
-  const [incomingDueDate, setIncomingDueDate] = useState('');
-  const [incomingUrgency, setIncomingUrgency] = useState('Thường'); // i18n-data
-  const [incomingSecurity, setIncomingSecurity] = useState('Thường'); // i18n-data
-  const [incomingDirective, setIncomingDirective] = useState('');
-  const [incomingStorageType, setIncomingStorageType] = useState('Gốc'); // i18n-data
-  const [incomingStorageLocation, setIncomingStorageLocation] = useState('');
+  const [incomingDocNumber, setIncomingDocNumber] = useRegisterField(internalIncoming, '');
+  const [incomingOrigNumber, setIncomingOrigNumber] = useRegisterField(internalIncoming, '');
+  const [incomingTitle, setIncomingTitle] = useRegisterField(internalIncoming, '');
+  const [internalIncomingSigner, setInternalIncomingSigner] = useState('');
+  const [incomingCategory, setIncomingCategory] = useRegisterField(internalIncoming, 'Công văn'); // i18n-data
+  const [selectedIncomingIssuer, setSelectedIncomingIssuer] = useRegisterField(internalIncoming, DEFAULT_AGENCIES[0], '');
+  const [isCustomIncomingIssuer, setIsCustomIncomingIssuer] = useRegisterField(internalIncoming, false);
+  const [incomingIssuer, setIncomingIssuer] = useRegisterField(internalIncoming, DEFAULT_AGENCIES[0], '');
+  const [incomingDepartment, setIncomingDepartment] = useRegisterField(internalIncoming, '');
+  const [selectedIncomingHandler, setSelectedIncomingHandler] = useRegisterField(internalIncoming, '');
+  const [isCustomIncomingHandler, setIsCustomIncomingHandler] = useRegisterField(internalIncoming, false);
+  const [incomingHandler, setIncomingHandler] = useRegisterField(internalIncoming, '');
+  const [incomingReceiveDate, setIncomingReceiveDate] = useRegisterField(internalIncoming, vietnamToday());
+  const [incomingIssueDate, setIncomingIssueDate] = useRegisterField(internalIncoming, vietnamToday());
+  const [incomingDueDate, setIncomingDueDate] = useRegisterField(internalIncoming, '');
+  const [incomingUrgency, setIncomingUrgency] = useRegisterField(internalIncoming, 'Thường'); // i18n-data
+  const [incomingSecurity, setIncomingSecurity] = useRegisterField(internalIncoming, 'Thường'); // i18n-data
+  const [incomingDirective, setIncomingDirective] = useRegisterField(internalIncoming, '');
+  const [incomingStorageType, setIncomingStorageType] = useRegisterField(internalIncoming, 'Gốc'); // i18n-data
+  const [incomingStorageLocation, setIncomingStorageLocation] = useRegisterField(internalIncoming, '');
 
   // Outgoing Document form fields
-  const [outgoingDocNumber, setOutgoingDocNumber] = useState('');
-  const [outgoingTitle, setOutgoingTitle] = useState('');
-  const [outgoingCategory, setOutgoingCategory] = useState('Công văn'); // i18n-data
-  const [outgoingCategoryCode, setOutgoingCategoryCode] = useState('CV');
-  const [outgoingDepartment, setOutgoingDepartment] = useState('');
-  const [outgoingDeptCode, setOutgoingDeptCode] = useState('HCNS');
-  const [selectedOutgoingHandler, setSelectedOutgoingHandler] = useState('');
-  const [isCustomOutgoingHandler, setIsCustomOutgoingHandler] = useState(false);
-  const [outgoingHandler, setOutgoingHandler] = useState('');
-  const [selectedOutgoingSigner, setSelectedOutgoingSigner] = useState('');
-  const [isCustomOutgoingSigner, setIsCustomOutgoingSigner] = useState(false);
-  const [outgoingSigner, setOutgoingSigner] = useState('');
-  const [selectedOutgoingRecipient, setSelectedOutgoingRecipient] = useState('');
-  const [isCustomOutgoingRecipient, setIsCustomOutgoingRecipient] = useState(false);
-  const [outgoingRecipient, setOutgoingRecipient] = useState('');
-  const [outgoingIssueDate, setOutgoingIssueDate] = useState(new Date().toISOString().slice(0, 10));
-  const [selectedLinkedDoc, setSelectedLinkedDoc] = useState('');
-  const [isCustomLinkedDoc, setIsCustomLinkedDoc] = useState(false);
-  const [outgoingLinkedDoc, setOutgoingLinkedDoc] = useState('');
-  const [outgoingSendMethod, setOutgoingSendMethod] = useState('Cổng dịch vụ công / Trục liên thông'); // i18n-data
+  const [outgoingDocNumber, setOutgoingDocNumber] = useRegisterField(internalOutgoing, '');
+  const [outgoingTitle, setOutgoingTitle] = useRegisterField(internalOutgoing, '');
+  const [outgoingCategory, setOutgoingCategory] = useRegisterField(internalOutgoing, 'Công văn'); // i18n-data
+  const [outgoingCategoryCode, setOutgoingCategoryCode] = useRegisterField(internalOutgoing, 'CV');
+  const [outgoingDepartment, setOutgoingDepartment] = useRegisterField(internalOutgoing, '');
+  const [outgoingDeptCode, setOutgoingDeptCode] = useRegisterField(internalOutgoing, 'HCNS');
+  const [selectedOutgoingHandler, setSelectedOutgoingHandler] = useRegisterField(internalOutgoing, '');
+  const [isCustomOutgoingHandler, setIsCustomOutgoingHandler] = useRegisterField(internalOutgoing, false);
+  const [outgoingHandler, setOutgoingHandler] = useRegisterField(internalOutgoing, '');
+  const [selectedOutgoingSigner, setSelectedOutgoingSigner] = useRegisterField(internalOutgoing, '');
+  const [isCustomOutgoingSigner, setIsCustomOutgoingSigner] = useRegisterField(internalOutgoing, false);
+  const [outgoingSigner, setOutgoingSigner] = useRegisterField(internalOutgoing, '');
+  const [selectedOutgoingRecipient, setSelectedOutgoingRecipient] = useRegisterField(internalOutgoing, '');
+  const [isCustomOutgoingRecipient, setIsCustomOutgoingRecipient] = useRegisterField(internalOutgoing, false);
+  const [outgoingRecipient, setOutgoingRecipient] = useRegisterField(internalOutgoing, '');
+  const [outgoingIssueDate, setOutgoingIssueDate] = useRegisterField(internalOutgoing, vietnamToday());
+  const [internalOutgoingDueDate, setInternalOutgoingDueDate] = useState('');
+  const [internalOutgoingDirective, setInternalOutgoingDirective] = useState('');
+  const [selectedLinkedDoc, setSelectedLinkedDoc] = useRegisterField(internalOutgoing, '');
+  const [isCustomLinkedDoc, setIsCustomLinkedDoc] = useRegisterField(internalOutgoing, false);
+  const [outgoingLinkedDoc, setOutgoingLinkedDoc] = useRegisterField(internalOutgoing, '');
+  const [outgoingSendMethod, setOutgoingSendMethod] = useRegisterField(internalOutgoing, 'Cổng dịch vụ công / Trục liên thông'); // i18n-data
   // A new outgoing document starts as a draft; it is issued through the workflow
-  const [outgoingStatus, setOutgoingStatus] = useState('Dự thảo'); // i18n-data
-  const [outgoingUrgency, setOutgoingUrgency] = useState('Thường'); // i18n-data
-  const [outgoingSecurity, setOutgoingSecurity] = useState('Thường'); // i18n-data
-  const [outgoingStorageType, setOutgoingStorageType] = useState('Gốc'); // i18n-data
-  const [outgoingStorageLocation, setOutgoingStorageLocation] = useState('');
+  const [outgoingStatus, setOutgoingStatus] = useRegisterField(internalOutgoing, 'Dự thảo'); // i18n-data
+  const [outgoingUrgency, setOutgoingUrgency] = useRegisterField(internalOutgoing, 'Thường'); // i18n-data
+  const [outgoingSecurity, setOutgoingSecurity] = useRegisterField(internalOutgoing, 'Thường'); // i18n-data
+  const [outgoingStorageType, setOutgoingStorageType] = useRegisterField(internalOutgoing, 'Gốc'); // i18n-data
+  const [outgoingStorageLocation, setOutgoingStorageLocation] = useRegisterField(internalOutgoing, '');
 
   // Existing documents list for linking outgoing to incoming
-  const [incomingDocsList, setIncomingDocsList] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const incomingDocsList = documents.filter(d => internalOutgoing
+    ? d.doc_type === 'internal_incoming'
+    : d.doc_type === 'incoming' || !d.doc_type || d.doc_type === 'decision');
 
   // Attached file & cloud link states (Default: 'upload' for direct file attachment)
   const [contractAttachMode, setContractAttachMode] = useState<'upload' | 'link'>('upload');
   const [contractCloudLink, setContractCloudLink] = useState('');
 
-  const [incomingAttachMode, setIncomingAttachMode] = useState<'upload' | 'link'>('upload');
-  const [incomingCloudLink, setIncomingCloudLink] = useState('');
+  const [incomingAttachMode, setIncomingAttachMode] = useRegisterField<'upload' | 'link'>(internalIncoming, 'upload');
+  const [incomingCloudLink, setIncomingCloudLink] = useRegisterField(internalIncoming, '');
 
-  const [outgoingAttachMode, setOutgoingAttachMode] = useState<'upload' | 'link'>('upload');
-  const [outgoingCloudLink, setOutgoingCloudLink] = useState('');
+  const [outgoingAttachMode, setOutgoingAttachMode] = useRegisterField<'upload' | 'link'>(internalOutgoing, 'upload');
+  const [outgoingCloudLink, setOutgoingCloudLink] = useRegisterField(internalOutgoing, '');
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<Partial<Record<CreateTab, File | null>>>({});
+  const selectedFile = files[tab] ?? null;
+  const setSelectedFile = (file: File | null) => setFiles(current => ({ ...current, [tab]: file }));
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string>('');
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    setTab(defaultTab);
-    if (defaultTab === 'labor') {
+    setTab(initialTab);
+    if (initialTab === 'labor') {
       setContractType('labor');
       setContractCategory(DEFAULT_LABOR_CONTRACT_TYPES[0]);
       setContractDepartment('HR - Nhan su');
       setContractStorageLocation('');
-    } else if (defaultTab === 'contract') {
+    } else if (initialTab === 'contract') {
       setContractType('service');
       setContractCategory(DEFAULT_CONTRACT_TYPES[0]);
       setContractStorageLocation('');
     }
-    setSelectedFile(null);
+    setFiles({});
     setUploadProgress(0);
     setIsUploadingFile(false);
     setUploadError('');
     setUploadSuccess(false);
     // A reopened dialog creates a new document
     pendingCreates.current = {};
-  }, [defaultTab, isOpen]);
+  }, [initialTab, isOpen]);
 
-  // Load categories, partners and auto-generate next numbers
+  useEffect(() => {
+    setUploadProgress(0);
+    setUploadError('');
+    setUploadSuccess(false);
+  }, [tab]);
+
+  // Load category and directory options for the dialog
   useEffect(() => {
     if (!isOpen) return;
 
@@ -204,7 +232,7 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
       }
       if (cats) {
         setCategories(cats);
-        if (cats.agencies && cats.agencies.length > 0 && !incomingIssuer) {
+        if (!internalIncoming && cats.agencies && cats.agencies.length > 0 && !incomingIssuer) {
           setIncomingIssuer(cats.agencies[0]);
           setSelectedIncomingIssuer(cats.agencies[0]);
         }
@@ -213,21 +241,22 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         setPartners(pts);
       }
       if (docs && Array.isArray(docs)) {
-        setIncomingDocsList(docs.filter((d: any) => d.doc_type === 'incoming' || !d.doc_type || d.doc_type === 'decision'));
+        setDocuments(docs);
       }
     });
 
-    // Auto-fetch next incoming number
-    api.getNextDocNumber('incoming').then(res => {
-      setIncomingDocNumber(res.nextNumber);
-    }).catch(console.error);
-
-    // Auto-fetch next outgoing number
-    api.getNextDocNumber('outgoing', outgoingCategoryCode, outgoingDeptCode).then(res => {
-      setOutgoingDocNumber(res.nextNumber);
-    }).catch(console.error);
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || tab === 'labor' || tab === 'contract') return;
+    let active = true;
+    const incoming = tab === 'incoming' || tab === 'internal_incoming';
+    const setNumber = incoming ? setIncomingDocNumber : setOutgoingDocNumber;
+    api.getNextDocNumber(tab, outgoingCategoryCode, outgoingDeptCode).then(res => {
+      if (active) setNumber(current => current || res.nextNumber);
+    }).catch(console.error);
+    return () => { active = false; };
+  }, [isOpen, tab]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError('');
@@ -249,7 +278,7 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
   // Re-generate auto-numbers
   const regenerateIncomingNumber = async () => {
     try {
-      const res = await api.getNextDocNumber('incoming');
+      const res = await api.getNextDocNumber(incomingType);
       setIncomingDocNumber(res.nextNumber);
     } catch (err) {
       console.error(err);
@@ -258,7 +287,7 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
 
   const regenerateOutgoingNumber = async (catCode = outgoingCategoryCode, deptCode = outgoingDeptCode) => {
     try {
-      const res = await api.getNextDocNumber('outgoing', catCode, deptCode);
+      const res = await api.getNextDocNumber(outgoingType, catCode, deptCode);
       setOutgoingDocNumber(res.nextNumber);
     } catch (err) {
       console.error(err);
@@ -336,7 +365,7 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     const found = docTypes.find((t) => t.name === catName);
     const code = found && found.code ? found.code : 'CV';
     setOutgoingCategoryCode(code);
-    regenerateOutgoingNumber(code, outgoingDeptCode);
+    if (!internalOutgoing) regenerateOutgoingNumber(code, outgoingDeptCode);
   };
 
   // Outgoing Dept Change with code & numbering sync
@@ -346,7 +375,7 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     const found = depts.find((d) => d.name === deptName);
     const code = found && found.code ? found.code : 'HCNS';
     setOutgoingDeptCode(code);
-    regenerateOutgoingNumber(outgoingCategoryCode, code);
+    if (!internalOutgoing) regenerateOutgoingNumber(outgoingCategoryCode, code);
   };
 
   // Incoming Issuer selection handler
@@ -494,7 +523,7 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     const finalIssuer = (isCustomIncomingIssuer ? incomingIssuer : (incomingIssuer || selectedIncomingIssuer)).trim();
     const finalHandler = (isCustomIncomingHandler ? incomingHandler : (incomingHandler || selectedIncomingHandler)).trim();
 
-    if (!incomingDocNumber || !incomingTitle || !incomingIssueDate || !finalIssuer) {
+    if (!incomingDocNumber || !incomingTitle || !incomingIssueDate || !finalIssuer || (internalIncoming && !incomingDepartment)) {
       notify.error(t.requiredFieldsAlert);
       return;
     }
@@ -507,10 +536,11 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         document_number: incomingDocNumber,
         original_doc_number: incomingOrigNumber || null,
         title: incomingTitle,
-        doc_type: incomingCategory === 'Quyết định' ? 'decision' : 'incoming',
+        doc_type: internalIncoming ? incomingType : incomingCategory === 'Quyết định' ? 'decision' : 'incoming',
         doc_category: incomingCategory,
         issuer: finalIssuer || 'Cơ quan bên ngoài', // i18n-data
         department: incomingDepartment,
+        ...(internalIncoming && { signer: internalIncomingSigner.trim() || null }),
         handler: finalHandler,
         issue_date: incomingIssueDate,
         received_date: incomingReceiveDate,
@@ -532,14 +562,14 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         formData.append('file', selectedFile);
         setIsUploadingFile(true);
         setUploadProgress(10);
-        await createDocumentOnce('incoming', formData, (percent) => {
+        await createDocumentOnce(incomingType, formData, (percent) => {
           setUploadProgress(percent);
         });
       } else {
         if (incomingAttachMode === 'link' && incomingCloudLink.trim()) {
           docPayload.google_drive_url = incomingCloudLink.trim();
         }
-        await createDocumentOnce('incoming', docPayload);
+        await createDocumentOnce(incomingType, docPayload);
       }
 
       setUploadSuccess(true);
@@ -566,7 +596,7 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     const finalSigner = (isCustomOutgoingSigner ? outgoingSigner : (outgoingSigner || selectedOutgoingSigner)).trim();
     const finalLinkedDoc = (isCustomLinkedDoc ? outgoingLinkedDoc : (outgoingLinkedDoc || selectedLinkedDoc)).trim();
 
-    if (!outgoingDocNumber || !outgoingTitle || !outgoingIssueDate || !finalRecipient) {
+    if (!outgoingDocNumber || !outgoingTitle || !outgoingIssueDate || !finalRecipient || (internalOutgoing && !outgoingDepartment)) {
       notify.error(t.requiredFieldsAlert);
       return;
     }
@@ -578,9 +608,9 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
       const docPayload: Record<string, any> = {
         document_number: outgoingDocNumber,
         title: outgoingTitle,
-        doc_type: 'outgoing',
+        doc_type: outgoingType,
         doc_category: outgoingCategory,
-        issuer: 'SGII - Công ty Cổ phần', // i18n-data
+        issuer: internalOutgoing ? outgoingDepartment : 'SGII - Công ty Cổ phần', // i18n-data
         recipient: finalRecipient || 'Toàn công ty', // i18n-data
         signer: finalSigner,
         department: outgoingDepartment,
@@ -590,7 +620,9 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         urgency_level: outgoingUrgency,
         security_level: outgoingSecurity,
         linked_doc_number: finalLinkedDoc || null,
-        send_method: outgoingSendMethod,
+        ...(internalOutgoing
+          ? { due_date: internalOutgoingDueDate || null, directive: internalOutgoingDirective.trim() || null }
+          : { send_method: outgoingSendMethod }),
         status: outgoingStatus,
         storage_location: fullStorage,
         summary: outgoingTitle,
@@ -605,14 +637,14 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
         formData.append('file', selectedFile);
         setIsUploadingFile(true);
         setUploadProgress(10);
-        await createDocumentOnce('outgoing', formData, (percent) => {
+        await createDocumentOnce(outgoingType, formData, (percent) => {
           setUploadProgress(percent);
         });
       } else {
         if (outgoingAttachMode === 'link' && outgoingCloudLink.trim()) {
           docPayload.google_drive_url = outgoingCloudLink.trim();
         }
-        await createDocumentOnce('outgoing', docPayload);
+        await createDocumentOnce(outgoingType, docPayload);
       }
 
       setUploadSuccess(true);
@@ -728,6 +760,8 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     incomingOrigNumber,
     setIncomingOrigNumber,
     incomingTitle,
+    internalIncomingSigner,
+    setInternalIncomingSigner,
     setIncomingTitle,
     incomingCategory,
     setIncomingCategory,
@@ -792,6 +826,10 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     outgoingRecipient,
     setOutgoingRecipient,
     outgoingIssueDate,
+    internalOutgoingDueDate,
+    setInternalOutgoingDueDate,
+    internalOutgoingDirective,
+    setInternalOutgoingDirective,
     setOutgoingIssueDate,
     selectedLinkedDoc,
     setSelectedLinkedDoc,
@@ -812,7 +850,6 @@ export function useCreateForm({ isOpen, onClose, onCreated, defaultTab = 'contra
     outgoingStorageLocation,
     setOutgoingStorageLocation,
     incomingDocsList,
-    setIncomingDocsList,
     contractAttachMode,
     setContractAttachMode,
     contractCloudLink,

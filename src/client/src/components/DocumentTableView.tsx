@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { DocumentRecord } from '../../../server/types.ts';
+import { isInternalDocument, type DocumentRecord, type NumberedDocumentType } from '../../../server/types.ts';
+import { workflowKind } from '../../../server/utils/workflow.ts';
+import { matchesDocumentFilter } from '../utils/itemFilters.ts';
+import { documentTypeLabel } from '../i18n/documentTypeLabel.ts';
 import {
   Search,
   ArrowDownLeft,
@@ -18,7 +21,7 @@ import { normalizeVietnamese } from '../utils/text.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { documentDeadlineLabel, statusLabel, urgencyLabel, URGENCY_KEYS } from '../i18n/index.ts';
-import { exportToExcel } from '../utils/excelHelper.ts';
+import { documentExcelColumns, documentExcelFileName, exportToExcel } from '../utils/excelHelper.ts';
 import { ExcelManagerModal } from './ExcelManagerModal.tsx';
 import { api, type ImportCommitOptions } from '../services/api.ts';
 import { extractYear } from './ContractTableView.tsx';
@@ -30,7 +33,7 @@ interface DocumentTableViewProps {
   activeTab?: 'incoming' | 'outgoing' | 'internal' | 'search';
   onTabChange?: (tab: 'incoming' | 'outgoing' | 'internal' | 'search') => void;
   onSelectDocument: (doc: DocumentRecord) => void;
-  onOpenCreate: (defaultDocType?: 'incoming' | 'outgoing') => void;
+  onOpenCreate: (defaultDocType?: NumberedDocumentType) => void;
   onDeleteDocument: (doc: DocumentRecord) => void;
   onRefreshDocuments?: () => void;
 }
@@ -106,24 +109,10 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
       // Tab filter: Strictly isolate incoming, outgoing, and internal/decisions
       if (subTab === 'incoming' && d.doc_type !== 'incoming') return false;
       if (subTab === 'outgoing' && d.doc_type !== 'outgoing') return false;
-      if (subTab === 'internal' && d.doc_type !== 'internal' && d.doc_type !== 'decision') return false;
+      if (subTab === 'internal' && !isInternalDocument(d.doc_type)) return false;
 
       // Apply Left Sidebar / KPI Summary Bar sub-filters
-      if (currentFilter === 'docs_incoming_overdue') {
-        if (d.doc_type !== 'incoming' || d.deadline_status?.level !== 'overdue') return false;
-      } else if (currentFilter === 'docs_incoming_expiring') {
-        if (d.doc_type !== 'incoming' || !['urgent', 'warning'].includes(d.deadline_status?.level || '')) return false;
-      } else if (currentFilter === 'docs_incoming_processing') {
-        if (d.doc_type !== 'incoming' || d.status === 'Hoàn thành' || d.deadline_status?.level === 'overdue') return false;
-      } else if (currentFilter === 'docs_incoming_completed') {
-        if (d.doc_type !== 'incoming' || (d.status !== 'Hoàn thành' && !d.deadline_status?.level.startsWith('completed'))) return false;
-      } else if (currentFilter === 'docs_incoming_unassigned') {
-        if (d.doc_type !== 'incoming' || (d.handler && d.handler.trim() !== '')) return false;
-      } else if (currentFilter === 'docs_outgoing_sent') {
-        if (d.doc_type !== 'outgoing' || d.status === 'Dự thảo') return false;
-      } else if (currentFilter === 'docs_outgoing_signing') {
-        if (d.doc_type !== 'outgoing' || d.status !== 'Dự thảo') return false;
-      }
+      if (currentFilter && !matchesDocumentFilter(currentFilter, d)) return false;
 
       // Department filter
       if (filterDepartment !== 'all' && d.department !== filterDepartment) return false;
@@ -280,15 +269,15 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
       ];
       rows = filteredDocs.map((d, idx) => [
         String(idx + 1),
-        d.doc_type === 'outgoing' ? 'Đi' : d.doc_type === 'decision' ? 'Quyết định' : d.doc_type === 'internal' ? 'Nội bộ' : 'Đến',
+        documentTypeLabel(t, d.doc_type),
         d.document_number,
         d.original_doc_number || d.linked_doc_number || '',
         d.received_date || d.issue_date || '',
         d.doc_category || d.doc_type,
         `"${(d.title || '').replace(/"/g, '""')}"`,
-        d.doc_type === 'outgoing' ? (d.recipient || d.issuer || '') : (d.issuer || ''),
+        workflowKind(d.doc_type) === 'outgoing' ? (d.recipient || d.issuer || '') : (d.issuer || ''),
         d.department || '',
-        d.doc_type === 'outgoing' ? (d.signer || d.handler || '') : (d.handler || ''),
+        workflowKind(d.doc_type) === 'outgoing' ? (d.signer || d.handler || '') : (d.handler || ''),
         d.urgency_level || 'Thường',
         d.deadline_status?.label || d.status || '',
         d.storage_location || '',
@@ -316,27 +305,8 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
   const handleExportExcel = () => {
     exportToExcel(
       filteredDocs,
-      [
-        { header: 'ID (Không sửa nếu cập nhật)', key: 'id', width: 20 },
-        { header: 'Số hiệu văn bản', key: 'document_number', width: 18 },
-        { header: 'Số gốc / Ký hiệu', key: 'original_doc_number', width: 18 },
-        { header: 'Trích yếu nội dung', key: 'title', width: 35 },
-        { header: 'Loại VB', key: 'doc_type', width: 14 },
-        { header: 'Phân loại', key: 'doc_category', width: 14 },
-        { header: 'Cơ quan ban hành / Gửi', key: 'issuer', width: 25 },
-        { header: 'Nơi nhận', key: 'recipient', width: 25 },
-        { header: 'Người ký', key: 'signer', width: 18 },
-        { header: 'Bộ phận xử lý', key: 'department', width: 16 },
-        { header: 'Người xử lý', key: 'handler', width: 18 },
-        { header: 'Ngày ban hành', key: 'issue_date', width: 14 },
-        { header: 'Ngày đến', key: 'received_date', width: 14 },
-        { header: 'Hạn xử lý', key: 'due_date', width: 14 },
-        { header: 'Độ khẩn', key: 'urgency_level', width: 12 },
-        { header: 'Trạng thái', key: 'status', width: 16 },
-        { header: 'Ý kiến chỉ đạo', key: 'directive', width: 30 },
-        { header: 'Nơi lưu trữ', key: 'storage_location', width: 20 },
-      ],
-      `So_Quan_ly_Cong_van_${subTab}_${new Date().toISOString().substring(0, 10)}.xlsx`,
+      documentExcelColumns,
+      documentExcelFileName(subTab, currentFilter),
       'Documents'
     );
   };
@@ -410,9 +380,19 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
     [documents]
   );
   const internalTotal = useMemo(
-    () => documents.filter(d => d.doc_type === 'internal' || d.doc_type === 'decision').length,
+    () => documents.filter(d => isInternalDocument(d.doc_type)).length,
     [documents]
   );
+
+  const createType: NumberedDocumentType = subTab === 'internal'
+    ? (currentFilter === 'docs_internal_outgoing' ? 'internal_outgoing' : 'internal_incoming')
+    : subTab === 'outgoing' ? 'outgoing' : 'incoming';
+  const createLabels = {
+    incoming: t.createIncomingBtn,
+    outgoing: t.createOutgoingBtn,
+    internal_incoming: t.createInternalIncomingTitle,
+    internal_outgoing: t.createInternalOutgoingTitle,
+  };
 
   return (
     <div className="table-view-container">
@@ -482,10 +462,10 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
             <button
               className="btn btn-primary"
               style={{ fontSize: 13, padding: '7px 14px' }}
-              onClick={() => onOpenCreate(subTab === 'outgoing' ? 'outgoing' : 'incoming')}
+              onClick={() => onOpenCreate(createType)}
             >
               <Plus size={15} style={{ marginRight: 6 }} />
-              {subTab === 'outgoing' ? t.createOutgoingBtn : t.createIncomingBtn}
+              {createLabels[createType]}
             </button>
           )}
         </div>
@@ -898,6 +878,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
                 <th style={{ width: 180 }}>{t.docIssuerRecipientCol}</th>
                 <th style={{ width: 130 }}>{t.departmentCol}</th>
                 <th style={{ width: 130 }}>{t.docInChargeCol}</th>
+                <th style={{ width: 100 }}>{t.dueDateLabel}</th>
                 <th style={{ width: 90 }}>{t.docUrgencyCol}</th>
                 <th style={{ width: 130 }}>{t.docStatusCol}</th>
                 <th style={{ width: 110 }}>{t.docStorageLocationCol}</th>
@@ -907,7 +888,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
             <tbody>
               {filteredDocs.length === 0 ? (
                 <tr>
-                  <td colSpan={14} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+                  <td colSpan={15} style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
                     <FileText size={32} style={{ marginBottom: 8, opacity: 0.5 }} />
                     <div>
                       {subTab === 'internal'
@@ -918,9 +899,9 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
                 </tr>
               ) : (
                 filteredDocs.map((doc, index) => {
-                  const isOutgoing = doc.doc_type === 'outgoing';
+                  const isOutgoing = workflowKind(doc.doc_type) === 'outgoing';
                   const isDecision = doc.doc_type === 'decision';
-                  const isInternal = doc.doc_type === 'internal';
+                  const isInternal = isInternalDocument(doc.doc_type);
 
                   return (
                     <tr
@@ -936,7 +917,11 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
 
                       {/* 2. Phân loại */}
                       <td style={{ textAlign: 'center' }}>
-                        {isOutgoing ? (
+                        {isInternal && !isDecision ? (
+                          <span className="status-badge success" style={{ fontSize: 11 }}>
+                            {documentTypeLabel(t, doc.doc_type)}
+                          </span>
+                        ) : isOutgoing ? (
                           <span className="status-badge blue" style={{ fontSize: 11 }}>
                             {t.badgeOutgoing}
                           </span>
@@ -944,13 +929,9 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
                           <span className="status-badge warning" style={{ fontSize: 11 }}>
                             {t.badgeDecision}
                           </span>
-                        ) : isInternal ? (
-                          <span className="status-badge success" style={{ fontSize: 11 }}>
-                            {t.badgeInternal}
-                          </span>
                         ) : (
                           <span className="status-badge green" style={{ fontSize: 11 }}>
-                            {t.badgeIncoming}
+                            {doc.doc_type === 'incoming' ? t.badgeIncoming : documentTypeLabel(t, doc.doc_type)}
                           </span>
                         )}
                       </td>
@@ -981,7 +962,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
                       {/* 6. Loại VB */}
                       <td>
                         <span className="type-tag" style={{ fontSize: 11 }}>
-                          {doc.doc_category || doc.doc_type}
+                          {doc.doc_category || documentTypeLabel(t, doc.doc_type)}
                         </span>
                       </td>
 
@@ -1009,6 +990,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
                       <td style={{ fontSize: 12, color: 'var(--text-primary)' }}>
                         {isOutgoing ? (doc.signer || doc.handler || '—') : (doc.handler || doc.signer || '—')}
                       </td>
+                      <td style={{ fontSize: 12 }}>{renderDueDate(doc)}</td>
 
                       {/* 11. Độ khẩn */}
                       <td style={{ fontSize: 12 }}>

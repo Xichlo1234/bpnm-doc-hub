@@ -167,7 +167,6 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
     outgoingStorageLocation,
     setOutgoingStorageLocation,
     incomingDocsList,
-    setIncomingDocsList,
     contractAttachMode,
     setContractAttachMode,
     contractCloudLink,
@@ -224,6 +223,7 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
     onClose,
     onCreated,
   } = f;
+  const internal = tab === 'internal_outgoing';
   return (
     <form id="outgoing-form" onSubmit={handleOutgoingSubmit}>
       <div className="form-row">
@@ -283,12 +283,18 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
 
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">{tf('draftingDeptCountLabel', { count: departmentsList.length })}</label>
+          <label className="form-label" htmlFor="create-outgoing-sender">
+            {internal ? t.internalSenderDepartment : tf('draftingDeptCountLabel', { count: departmentsList.length })}
+            {internal && <span style={{ color: '#EF4444' }}> *</span>}
+          </label>
           <select
+            id="create-outgoing-sender"
             className="form-select"
+            required={internal}
             value={outgoingDepartment}
             onChange={e => handleOutgoingDepartmentChange(e.target.value)}
           >
+            {internal && <option value="">{t.selectDepartment}</option>}
             {departmentsList.map((d: any) => (
               <option key={d.code || d.name} value={d.name}>
                 {seedLabel(language, d.name)} {d.code ? `(${d.code})` : ''}
@@ -298,46 +304,54 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
         </div>
 
         <div className="form-group">
-          <label className="form-label">
-            {t.docRecipientCol} <span style={{ color: '#EF4444' }}>*</span>
+          <label className="form-label" htmlFor="create-outgoing-recipient">
+            {internal ? t.internalRecipientDepartment : t.docRecipientCol} <span style={{ color: '#EF4444' }}>*</span>
           </label>
           <select
+            id="create-outgoing-recipient"
             className="form-select"
+            required={internal}
             value={selectedOutgoingRecipient}
             onChange={e => handleOutgoingRecipientChange(e.target.value)}
           >
             <option value="">{t.selectPlaceholder}</option>
-            <optgroup label={t.internalCompanyGroup}>
-              {DEFAULT_RECIPIENTS.map((r) => (
-                <option key={r} value={r}>
-                  {seedLabel(language, r)}
-                </option>
-              ))}
-              {departmentsList.map((d: any) => (
-                <option key={`out-dept-${d.code || d.name}`} value={d.name}>
-                  {seedLabel(language, d.name)} {d.code ? `(${d.code})` : ''}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label={t.stateAgenciesGroup}>
-              {agenciesList.map((a: string) => (
-                <option key={`out-agency-${a}`} value={a}>
-                  {seedLabel(language, a)}
-                </option>
-              ))}
-            </optgroup>
-            {partners.length > 0 && (
-              <optgroup label={t.partnersAndCustomersGroup}>
-                {partners.slice(0, 15).map((p: any) => (
-                  <option key={`out-partner-${p.id}`} value={p.name_vn}>
-                    {p.name_vn}
-                  </option>
-                ))}
-              </optgroup>
+            {internal ? (
+              departmentsList.map(d => <option key={d.name} value={d.name}>{seedLabel(language, d.name)}</option>)
+            ) : (
+              <>
+                <optgroup label={t.internalCompanyGroup}>
+                  {DEFAULT_RECIPIENTS.map((r) => (
+                    <option key={r} value={r}>
+                      {seedLabel(language, r)}
+                    </option>
+                  ))}
+                  {departmentsList.map((d: any) => (
+                    <option key={`out-dept-${d.code || d.name}`} value={d.name}>
+                      {seedLabel(language, d.name)} {d.code ? `(${d.code})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label={t.stateAgenciesGroup}>
+                  {agenciesList.map((a: string) => (
+                    <option key={`out-agency-${a}`} value={a}>
+                      {seedLabel(language, a)}
+                    </option>
+                  ))}
+                </optgroup>
+                {partners.length > 0 && (
+                  <optgroup label={t.partnersAndCustomersGroup}>
+                    {partners.slice(0, 15).map((p: any) => (
+                      <option key={`out-partner-${p.id}`} value={p.name_vn}>
+                        {p.name_vn}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <option value="__custom__">{t.enterOtherRecipient}</option>
+              </>
             )}
-            <option value="__custom__">{t.enterOtherRecipient}</option>
           </select>
-          {isCustomOutgoingRecipient && (
+          {!internal && isCustomOutgoingRecipient && (
             <input
               type="text"
               required
@@ -422,20 +436,28 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
             onChange={e => setOutgoingIssueDate(e.target.value)}
           />
         </div>
-        <div className="form-group">
-          <label className="form-label">{t.sendMethodLabel}</label>
-          <select
-            className="form-select"
-            value={outgoingSendMethod}
-            onChange={e => setOutgoingSendMethod(e.target.value)}
-          >
-            {sendMethodsList.map((m: string) => (
-              <option key={m} value={m}>
-                {seedLabel(language, m)}
-              </option>
-            ))}
-          </select>
-        </div>
+        {internal ? (
+          <div className="form-group">
+            <label className="form-label" htmlFor="internal-outgoing-due">{t.dueDateLabel}</label>
+            <input id="internal-outgoing-due" type="date" className="form-input" value={f.internalOutgoingDueDate}
+              onChange={e => f.setInternalOutgoingDueDate(e.target.value)} />
+          </div>
+        ) : (
+          <div className="form-group">
+            <label className="form-label">{t.sendMethodLabel}</label>
+            <select
+              className="form-select"
+              value={outgoingSendMethod}
+              onChange={e => setOutgoingSendMethod(e.target.value)}
+            >
+              {sendMethodsList.map((m: string) => (
+                <option key={m} value={m}>
+                  {seedLabel(language, m)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="form-group">
           <label className="form-label">{t.issueStatusLabel}</label>
           <select
@@ -500,10 +522,17 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
       </div>
 
       {/* Linked Doc & Storage Location */}
+      {internal && (
+        <div className="form-group">
+          <label className="form-label" htmlFor="internal-outgoing-directive">{t.directiveLabel}</label>
+          <textarea id="internal-outgoing-directive" className="form-textarea" rows={2}
+            value={f.internalOutgoingDirective} onChange={e => f.setInternalOutgoingDirective(e.target.value)} />
+        </div>
+      )}
       <div className="form-row">
         <div className="form-group">
           <label className="form-label" style={{ color: '#2563EB' }}>
-            {t.replyToIncomingLabel}
+            {internal ? t.replyToInternalIncoming : t.replyToIncomingLabel}
           </label>
           <select
             className="form-select"
@@ -516,9 +545,9 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
                 [{doc.document_number}] {doc.title?.length > 40 ? doc.title.slice(0, 40) + '...' : doc.title}
               </option>
             ))}
-            <option value="__custom__">{t.enterOtherDocNumber}</option>
+            {!internal && <option value="__custom__">{t.enterOtherDocNumber}</option>}
           </select>
-          {isCustomLinkedDoc && (
+          {!internal && isCustomLinkedDoc && (
             <input
               type="text"
               className="form-input mono-code"
