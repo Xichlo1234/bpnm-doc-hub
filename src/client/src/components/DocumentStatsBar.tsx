@@ -94,9 +94,17 @@ export const DocumentStatsBar: React.FC<DocumentStatsBarProps> = ({
     },
   ];
 
+  const visibleCards = cards.filter(card => {
+    if (currentFilter === 'docs_internal' || currentFilter === 'docs_decision') {
+      return card.id.startsWith('docs_internal_');
+    }
+    if (currentFilter.startsWith('docs_internal_')) return card.id === currentFilter;
+    return true;
+  });
+
   return (
     <div className="contract-stats-bar document-stats-bar">
-      {cards.map(c => (
+      {visibleCards.map(c => (
         <div
           key={c.id}
           className={`stat-card ${c.active ? 'active-filter' : ''}`}

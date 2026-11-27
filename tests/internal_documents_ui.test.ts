@@ -2,6 +2,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { CreateModal } from '../src/client/src/components/CreateModal.tsx';
+import { DocumentStatsBar } from '../src/client/src/components/DocumentStatsBar.tsx';
+import { DocumentTableView } from '../src/client/src/components/DocumentTableView.tsx';
 import { NAV_GROUPS, type NavFilter } from '../src/client/src/components/Sidebar.tsx';
 import { documentTypeLabel } from '../src/client/src/i18n/documentTypeLabel.ts';
 import { LANGUAGES, translate, translations, type Language, type TranslationKey, type MessageParams } from '../src/client/src/i18n/index.ts';
@@ -80,6 +82,45 @@ describe('internal document forms and navigation', () => {
     expect(laborOnly).toContain(laborHeading);
     expect(laborOnly).not.toContain(translations.vi.internalIncomingTab);
     expect(laborOnly).not.toContain(translations.vi.internalOutgoingTab);
+  });
+
+  it.each([
+    ['/documents/internal', 'docs_internal', ['internalIncomingTab', 'internalOutgoingTab'], [12, 7]],
+    ['/documents/internal/incoming', 'docs_internal_incoming', ['internalIncomingTab'], [12]],
+    ['/documents/internal/outgoing', 'docs_internal_outgoing', ['internalOutgoingTab'], [7]],
+  ] as const)('shows the create actions and counts for %s', (url, filter, labelKeys, counts) => {
+    language = 'vi';
+    user = { role: 'admin', can_access_labor_contracts: true };
+    const { currentFilter, viewMode } = parseCurrentLocation(url);
+    expect(viewMode).toBe('doc_table');
+    expect(currentFilter).toBe(filter);
+    expect(buildRouteUrl({ viewMode, currentFilter })).toBe(url);
+    const sidebar = NAV_GROUPS.find(group => group.id === 'internal')!;
+    expect(sidebar.items.some(item => item.filter === currentFilter)).toBe(true);
+
+    const table = renderToStaticMarkup(createElement(DocumentTableView, {
+      activeTab: 'internal', currentFilter, documents: [],
+      onOpenCreate: vi.fn(), onDeleteDocument: vi.fn(), onSelectDocument: vi.fn(),
+    }));
+    const expectedLabels = labelKeys.map(key => translations.vi[key]);
+    const createButtons = [...table.matchAll(/<button\b[^>]*>(.*?)<\/button>/gs)]
+      .map(match => match[1])
+      .filter(content => content.includes('lucide-plus'))
+      .map(content => content.replace(/<[^>]+>/g, ''));
+    expect(createButtons).toEqual(expectedLabels);
+
+    const stats = renderToStaticMarkup(createElement(DocumentStatsBar, {
+      currentFilter, onSelectFilter: vi.fn(), stats: { totalInternalIncoming: 12, totalInternalOutgoing: 7 },
+    }));
+    expect([...stats.matchAll(/class="stat-card-label">([^<]+)</g)].map(match => match[1])).toEqual(expectedLabels);
+    expect([...stats.matchAll(/class="stat-card-value [^"]*">(\d+)</g)].map(match => Number(match[1]))).toEqual(counts);
+  });
+
+  it('retains the eight overview cards outside the internal register', () => {
+    const stats = renderToStaticMarkup(createElement(DocumentStatsBar, {
+      currentFilter: 'docs_incoming', onSelectFilter: vi.fn(), stats: {},
+    }));
+    expect(stats.match(/class="stat-card-label"/g)).toHaveLength(8);
   });
 
   it('keeps legacy and directional registers reachable in combined, exact and archived lists', () => {
