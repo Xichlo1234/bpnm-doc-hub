@@ -343,3 +343,13 @@ Base PR #8: `964e1df`. Nhánh `codex/pr09-stabilization` tiếp nối các commi
 | E7 | Bổ sung runbook D1 fence, R2 Bucket Locks và cutover sang binding riêng. | `docs/ops/DEPLOY_RUNBOOK.md`, `scripts/cutover-fence.mjs` · SQLite và Wrangler local từ chối ghi nguồn, phục hồi trên đích và áp 0004–0011. Kiểm chứng live D1/R2 vẫn thuộc staging. |
 
 **Xác minh.** 368 bài chạy đạt trên 30 tệp, gồm 11 PR09. Smoke local 72/72 bước, gồm luồng ghi trên dữ liệu giả. TypeScript server/API client đạt. npm audit runtime báo 0. Wrangler dry-run Worker với asset mẫu đạt. Hai suite dùng SheetJS, typecheck toàn bộ, build SPA và dry-run với asset build chưa đạt vì CDN SheetJS 0.20.3 trả HTTP 403. Staging D1/R2 và UAT trình duyệt chưa được kiểm chứng. Xem [checklist](ops/RELEASE_CHECKLIST.md).
+
+## Phát hành Production · 26–27/11/2026
+
+`document-manage.tungcv.vn` (Worker `quan-ly-cong-van`, D1 `document-manager-db`, R2 `document-manager-files`) đang chạy bản staging đã duyệt, **Version `bb43c355`**, deploy thành version `8f2264c8`. D1 đã áp migration 0001→0011.
+
+Theo yêu cầu chủ dự án, dữ liệu nghiệp vụ và tệp R2 đã được sao lưu rồi xoá; giữ lại 3 tài khoản. Smoke chỉ đọc đạt 13/13.
+
+Bản chạy là **bản build tải từ Cloudflare** (`Xichlo1234/bpnm-doc-hub-staging-src@2bbe9dd`). Mã nguồn gốc của phần idempotency chưa có trên GitHub.
+
+Chi tiết từng bước, sự cố, cách quay lại và việc còn lại: [ops/PRODUCTION_RELEASE_2026-11-27.md](ops/PRODUCTION_RELEASE_2026-11-27.md).
