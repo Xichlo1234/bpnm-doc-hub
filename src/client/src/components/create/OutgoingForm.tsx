@@ -531,7 +531,7 @@ export const OutgoingForm: React.FC<{ f: CreateFormState }> = ({ f }) => {
       )}
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label" style={{ color: '#2563EB' }}>
+          <label className="form-label" style={{ color: 'var(--accent-primary)' }}>
             {internal ? t.replyToInternalIncoming : t.replyToIncomingLabel}
           </label>
           <select

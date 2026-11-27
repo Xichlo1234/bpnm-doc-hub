@@ -278,8 +278,8 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                background: '#107C41',
-                color: '#fff',
+                background: 'var(--accent-primary)',
+                color: 'var(--text-inverted)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -329,8 +329,8 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 gap: 6,
                 padding: '6px 12px',
                 borderRadius: 6,
-                background: '#107C41',
-                color: '#ffffff',
+                background: 'var(--accent-primary)',
+                color: 'var(--text-inverted)',
                 border: 'none',
                 fontWeight: 600,
                 fontSize: 12,
@@ -406,9 +406,9 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               style={{
                 padding: '12px 16px',
                 borderRadius: 8,
-                background: 'rgba(34, 197, 94, 0.15)',
-                border: '1px solid #22c55e',
-                color: '#16a34a',
+                background: 'rgba(159, 174, 74, 0.15)',
+                border: '1px solid var(--success-dot)',
+                color: 'var(--success-text)',
                 fontSize: 13,
                 fontWeight: 600,
                 display: 'flex',
@@ -484,10 +484,10 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 <div style={{ padding: '6px 12px', borderRadius: 6, background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>
                   {t.previewTotal} <strong>{stats.total}</strong> {t.rowsUnit}
                 </div>
-                <div style={{ padding: '6px 12px', borderRadius: 6, background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a' }}>
+                <div style={{ padding: '6px 12px', borderRadius: 6, background: 'rgba(159, 174, 74, 0.15)', color: 'var(--success-text)' }}>
                   {t.previewNew} <strong>{stats.newCount}</strong>
                 </div>
-                <div style={{ padding: '6px 12px', borderRadius: 6, background: 'rgba(59, 130, 246, 0.15)', color: '#2563eb' }}>
+                <div style={{ padding: '6px 12px', borderRadius: 6, background: 'rgba(252, 207, 77, 0.15)', color: 'var(--accent-primary)' }}>
                   {t.previewUpdate} <strong>{stats.updateCount}</strong>
                 </div>
               </div>
@@ -527,8 +527,8 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                               borderRadius: 4,
                               fontSize: 11,
                               fontWeight: 600,
-                              background: r.id ? 'rgba(59, 130, 246, 0.15)' : 'rgba(34, 197, 94, 0.15)',
-                              color: r.id ? '#2563eb' : '#16a34a',
+                              background: r.id ? 'rgba(252, 207, 77, 0.15)' : 'rgba(159, 174, 74, 0.15)',
+                              color: r.id ? 'var(--accent-primary)' : 'var(--success-text)',
                             }}
                           >
                             {r.id ? t.actionUpdate : t.actionAddNew}
@@ -588,8 +588,8 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               padding: '8px 20px',
               borderRadius: 6,
               border: 'none',
-              background: '#107C41',
-              color: '#ffffff',
+              background: 'var(--accent-primary)',
+              color: 'var(--text-inverted)',
               cursor: isLoading || previewRows.length === 0 || !serverPreview ? 'not-allowed' : 'pointer',
               fontWeight: 600,
               fontSize: 13,

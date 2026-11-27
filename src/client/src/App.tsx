@@ -526,6 +526,7 @@ const AppContent: React.FC = () => {
                 else if (tab === 'internal') setCurrentFilter('docs_internal');
                 else setCurrentFilter('docs_all');
               }}
+              onSelectFilter={filter => setCurrentFilter(filter)}
               onSelectDocument={doc => {
                 setTableSelectedDocument(doc);
                 setSelectedItem({ kind: 'document', data: doc });

@@ -321,8 +321,8 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                           gap: 4,
                           padding: '2px 8px',
                           borderRadius: 4,
-                          background: '#eff6ff',
-                          color: '#1d4ed8',
+                          background: 'var(--accent-light)',
+                          color: 'var(--accent-primary)',
                           fontSize: 11,
                           fontWeight: 600,
                           border: '1px solid #bfdbfe',
@@ -388,7 +388,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                       onClick={() => setIsDriveModalOpen(true)}
                       style={
                         hasDriveLink
-                          ? { color: '#1d4ed8', borderColor: '#bfdbfe', background: '#eff6ff' }
+                          ? { color: 'var(--accent-primary)', borderColor: 'rgba(252, 207, 77, 0.45)', background: 'var(--accent-light)' }
                           : undefined
                       }
                       title="Google Drive"
@@ -552,7 +552,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="info-cell-value"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#1d4ed8', textDecoration: 'none' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent-primary)', textDecoration: 'none' }}
                       >
                         <GoogleDriveIcon size={14} />
                         <span style={{ textDecoration: 'underline' }}>{c.google_drive_url}</span>
@@ -628,8 +628,8 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                           gap: 4,
                           padding: '2px 8px',
                           borderRadius: 4,
-                          background: '#eff6ff',
-                          color: '#1d4ed8',
+                          background: 'var(--accent-light)',
+                          color: 'var(--accent-primary)',
                           fontSize: 11,
                           fontWeight: 600,
                           border: '1px solid #bfdbfe',
@@ -684,7 +684,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                       onClick={() => setIsDriveModalOpen(true)}
                       style={
                         hasDriveLink
-                          ? { color: '#1d4ed8', borderColor: '#bfdbfe', background: '#eff6ff' }
+                          ? { color: 'var(--accent-primary)', borderColor: 'rgba(252, 207, 77, 0.45)', background: 'var(--accent-light)' }
                           : undefined
                       }
                       title={t.driveButtonTooltip}
@@ -847,7 +847,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                   {d.original_doc_number && (
                     <div className="info-cell">
                       <span className="info-cell-label">{t.originalNumberLabel}</span>
-                      <span className="info-cell-value" style={{ color: '#2563EB', fontWeight: 700 }}>
+                      <span className="info-cell-value" style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
                         {d.original_doc_number}
                       </span>
                     </div>
@@ -882,7 +882,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                   {d.linked_doc_number && (
                     <div className="info-cell">
                       <span className="info-cell-label">{t.linkedDocumentLabel}</span>
-                      <span className="info-cell-value" style={{ color: '#6366F1', fontWeight: 600 }}>
+                      <span className="info-cell-value" style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
                         {d.linked_doc_number}
                       </span>
                     </div>
@@ -913,7 +913,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="info-cell-value"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#1d4ed8', textDecoration: 'none' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent-primary)', textDecoration: 'none' }}
                       >
                         <GoogleDriveIcon size={14} />
                         <span style={{ textDecoration: 'underline' }}>{d.google_drive_url}</span>
@@ -978,7 +978,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                     width: 36,
                     height: 36,
                     borderRadius: 8,
-                    background: '#eff6ff',
+                    background: 'var(--accent-light)',
                     border: '1px solid #bfdbfe',
                     display: 'flex',
                     alignItems: 'center',
@@ -1077,7 +1077,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
               {/* Step 2: Paste Google Drive Share Link */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <LinkIcon size={14} color="#2563EB" />
+                  <LinkIcon size={14} color="var(--accent-primary)" />
                   <span>{t.driveStep2}</span>
                 </label>
                 <input
@@ -1110,7 +1110,7 @@ export const DetailPane: React.FC<DetailPaneProps> = ({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-ghost"
-                    style={{ height: 28, fontSize: 11, padding: '0 10px', textDecoration: 'none', color: '#2563EB' }}
+                    style={{ height: 28, fontSize: 11, padding: '0 10px', textDecoration: 'none', color: 'var(--accent-primary)' }}
                   >
                     <ExternalLink size={12} style={{ marginRight: 4 }} />
                     {t.openCurrentLink}

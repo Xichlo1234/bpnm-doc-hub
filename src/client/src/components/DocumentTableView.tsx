@@ -16,6 +16,8 @@ import {
   AlertCircle,
   ExternalLink,
   Upload,
+  Folder,
+  FolderOpen,
 } from 'lucide-react';
 import { normalizeVietnamese } from '../utils/text.ts';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -32,6 +34,8 @@ interface DocumentTableViewProps {
   currentFilter?: NavFilter;
   activeTab?: 'incoming' | 'outgoing' | 'internal' | 'search';
   onTabChange?: (tab: 'incoming' | 'outgoing' | 'internal' | 'search') => void;
+  /** Opens a folder inside the internal register (all / incoming / outgoing). */
+  onSelectFilter?: (filter: NavFilter) => void;
   onSelectDocument: (doc: DocumentRecord) => void;
   onOpenCreate: (defaultDocType?: NumberedDocumentType) => void;
   onDeleteDocument: (doc: DocumentRecord) => void;
@@ -43,6 +47,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
   currentFilter,
   activeTab = 'incoming',
   onTabChange,
+  onSelectFilter,
   onSelectDocument,
   onOpenCreate,
   onDeleteDocument,
@@ -334,7 +339,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
       return <span style={{ color: '#F43F5E', fontWeight: 600 }}>{urgencyLabel(t, level)}</span>;
     }
     if (level === 'Khẩn') {
-      return <span style={{ color: '#EA580C', fontWeight: 600 }}>{urgencyLabel(t, level)}</span>;
+      return <span style={{ color: 'var(--warning-dot)', fontWeight: 600 }}>{urgencyLabel(t, level)}</span>;
     }
     return <span style={{ color: 'var(--text-secondary)' }}>{urgencyLabel(t, level) || t.urgencyNormal}</span>;
   };
@@ -354,7 +359,7 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
     return (
       <span
         className="mono-code"
-        style={{ color: '#2563EB', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+        style={{ color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: 3 }}
         title={t.linkedDocumentLabel}
       >
         {linked} <ExternalLink size={10} />
@@ -383,6 +388,17 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
     () => documents.filter(d => isInternalDocument(d.doc_type)).length,
     [documents]
   );
+
+  const internalIncomingTotal = useMemo(
+    () => documents.filter(d => d.doc_type === 'internal_incoming').length,
+    [documents]
+  );
+  const internalOutgoingTotal = useMemo(
+    () => documents.filter(d => d.doc_type === 'internal_outgoing').length,
+    [documents]
+  );
+  const internalFolder: 'all' | 'incoming' | 'outgoing' =
+    currentFilter === 'docs_internal_incoming' ? 'incoming' : currentFilter === 'docs_internal_outgoing' ? 'outgoing' : 'all';
 
   const createType: NumberedDocumentType = subTab === 'internal'
     ? (currentFilter === 'docs_internal_outgoing' ? 'internal_outgoing' : 'internal_incoming')
@@ -442,14 +458,14 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
             onClick={handleExportExcel}
             title={t.exportDocsTooltip}
           >
-            <FileSpreadsheet size={15} style={{ marginRight: 6 }} color="#107C41" />
+            <FileSpreadsheet size={15} style={{ marginRight: 6 }} />
             {t.exportExcel} ({filteredDocs.length})
           </button>
 
           {isAdmin && (
             <button
-              className="btn btn-outline"
-              style={{ fontSize: 13, padding: '7px 12px', background: '#107C41', color: '#ffffff', border: 'none' }}
+              className="btn btn-secondary"
+              style={{ fontSize: 13, padding: '7px 12px' }}
               onClick={() => setIsExcelModalOpen(true)}
               title={t.importDocsTooltip}
             >
@@ -458,7 +474,28 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
             </button>
           )}
 
-          {isAdmin && (
+          {isAdmin && subTab === 'internal' && (
+            <>
+              <button
+                className="btn btn-primary"
+                style={{ fontSize: 13, padding: '7px 14px' }}
+                onClick={() => onOpenCreate('internal_incoming')}
+              >
+                <Plus size={15} style={{ marginRight: 6 }} />
+                {t.internalIncomingTab}
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ fontSize: 13, padding: '7px 14px' }}
+                onClick={() => onOpenCreate('internal_outgoing')}
+              >
+                <Plus size={15} style={{ marginRight: 6 }} />
+                {t.internalOutgoingTab}
+              </button>
+            </>
+          )}
+
+          {isAdmin && subTab !== 'internal' && (
             <button
               className="btn btn-primary"
               style={{ fontSize: 13, padding: '7px 14px' }}
@@ -470,6 +507,33 @@ export const DocumentTableView: React.FC<DocumentTableViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Internal register: folders for all / incoming / outgoing */}
+      {subTab === 'internal' && (
+        <div className="register-folders" role="tablist" aria-label={t.tabInternalDocs}>
+          {([
+            { key: 'all', filter: 'docs_internal', label: t.internalFolderAll, count: internalTotal },
+            { key: 'incoming', filter: 'docs_internal_incoming', label: t.internalIncomingTab, count: internalIncomingTotal },
+            { key: 'outgoing', filter: 'docs_internal_outgoing', label: t.internalOutgoingTab, count: internalOutgoingTotal },
+          ] as const).map(folder => {
+            const open = internalFolder === folder.key;
+            return (
+              <button
+                key={folder.key}
+                type="button"
+                role="tab"
+                aria-selected={open}
+                className={`register-folder${open ? ' open' : ''}`}
+                onClick={() => onSelectFilter?.(folder.filter)}
+              >
+                {open ? <FolderOpen size={18} /> : <Folder size={18} />}
+                <span>{folder.label}</span>
+                <span className="register-folder-count">{folder.count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="table-filter-bar">
