@@ -3,6 +3,7 @@ import type { Translations } from './vi.ts';
 export const km: Translations = {
   // Header & Brand (ភាសាខ្មែរ)
   brandTitle: 'BPNM Doc Hub',
+  tabTitle: 'BPMN',
   brandSubtitle: 'ប្រព័ន្ធគ្រប់គ្រងឯកសារ និងកិច្ចសន្យាអេឡិចត្រូនិច',
   companyFullName: 'ក្រុមហ៊ុនវិនិយោគអន្តរជាតិ សំបូរ ហ្គោល - SGII',
   searchPlaceholder: 'ស្វែងរកឆ្លាតវៃ (កិច្ចសន្យា, លិខិតចូល, លិខិតចេញ, បទបញ្ជា...)...',

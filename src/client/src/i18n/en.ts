@@ -3,6 +3,7 @@ import type { Translations } from './vi.ts';
 export const en: Translations = {
   // Header & Brand
   brandTitle: 'BPNM Doc Hub',
+  tabTitle: 'BPMN',
   brandSubtitle: 'E-Document & Registry System',
   companyFullName: 'Sambo Gold International Investment JSC - SGII',
   searchPlaceholder: 'Smart full-text search (Contracts, In/Out Docs, Directives...)...',

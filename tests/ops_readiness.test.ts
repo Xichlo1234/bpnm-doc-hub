@@ -15,7 +15,8 @@ function apiRoutes(): Array<{ method: string; path: string }> {
     .filter((r) => (seen.has(`${r.method} ${r.path}`) ? false : (seen.add(`${r.method} ${r.path}`), true)));
 }
 
-const PUBLIC = new Set(['GET /api/health', 'POST /api/auth/login', 'POST /api/auth/logout']);
+// /api/branding returns only the organisation's display name from Worker vars (no database, no records).
+const PUBLIC = new Set(['GET /api/health', 'GET /api/branding', 'POST /api/auth/login', 'POST /api/auth/logout']);
 // Routes any signed-in user may call to change their own state
 const SELF_SERVICE = new Set(['POST /api/auth/change-password', 'PATCH /api/notifications/:id/read', 'POST /api/notifications/read-all']);
 

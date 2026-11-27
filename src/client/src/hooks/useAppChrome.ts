@@ -56,6 +56,6 @@ export function useDocumentTitle(
       const number = selectedItem.kind === 'contract' ? selectedItem.data.contract_number : selectedItem.data.document_number;
       label = `${number} - ${selectedItem.data.title}`;
     }
-    document.title = `BPMN | ${label}`;
+    document.title = `${t.tabTitle} | ${label}`;
   }, [viewMode, selectedItem, tableSelectedContract, tableSelectedDocument, t]);
 }
