@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { pwaShell } from './scripts/pwa-shell';
+import { androidAssets } from './scripts/android/assets';
 import type { IncomingMessage, ServerResponse } from 'http';
 import path from 'path';
 
@@ -8,6 +9,7 @@ export default defineConfig({
   plugins: [
     react(),
     pwaShell(),
+    androidAssets(),
     {
       name: 'hono-dev-api',
       configureServer(server) {

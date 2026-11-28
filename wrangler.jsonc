@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bpnm-doc-hub",
-  "main": "src/server/index.ts",
+  "main": "src/server/worker.ts",
   "compatibility_date": "2024-12-30",
   "compatibility_flags": ["nodejs_compat"],
   "account_id": "cc8e2a546317d0e17f696b246a8f69b9",
@@ -15,11 +15,13 @@
   // maintenance step of docs/ops/DEPLOY_RUNBOOK.md deploys the same commit with
   // `--var MAINTENANCE_MODE:1` (routes, bindings, assets and secrets unchanged).
   "vars": {
-    "MAINTENANCE_MODE": "0"
+    "MAINTENANCE_MODE": "0",
+    "ANDROID_TENANT": "bpnm"
   },
   "assets": {
     "directory": "dist/client",
     "binding": "ASSETS",
+    "run_worker_first": true,
     "not_found_handling": "single-page-application"
   },
   "d1_databases": [
@@ -52,8 +54,15 @@
         }
       ],
       // Display name of this organisation (header and browser tab); BPNM uses the built-in name.
+      "assets": {
+        "directory": "dist/client-document-manage",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
+      },
       "vars": {
         "MAINTENANCE_MODE": "0",
+        "ANDROID_TENANT": "document-manage",
         "APP_TITLE": "SGII Doc Hub",
         "APP_TAB_TITLE": "SGII"
       },

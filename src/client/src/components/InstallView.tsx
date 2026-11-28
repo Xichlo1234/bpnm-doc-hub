@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore } from 'react';
+import { AndroidDownload } from './AndroidDownload';
 import { QRCodeSVG } from 'qrcode.react';
 import { Compass, Share, SquarePlus, Smartphone, Download } from 'lucide-react';
 import { guide as g } from '../i18n/guide.vi';
@@ -29,6 +30,7 @@ export function InstallView({ publicPage = false }: { publicPage?: boolean }) {
         {installed ? (
           <section className="guide-card">
             <h2>{g.installed}</h2>
+            {!ios && <AndroidDownload />}
           </section>
         ) : (
           <>
@@ -84,6 +86,7 @@ export function InstallView({ publicPage = false }: { publicPage?: boolean }) {
                 ) : (
                   <p>{g.androidHint}</p>
                 )}
+                <AndroidDownload />
               </section>
             )}
           </>

@@ -1,0 +1,29 @@
+{
+  "packageId": "vn.tungcv.bpnm",
+  "host": "bpnm.tungcv.vn",
+  "name": "BPNM Doc Hub",
+  "launcherName": "BPNM Doc Hub",
+  "display": "standalone",
+  "themeColor": "#1a140d",
+  "navigationColor": "#1a140d",
+  "backgroundColor": "#1a140d",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://bpnm.tungcv.vn/icons/app-512.png",
+  "webManifestUrl": "https://bpnm.tungcv.vn/manifest.webmanifest",
+  "fullScopeUrl": "https://bpnm.tungcv.vn/",
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "minSdkVersion": 24,
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "bpnm.p12",
+    "alias": "release"
+  },
+  "fingerprints": [
+    {
+      "name": "release",
+      "value": "8A:14:DD:E3:FC:2B:C3:7E:A4:6E:29:D9:0D:5B:A3:8C:64:04:1E:61:9B:2F:64:03:2E:46:B5:8E:80:A1:91:DC"
+    }
+  ]
+}
