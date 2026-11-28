@@ -52,6 +52,8 @@ export function parseCurrentLocation(customPath?: string, customHash?: string): 
   const first = parts[0].toLowerCase();
   const second = parts[1] ? decodeURIComponent(parts[1]) : null;
 
+  if (first === 'guide' || first === 'install') return { ...state, viewMode: first, currentFilter: first };
+
   // 1. Partners
   if (first === 'partners') {
     state.viewMode = 'partners';
@@ -300,6 +302,7 @@ export function buildRouteUrl(params: {
   const { viewMode, currentFilter, selectedItem, settingsSubTab } = params;
 
   if (viewMode === 'home') return '/';
+  if (viewMode === 'guide' || viewMode === 'install') return '/' + viewMode;
 
   if (viewMode === 'partners') {
     return '/partners';

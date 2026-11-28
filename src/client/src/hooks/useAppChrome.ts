@@ -44,6 +44,8 @@ export function useDocumentTitle(
     let label = t.pageTitleHome;
     if (viewMode === 'home') {
       label = t.homeNav;
+    } else if (viewMode === 'guide' || viewMode === 'install') {
+      label = viewMode === 'guide' ? t.guideNav : t.installNav;
     } else if (viewMode === 'partners') {
       label = t.pageTitlePartners;
     } else if (viewMode === 'settings') {

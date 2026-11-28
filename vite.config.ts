@@ -1,11 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { pwaShell } from './scripts/pwa-shell';
 import type { IncomingMessage, ServerResponse } from 'http';
 import path from 'path';
 
 export default defineConfig({
   plugins: [
     react(),
+    pwaShell(),
     {
       name: 'hono-dev-api',
       configureServer(server) {

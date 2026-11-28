@@ -3,6 +3,8 @@ import { notify, ToastHost } from './context/ToastContext.tsx';
 import { Header, type ViewMode } from './components/Header.tsx';
 import { Sidebar, NAV_GROUPS, type NavFilter } from './components/Sidebar.tsx';
 import { HomeView } from './components/HomeView.tsx';
+import { GuideView } from './components/GuideView';
+import { InstallView } from './components/InstallView';
 import { ItemList, type UnifiedItem } from './components/ItemList.tsx';
 import { DetailPane } from './components/DetailPane.tsx';
 import { ContractStatsBar } from './components/ContractStatsBar.tsx';
@@ -186,6 +188,14 @@ const AppContent: React.FC = () => {
   const handleSelectFilter = (filter: NavFilter) => {
     setCurrentFilter(filter);
 
+    if (filter === 'guide' || filter === 'install') {
+      setViewMode(filter);
+      setSelectedItem(null);
+      setTableSelectedContract(null);
+      setTableSelectedDocument(null);
+      syncUrl('/' + filter);
+      return;
+    }
     if (filter === 'home') {
       setViewMode('home');
       setSelectedItem(null);
@@ -195,7 +205,7 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    let targetView: ViewMode = viewMode === 'home' ? 'split' : viewMode;
+    let targetView: ViewMode = ['home', 'guide', 'install'].includes(viewMode) ? 'split' : viewMode;
 
     if (filter === 'partners_all') {
       targetView = 'partners';
@@ -398,7 +408,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <LoginView />;
+    return viewMode === 'install' ? <InstallView publicPage/> : <LoginView />;
   }
 
   // The backend refuses every other call until the initial/temporary password is replaced
@@ -427,7 +437,7 @@ const AppContent: React.FC = () => {
             openCreateWithTab('internal_incoming');
           } else if (currentFilter.startsWith('docs_outgoing')) {
             openCreateWithTab('outgoing');
-          } else if (currentFilter === 'home' || currentFilter.startsWith('docs')) {
+          } else if (['home', 'guide', 'install'].includes(currentFilter) || currentFilter.startsWith('docs')) {
             openCreateWithTab('incoming');
           } else {
             openCreateWithTab('contract');
@@ -436,7 +446,7 @@ const AppContent: React.FC = () => {
         onSelectDocumentById={(docId) => {
           const openDocument = (doc: DocumentRecord) => {
             const item: UnifiedItem = { kind: 'document', data: doc };
-            if (viewMode === 'home') handleSelectItemFromSpotlight(item);
+            if (['home', 'guide', 'install'].includes(viewMode)) handleSelectItemFromSpotlight(item);
             else handleSelectItem(item);
           };
           const doc = documents.find(d => d.id === docId);
@@ -465,7 +475,7 @@ const AppContent: React.FC = () => {
         {/* Main Content Area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {/* Top Horizontal KPI Stats Bar across the entire workspace width */}
-          {viewMode !== 'home' && viewMode !== 'partners' && viewMode !== 'settings' && currentFilter !== 'partners_all' && currentFilter !== 'settings_all' && (
+          {!['home', 'guide', 'install', 'partners', 'settings'].includes(viewMode) && currentFilter !== 'partners_all' && currentFilter !== 'settings_all' && (
             isContractSection ? (
               <ContractStatsBar
                 stats={stats}
@@ -482,7 +492,7 @@ const AppContent: React.FC = () => {
           )}
 
           {/* Main View Modes */}
-          {viewMode === 'home' ? (
+          {viewMode === 'guide' ? <GuideView documents={documents} failed={hasLoadError} loading={isLoading} onInstall={() => handleSelectFilter('install')}/> : viewMode === 'install' ? <InstallView/> : viewMode === 'home' ? (
             <HomeView
               name={user?.name || user?.username}
               documents={documents}

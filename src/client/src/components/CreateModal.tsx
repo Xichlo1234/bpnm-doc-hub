@@ -246,6 +246,7 @@ export const CreateModal: React.FC<CreateModalProps> = (props) => {
             </h2>
             <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
               {description}
+              <br/><a className="guide-form-link" href="/guide" target="_blank" rel="noopener noreferrer">{t.guideNav} ↗</a>
             </div>
           </div>
           <button className="modal-close" onClick={onClose} type="button" title={t.close}>
