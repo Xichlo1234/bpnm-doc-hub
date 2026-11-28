@@ -2,6 +2,8 @@ import type { Translations } from './vi.ts';
 
 export const km: Translations = {
   // Header & Brand (ភាសាខ្មែរ)
+  guideNav: 'សៀវភៅណែនាំ',
+  installNav: 'ដំឡើងលើទូរសព្ទ',
   brandTitle: 'BPNM Doc Hub',
   tabTitle: 'BPMN',
   brandSubtitle: 'ប្រព័ន្ធគ្រប់គ្រងឯកសារ និងកិច្ចសន្យាអេឡិចត្រូនិច',

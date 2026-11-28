@@ -23,7 +23,7 @@ import { api } from '../services/api.ts';
 import { formatNotificationTime } from '../utils/dateTime.ts';
 import { ChangePasswordView } from './ChangePasswordView.tsx';
 
-export type ViewMode = 'home' | 'split' | 'contract_table' | 'doc_table' | 'partners' | 'settings';
+export type ViewMode = 'home' | 'split' | 'contract_table' | 'doc_table' | 'partners' | 'settings' | 'guide' | 'install';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
@@ -142,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Header Actions */}
       <div className="header-actions">
         {/* View mode: cards | document register | contract table. Partners and settings live in the sidebar. */}
-        {viewMode !== 'home' && <label className="view-select-wrap" title={t.viewModeLabel}>
+        {!['home', 'guide', 'install'].includes(viewMode) && <label className="view-select-wrap" title={t.viewModeLabel}>
           <span className="sr-only">{t.viewModeLabel}</span>
           <select
             className="view-select"

@@ -8,13 +8,13 @@ describe('Compact navigation', () => {
       ...(e.filter ? [e.filter] : []),
       ...(e.groups ?? []).flatMap((id) => (id === 'docs_all' ? ['docs_all'] : NAV_GROUPS.find((g) => g.id === id)!.items.map((i) => i.filter))),
     ]);
-    expect([...reachable].sort()).toEqual(['home', ...all.filter((filter) => filter !== 'all')].sort());
+    expect([...reachable].sort()).toEqual(['home', 'guide', 'install', ...all.filter((filter) => filter !== 'all')].sort());
     expect(new Set(reachable).size).toBe(reachable.length);
     expect(TOP_ENTRIES[0].filter).toBe('home');
   });
 
-  it('has six top-level entries; only documents and contracts expand', () => {
-    expect(TOP_ENTRIES.map((e) => e.id)).toEqual(['overview', 'documents', 'contracts', 'partners', 'archive', 'admin']);
+  it('exposes the guide and installation page; only documents and contracts expand', () => {
+    expect(TOP_ENTRIES.map((e) => e.id)).toEqual(['overview', 'documents', 'contracts', 'partners', 'archive', 'guide', 'install', 'admin']);
     expect(TOP_ENTRIES.filter((e) => e.groups).map((e) => e.id)).toEqual(['documents', 'contracts']);
   });
 });

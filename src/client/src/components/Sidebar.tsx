@@ -7,6 +7,8 @@ import {
   CheckCircle,
   FileText,
   House,
+  BookOpen,
+  Smartphone,
   ArrowDownLeft,
   ArrowUpRight,
   Bookmark,
@@ -29,6 +31,8 @@ import type { TranslationKey } from '../i18n/index.ts';
 
 export type NavFilter =
   | 'home'
+  | 'guide'
+  | 'install'
   | 'all'
   | 'contracts_all'
   | 'contracts_urgent'
@@ -187,6 +191,8 @@ export const TOP_ENTRIES: TopEntry[] = [
   { id: 'contracts', label: 'navTopContracts', icon: FileCheck, groups: ['contracts', 'labor'] },
   { id: 'partners', label: 'navTopPartners', icon: Building2, filter: 'partners_all' },
   { id: 'archive', label: 'navTopArchive', icon: Archive, filter: 'archive' },
+  { id: 'guide', label: 'guideNav', icon: BookOpen, filter: 'guide', noCount: true },
+  { id: 'install', label: 'installNav', icon: Smartphone, filter: 'install', noCount: true },
   { id: 'admin', label: 'navTopAdmin', icon: SlidersHorizontal, filter: 'settings_all', noCount: true },
 ];
 

@@ -1,0 +1,74 @@
+.guide-scroll { flex: 1; min-width: 0; min-height: 0; overflow: auto; background: var(--bg-page); color: var(--text-primary); }
+.guide-page { max-width: 1200px; margin: 0 auto; padding: clamp(20px, 3.5vw, 64px); overflow-wrap: anywhere; }
+.guide-page h1, .guide-page h2, .guide-page h3, .guide-page p { margin: 0; }
+.guide-heading { padding-bottom: 24px; }
+.guide-kicker { display: flex; align-items: center; gap: 8px; color: var(--accent-primary); font-weight: 650; font-size: 13px; }
+.guide-heading h1 { margin: 12px 0 8px; font-size: clamp(28px, 3.5vw, 48px); line-height: 1.12; letter-spacing: -.04em; }
+.guide-page p, .guide-notes, .ios-steps { color: var(--text-secondary); line-height: 1.55; }
+.guide-tabs, .guide-mode { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+.guide-tabs { border-bottom: 1px solid var(--border-strong); padding-bottom: 10px; }
+.guide-tabs button, .guide-mode button { padding: 9px 14px; border: 1px solid transparent; border-radius: var(--k-radius-sm); background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer; }
+.guide-tabs button[aria-pressed=true], .guide-mode button[aria-pressed=true] { background: var(--accent-light); color: var(--accent-primary); border-color: var(--border-strong); font-weight: 650; }
+.guide-page button:hover:not(:disabled) { box-shadow: 0 0 12px var(--k-gold-glow); }
+.guide-page h2 { font-size: clamp(19px, 2vw, 25px); margin-bottom: 14px; }
+.guide-page h3 { font-size: 17px; }
+.guide-rules, .guide-blocks, .wizard-progress, .ios-steps { list-style: none; margin: 0; padding: 0; }
+.guide-rules { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.guide-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--k-radius); padding: clamp(16px, 2vw, 28px); }
+.guide-rules li { display: flex; align-items: flex-start; gap: 14px; }
+.guide-rules li > div { min-width: 0; }
+.rule-number { flex-shrink: 0; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 700; color: var(--accent-primary); }
+.guide-rules p { margin: 6px 0 11px; }
+.guide-page code, .wizard-result output { font-family: ui-monospace, Consolas, monospace; color: var(--accent-primary); font-size: .91em; white-space: normal; }
+.guide-rules .emphasis, .wizard-result { background: var(--accent-light); border-color: var(--accent-primary); }
+.guide-blocks { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0; }
+.guide-blocks li { display: grid; gap: 5px; flex: 1 1 auto; padding: 12px; border-radius: var(--k-radius-sm); background: var(--bg-sidebar); }
+.guide-blocks li:nth-child(3n + 1) { background: var(--accent-light); color: var(--accent-primary); }
+.guide-blocks li:nth-child(3n + 2) { background: var(--gray-bg); color: var(--gray-text); }
+.guide-notes { padding-inline-start: 20px; }
+.guide-install-link, .qr-card { display: flex; align-items: center; gap: 18px; }
+.guide-install-link { margin-top: 24px; border-top: 1px solid var(--border-strong); padding-top: 18px; }
+.guide-install-link > svg { color: var(--accent-primary); flex-shrink: 0; }
+.guide-install-link > div { flex: 1; }
+.guide-page .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.wizard { max-width: 900px; }
+.wizard-progress { display: flex; margin: 24px 0; }
+.wizard-progress li { flex: 1; border-top: 2px solid var(--border-strong); padding-top: 8px; color: var(--text-muted); }
+.wizard-progress .reached { border-color: var(--accent-primary); color: var(--accent-primary); }
+.wizard-progress span { display: inline-grid; place-items: center; height: 24px; width: 24px; background: var(--bg-surface-subtle); border-radius: 50%; }
+.wizard-progress li[aria-current] span { background: var(--k-gold-mid); color: var(--k-gold-text); }
+.wizard-progress small { display: block; margin-top: 5px; }
+.wizard label { display: grid; gap: 6px; font-weight: 600; }
+.wizard input:not([type=checkbox]), .wizard select { width: 100%; min-width: 0; box-sizing: border-box; padding: 11px 12px; font: inherit; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: var(--k-radius-sm); }
+.wizard-fields { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+.wizard-actions { display: flex; gap: 10px; justify-content: space-between; margin-top: 20px; }
+.wizard button:disabled { opacity: .5; cursor: default; }
+.wizard .suffix { display: flex; align-items: center; gap: 8px; }
+.wizard-result { margin-top: 16px; padding: 16px; border-radius: var(--k-radius-sm); border-inline-start: 3px solid var(--accent-primary); }
+.wizard-result h3 { margin-bottom: 8px; }
+.guide-page .guide-warning { color: var(--warning-text); margin-top: 8px; }
+.install-scroll { height: 100%; min-height: 0; }
+.install-page { max-width: 860px; }
+.install-page .guide-card { margin-bottom: 14px; }
+.install-icon { border-radius: var(--k-radius); }
+.qr-card a, .guide-form-link { color: var(--accent-primary); }
+.qr-card > svg { flex-shrink: 0; }
+.ios-steps { display: grid; gap: 14px; }
+.ios-steps li { display: flex; align-items: center; gap: 12px; }
+.ios-picture { display: grid; justify-items: center; flex-shrink: 0; align-content: center; width: 100px; min-height: 66px; border-radius: var(--k-radius-sm); background: var(--bg-surface-subtle); color: var(--accent-primary); }
+.guide-form-link { display: inline-block; margin-top: 5px; }
+@media(max-width: 720px) {
+  .guide-page { padding: 20px 16px; }
+  .guide-rules, .wizard-fields { grid-template-columns: minmax(0,1fr); }
+  .guide-tabs { gap: 2px; }
+  .guide-tabs button { padding: 9px 8px; font-size: 13px; }
+  .guide-install-link, .qr-card { flex-wrap: wrap; }
+  .guide-install-link > div { flex-basis: 80%; }
+  .wizard-progress small { font-size: 11px; }
+  .wizard input, .wizard select { font-size: 16px; }
+}
+@supports (padding: env(safe-area-inset-top)) {
+  .app-container, #root > .install-scroll { box-sizing: border-box; height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .sidebar-pane.sidebar-open { top: env(safe-area-inset-top); bottom: env(safe-area-inset-bottom); left: env(safe-area-inset-left); }
+  .modal-backdrop { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+}

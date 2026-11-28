@@ -1,5 +1,7 @@
 export const vi = {
   // Header & Brand
+  guideNav: 'Hướng dẫn sử dụng',
+  installNav: 'Tải app về điện thoại',
   brandTitle: 'BPNM Doc Hub',
   tabTitle: 'BPMN',
   brandSubtitle: 'Hồ sơ & Sổ Công văn điện tử',
