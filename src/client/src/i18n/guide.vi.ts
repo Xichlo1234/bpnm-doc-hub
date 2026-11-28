@@ -1,4 +1,6 @@
 export const guide = {
+  apkButton: 'Tải file APK', apkVersion: 'Phiên bản',
+  apkHint: 'Mở tệp vừa tải. Nếu Android yêu cầu, vào Cài đặt và bật “Cho phép cài ứng dụng từ nguồn này” cho trình duyệt, rồi quay lại chọn Cài đặt.',
   title: 'Hướng dẫn sử dụng', source: 'Chuyển giao Quản trị Tài liệu D1 · Slide 13–15',
   intro: 'Đặt tên, ghép mã và quản lý phiên bản tài liệu trước khi đăng ký vào sổ.',
   rulesTitle: 'Sáu nguyên tắc đặt tên', structure: 'Cấu trúc mã V3', practice: 'Thực hành ghép mã', install: 'Tải app về điện thoại',

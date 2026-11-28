@@ -43,7 +43,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
-  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/downloads/') || url.pathname === '/.well-known/assetlinks.json') return;
   const cached = path => caches.open(cacheName).then(cache => cache.match(path));
   if (req.mode === 'navigate') {
     event.respondWith(fetch(req).catch(() => cached('/')));

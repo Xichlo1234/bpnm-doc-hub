@@ -1,0 +1,57 @@
+name: Đóng gói APK Android
+on:
+  workflow_dispatch:
+    inputs:
+      tenant:
+        description: Đơn vị phát hành
+        type: choice
+        required: true
+        options: [document-manage, bpnm]
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      TENANT: ${{ inputs.tenant }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Chuẩn bị Bubblewrap và Android SDK
+        run: |
+          printf 'APK_KEY_DIR=%s\n' "$RUNNER_TEMP/doc-hub-signing" >> "$GITHUB_ENV"
+          npm ci --prefix scripts/android
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'build-tools;35.0.0'
+      - name: Phục hồi khóa vào thư mục tạm
+        env:
+          KEY_DATA: ${{ secrets[format('ANDROID_KEYSTORE_BASE64_{0}', inputs.tenant == 'bpnm' && 'BPNM' || 'DOCUMENT_MANAGE')] }}
+          STORE_PASS: ${{ secrets[format('ANDROID_KEYSTORE_PASSWORD_{0}', inputs.tenant == 'bpnm' && 'BPNM' || 'DOCUMENT_MANAGE')] }}
+          KEY_PASS: ${{ secrets[format('ANDROID_KEY_PASSWORD_{0}', inputs.tenant == 'bpnm' && 'BPNM' || 'DOCUMENT_MANAGE')] }}
+          KEY_ALIAS: ${{ secrets[format('ANDROID_KEY_ALIAS_{0}', inputs.tenant == 'bpnm' && 'BPNM' || 'DOCUMENT_MANAGE')] }}
+        run: |
+          set -eu
+          umask 077
+          test -n "$STORE_PASS" && test "$STORE_PASS" = "$KEY_PASS" && test "$KEY_ALIAS" = release || exit 1
+          mkdir "$APK_KEY_DIR"
+          printf '%s' "$KEY_DATA" | base64 --decode > "$APK_KEY_DIR/$TENANT.p12"
+          printf '%s' "$STORE_PASS" > "$APK_KEY_DIR/$TENANT.password"
+      - name: Đóng gói và kiểm tra chữ ký
+        run: npm run apk:build -- "$TENANT"
+      - name: Xóa bản tạm của khóa và mật khẩu
+        if: always()
+        run: rm -f -- "$APK_KEY_DIR/$TENANT.p12" "$APK_KEY_DIR/$TENANT.password"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ inputs.tenant }}-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            android/${{ inputs.tenant }}/${{ inputs.tenant }}.apk
+            android/${{ inputs.tenant }}/release.json

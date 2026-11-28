@@ -1,0 +1,29 @@
+{
+  "packageId": "vn.tungcv.documentmanage",
+  "host": "document-manage.tungcv.vn",
+  "name": "SGII Doc Hub",
+  "launcherName": "SGII Doc Hub",
+  "display": "standalone",
+  "themeColor": "#1a140d",
+  "navigationColor": "#1a140d",
+  "backgroundColor": "#1a140d",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://document-manage.tungcv.vn/icons/app-512.png",
+  "webManifestUrl": "https://document-manage.tungcv.vn/manifest.webmanifest",
+  "fullScopeUrl": "https://document-manage.tungcv.vn/",
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "minSdkVersion": 24,
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "document-manage.p12",
+    "alias": "release"
+  },
+  "fingerprints": [
+    {
+      "name": "release",
+      "value": "16:BA:78:34:B8:C4:26:82:20:9F:10:E7:CB:03:04:E1:59:F8:A6:08:01:DF:45:CD:C6:AE:CA:F1:B4:E4:47:AB"
+    }
+  ]
+}

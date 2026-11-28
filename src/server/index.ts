@@ -1,4 +1,5 @@
 import { Hono, type Context } from 'hono';
+import { android } from './routes/android';
 import { bodyLimit } from 'hono/body-limit';
 import { documentsRouter } from './routes/documents.ts';
 import { contractsRouter } from './routes/contracts.ts';
@@ -22,6 +23,7 @@ import { DatabaseNotMigratedError, CommitOutcomeUnknownError, RevisionConflictEr
 import { UploadValidationError } from './utils/fileStorage.ts';
 
 export const app = new Hono();
+app.route('/', android);
 
 // No CORS middleware: the SPA is served from the same origin as the API, so cross-origin
 // access is intentionally not allowed.

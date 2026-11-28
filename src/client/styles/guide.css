@@ -51,6 +51,10 @@
 .install-page { max-width: 860px; }
 .install-page .guide-card { margin-bottom: 14px; }
 .install-icon { border-radius: var(--k-radius); }
+.android-download { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.android-download small { color: var(--text-secondary); }
+.android-download p { flex-basis: 100%; }
+.android-download a:hover { box-shadow: 0 0 12px var(--k-gold-glow); }
 .qr-card a, .guide-form-link { color: var(--accent-primary); }
 .qr-card > svg { flex-shrink: 0; }
 .ios-steps { display: grid; gap: 14px; }
